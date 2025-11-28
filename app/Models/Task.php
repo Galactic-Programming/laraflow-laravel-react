@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
+    use SoftDeletes;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -17,7 +20,6 @@ class Task extends Model
      */
     protected $fillable = [
         'list_id',
-        'board_id',
         'assigned_to',
         'created_by',
         'title',
@@ -52,13 +54,7 @@ class Task extends Model
         return $this->belongsTo(BoardList::class, 'list_id');
     }
 
-    /**
-     * Get the board that owns the task.
-     */
-    public function board(): BelongsTo
-    {
-        return $this->belongsTo(Board::class);
-    }
+    // Intentionally no direct board() relation as tasks belong to a board via list -> board.
 
     /**
      * Get the user that is assigned to the task.

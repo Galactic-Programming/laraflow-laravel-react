@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Board extends Model
 {
+    use SoftDeletes;
     /**
      * The attributes that are mass assignable.
      *
@@ -52,11 +55,18 @@ class Board extends Model
     }
 
     /**
-     * Get the tasks for the board.
+     * Get the tasks for the board via its lists.
      */
-    public function tasks(): HasMany
+    public function tasks(): HasManyThrough
     {
-        return $this->hasMany(Task::class);
+        return $this->hasManyThrough(
+            Task::class,      // Final model
+            BoardList::class, // Intermediate model
+            'board_id',       // Foreign key on BoardList referencing boards.id
+            'list_id',        // Foreign key on Task referencing lists.id
+            'id',             // Local key on boards
+            'id'              // Local key on lists
+        );
     }
 
     /**
