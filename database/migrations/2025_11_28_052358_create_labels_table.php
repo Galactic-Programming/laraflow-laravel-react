@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index('board_id');
+            $table->unique(['board_id', 'name']);
         });
     }
 

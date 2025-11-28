@@ -13,24 +13,24 @@ return new class extends Migration {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('list_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('board_id')->constrained()->cascadeOnDelete();
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('created_by')->constrained('users')->nullOnDelete();
+            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
             $table->timestamp('due_date')->nullable();
             $table->enum('priority', ['low', 'medium', 'high'])->nullable();
-            $table->integer('position');
+            $table->unsignedInteger('position')->default(0);
             $table->boolean('is_completed')->default(false);
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index('list_id');
-            $table->index('board_id');
             $table->index('assigned_to');
-            $table->index('position');
             $table->index('is_completed');
             $table->index('due_date');
+            $table->index(['list_id', 'position']);
+            $table->index(['list_id', 'is_completed']);
         });
     }
 
