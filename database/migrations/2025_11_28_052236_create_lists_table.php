@@ -14,13 +14,15 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('board_id')->constrained()->cascadeOnDelete();
             $table->string('title');
-            $table->integer('position');
+            $table->unsignedInteger('position')->default(0);
             $table->boolean('is_archived')->default(false);
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index('board_id');
-            $table->index('position');
             $table->index('is_archived');
+            $table->index(['board_id', 'position']);
+            $table->index(['board_id', 'is_archived']);
         });
     }
 

@@ -18,9 +18,11 @@ return new class extends Migration {
             $table->string('color')->nullable();
             $table->boolean('is_archived')->default(false);
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index('user_id');
             $table->index('is_archived');
+            $table->index(['user_id', 'is_archived']);
         });
     }
 

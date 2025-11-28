@@ -15,12 +15,12 @@ return new class extends Migration {
             $table->foreignId('task_id')->constrained()->cascadeOnDelete();
             $table->string('title');
             $table->boolean('is_completed')->default(false);
-            $table->integer('position');
+            $table->unsignedInteger('position')->default(0);
             $table->timestamps();
 
             $table->index('task_id');
-            $table->index('position');
-            $table->index('is_completed');
+            $table->index(['task_id', 'position']);
+            $table->index(['task_id', 'is_completed']);
         });
     }
 
