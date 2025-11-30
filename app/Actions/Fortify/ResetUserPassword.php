@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
@@ -19,7 +20,12 @@ class ResetUserPassword implements ResetsUserPasswords
     {
         Validator::make($input, [
             'password' => $this->passwordRules(),
-        ])->validate();
+        ])->after(function ($validator) use ($user, $input) {
+            // Prevent reusing the current password
+            if (isset($input['password']) && is_string($input['password']) && Hash::check($input['password'], (string) $user->password)) {
+                $validator->errors()->add('password', __('The new password must be different from your current password.'));
+            }
+        })->validate();
 
         $user->forceFill([
             'password' => $input['password'],
