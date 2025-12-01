@@ -5,7 +5,7 @@ import { register } from '@/routes'
 
 const HeroSection = () => {
     return (
-        <section className='flex min-h-[calc(100dvh-4rem)] flex-1 flex-col justify-between gap-12 overflow-x-hidden pt-8 sm:gap-16 sm:pt-16 lg:gap-24 lg:pt-24'>
+        <section className='flex min-h-[calc(80dvh-4rem)] flex-1 flex-col justify-between gap-8 overflow-x-hidden pt-6 sm:gap-12 sm:pt-12 lg:gap-16 lg:pt-16'>
             {/* Hero Content */}
             <div className='mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8'>
                 <div className='bg-muted flex items-center gap-2.5 rounded-full border px-3 py-2'>
@@ -62,7 +62,7 @@ const HeroSection = () => {
             </div>
 
             {/* Image */}
-            
+
         </section>
     )
 }
