@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,6 +36,69 @@ export default function Profile({
             <Head title="Profile settings" />
 
             <SettingsLayout>
+                {/* Avatar management */}
+
+                <HeadingSmall
+                    title="Avatar"
+                    description="Upload or remove your profile picture"
+                />
+                <div className="mt-4 flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                        <AvatarImage
+                            src={auth.user.avatar ?? undefined}
+                            alt={auth.user.name}
+                        />
+                        <AvatarFallback>
+                            {auth.user.name?.charAt(0) ?? 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <Form
+                        action="/settings/avatar"
+                        method="patch"
+                        encType="multipart/form-data"
+                        options={{ preserveScroll: true }}
+                        className="flex items-center gap-3"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <Input
+                                    type="file"
+                                    name="avatar"
+                                    accept="image/*"
+                                    className="w-56"
+                                />
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="outline"
+                                >
+                                    Upload
+                                </Button>
+                                <InputError message={errors.avatar} />
+                            </>
+                        )}
+                    </Form>
+
+                    {auth.user.avatar && (
+                        <Form
+                            action="/settings/avatar"
+                            method="delete"
+                            options={{ preserveScroll: true }}
+                        >
+                            {({ processing }) => (
+                                <Button
+                                    disabled={processing}
+                                    className="outline"
+                                >
+                                    Remove
+                                </Button>
+                            )}
+                        </Form>
+                    )}
+                </div>
+
+
+                {/* Profile information */}
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Profile information"
@@ -107,12 +171,12 @@ export default function Profile({
 
                                             {status ===
                                                 'verification-link-sent' && (
-                                                <div className="mt-2 text-sm font-medium text-green-600">
-                                                    A new verification link has
-                                                    been sent to your email
-                                                    address.
-                                                </div>
-                                            )}
+                                                    <div className="mt-2 text-sm font-medium text-green-600">
+                                                        A new verification link has
+                                                        been sent to your email
+                                                        address.
+                                                    </div>
+                                                )}
                                         </div>
                                     )}
 
