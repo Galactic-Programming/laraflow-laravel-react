@@ -12,6 +12,14 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/terms', function () {
+    return Inertia::render('auth/condition', ['type' => 'terms']);
+})->name('terms');
+
+Route::get('/privacy', function () {
+    return Inertia::render('auth/condition', ['type' => 'privacy']);
+})->name('privacy');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');

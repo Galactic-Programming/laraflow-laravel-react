@@ -138,8 +138,12 @@ export default function Register() {
                                 />
                                 <Label htmlFor="terms" className="text-sm font-normal">
                                     <span className="text-muted-foreground">I agree to the</span>{' '}
-                                    <TextLink href="#" className="text-foreground hover:underline">
-                                        privacy policy & terms
+                                    <TextLink href="/terms">
+                                        Terms
+                                    </TextLink>
+                                    <span className="text-muted-foreground"> & </span>
+                                    <TextLink href="/privacy">
+                                        Privacy Policy
                                     </TextLink>
                                 </Label>
                             </div>
