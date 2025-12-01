@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -24,6 +25,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'avatar',
         'password',
+        'phone',
+        'job_title',
+        'company',
+        'bio',
+        'location',
+        'is_visible',
     ];
 
     /**
@@ -49,7 +56,56 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'is_visible' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the subscriptions for the user.
+     *
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get the active subscription for the user.
+     *
+     * @return HasOne<Subscription, $this>
+     */
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('status', 'active')
+            ->latestOfMany();
+    }
+
+    /**
+     * Get the payments for the user.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Check if user has Professional plan.
+     */
+    public function isProfessional(): bool
+    {
+        return $this->activeSubscription?->isProfessional() ?? false;
+    }
+
+    /**
+     * Get the current plan name.
+     */
+    public function getPlanName(): string
+    {
+        return $this->activeSubscription?->plan?->name ?? 'Starter';
     }
 
     /**
