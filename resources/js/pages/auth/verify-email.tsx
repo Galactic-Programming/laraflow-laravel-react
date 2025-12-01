@@ -1,4 +1,3 @@
-// Components
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -10,8 +9,8 @@ import { Form, Head } from '@inertiajs/react';
 export default function VerifyEmail({ status }: { status?: string }) {
     return (
         <AuthLayout
-            title="Verify email"
-            description="Please verify your email address by clicking on the link we just emailed to you."
+            title="Verify your email"
+            description="An activation link has been sent to your email address. Please check your inbox and click on the link to complete the activation process."
         >
             <Head title="Email verification" />
 
@@ -22,21 +21,26 @@ export default function VerifyEmail({ status }: { status?: string }) {
                 </div>
             )}
 
-            <Form {...send.form()} className="space-y-6 text-center">
+            <Form {...send.form()} className="flex flex-col gap-5">
                 {({ processing }) => (
-                    <>
-                        <Button disabled={processing} variant="secondary">
-                            {processing && <Spinner />}
+                    <div className="grid gap-4">
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={processing}
+                        >
+                            {processing && <Spinner className="mr-2" />}
                             Resend verification email
                         </Button>
 
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
-                        >
-                            Log out
-                        </TextLink>
-                    </>
+                        <p className="text-center text-sm text-muted-foreground">
+                            Didn't get the email?{' '}
+                            <TextLink href={logout()}>
+                                Log out
+                            </TextLink>
+                            {' '}and try again
+                        </p>
+                    </div>
                 )}
             </Form>
         </AuthLayout>
