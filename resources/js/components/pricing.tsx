@@ -42,6 +42,14 @@ export interface PricingProps {
     monthlyLabel?: string;
     /** Annual toggle label */
     annualLabel?: string;
+    /** Per month label */
+    perMonthLabel?: string;
+    /** Per year label */
+    perYearLabel?: string;
+    /** Save per year label (use {amount} for savings) */
+    saveLabel?: string;
+    /** Default CTA text */
+    defaultCtaText?: string;
     /** Currency symbol */
     currency?: string;
     /** Show billing toggle */
@@ -71,6 +79,10 @@ export function PricingCards({
     ),
     monthlyLabel = 'Monthly',
     annualLabel = 'Annually',
+    perMonthLabel = '/month',
+    perYearLabel = '/year',
+    saveLabel = 'Save {amount}/year',
+    defaultCtaText = 'Get Started',
     currency = '$',
     showToggle = true,
     defaultAnnual = false,
@@ -112,6 +124,10 @@ export function PricingCards({
                             plan={plan}
                             isAnnual={isAnnual}
                             currency={currency}
+                            perMonthLabel={perMonthLabel}
+                            perYearLabel={perYearLabel}
+                            saveLabel={saveLabel}
+                            defaultCtaText={defaultCtaText}
                         />
                     ))}
                 </div>
@@ -128,6 +144,10 @@ export interface PricingCardProps {
     plan: PricingPlan;
     isAnnual: boolean;
     currency?: string;
+    perMonthLabel?: string;
+    perYearLabel?: string;
+    saveLabel?: string;
+    defaultCtaText?: string;
     className?: string;
 }
 
@@ -135,10 +155,14 @@ export function PricingCard({
     plan,
     isAnnual,
     currency = '$',
+    perMonthLabel = '/month',
+    perYearLabel = '/year',
+    saveLabel = 'Save {amount}/year',
+    defaultCtaText = 'Get Started',
     className,
 }: PricingCardProps) {
     const price = isAnnual ? plan.annual : plan.monthly;
-    const period = isAnnual ? 'year' : 'month';
+    const periodLabel = isAnnual ? perYearLabel : perMonthLabel;
     const savings = isAnnual && plan.monthly > 0 ? plan.monthly * 12 - plan.annual : null;
 
     const priceDisplay = (priceClassName?: string) => (
@@ -147,11 +171,11 @@ export function PricingCard({
                 <span className="text-primary text-5xl font-bold">
                     {currency}{price}
                 </span>
-                <span className="text-muted-foreground ml-1 text-lg">/{period}</span>
+                <span className="text-muted-foreground ml-1 text-lg">{periodLabel}</span>
             </div>
             {savings !== null && savings > 0 && (
                 <span className="mt-1 text-sm font-medium text-green-600">
-                    Save {currency}{savings.toLocaleString()}/year
+                    {saveLabel.replace('{amount}', `${currency}${savings.toLocaleString()}`)}
                 </span>
             )}
         </div>
@@ -176,7 +200,7 @@ export function PricingCard({
                     {priceDisplay('sm:hidden')}
 
                     <Button className="w-fit" onClick={plan.onCtaClick}>
-                        {plan.ctaText || 'Get Started'}
+                        {plan.ctaText || defaultCtaText}
                     </Button>
                 </div>
 

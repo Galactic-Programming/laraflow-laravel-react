@@ -1,6 +1,8 @@
 import { FacebookIcon, GithubIcon, LinkedinIcon, TwitterIcon } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations';
 
 export function AppFooter() {
+    const { t } = useTranslations();
     const currentYear = new Date().getFullYear();
 
     return (
@@ -10,7 +12,7 @@ export function AppFooter() {
                 <a href="/" className="text-primary hover:underline">
                     LaraFlow
                 </a>
-                , Made for better project management
+                , {t('common.footer_tagline', 'Made for better project management')}
             </p>
             <div className="flex items-center gap-5">
                 <a

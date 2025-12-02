@@ -18,8 +18,12 @@ export interface LogoItem {
 export interface LogoCloudProps {
     /** Array of logo items */
     logos?: LogoItem[];
-    /** Section title */
+    /** Section title (ReactNode for custom styling) */
     title?: ReactNode;
+    /** First part of title (for i18n) */
+    titlePart1?: string;
+    /** Second part of title with underline (for i18n) */
+    titlePart2?: string;
     /** Section description */
     description?: string;
     /** Show logos inside a card */
@@ -107,11 +111,11 @@ export const defaultIntegrations: LogoItem[] = [
 // Default Title Component
 // ============================================================================
 
-const DefaultTitle = () => (
+const DefaultTitle = ({ part1 = 'Seamlessly', part2 = 'integrates with your favorite tools' }: { part1?: string; part2?: string }) => (
     <>
-        <span>Seamlessly</span>{' '}
+        <span>{part1}</span>{' '}
         <span className="relative z-1">
-            integrates with your favorite tools
+            {part2}
             <span className="bg-primary absolute bottom-1 left-0 -z-1 h-px w-full"></span>
         </span>
     </>
@@ -123,7 +127,9 @@ const DefaultTitle = () => (
 
 export function LogoCloud({
     logos = defaultIntegrations,
-    title = <DefaultTitle />,
+    title,
+    titlePart1,
+    titlePart2,
     description = 'Connect with the apps you already use to streamline your workflow.',
     showCard = true,
     showNames = true,
@@ -132,6 +138,8 @@ export function LogoCloud({
     className,
     children,
 }: LogoCloudProps) {
+    const displayTitle = title ?? <DefaultTitle part1={titlePart1} part2={titlePart2} />;
+
     const LogosContent = (
         <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 text-muted-foreground">
             {logos.map((item, index) => {
@@ -179,7 +187,7 @@ export function LogoCloud({
                     children
                 ) : (
                     <div className="mb-8 space-y-4 text-center sm:mb-12">
-                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">{title}</h2>
+                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">{displayTitle}</h2>
                         {description && (
                             <p className="text-muted-foreground text-xl">{description}</p>
                         )}

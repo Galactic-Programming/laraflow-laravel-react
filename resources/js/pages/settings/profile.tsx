@@ -12,16 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: edit().url,
-    },
-];
 
 export default function Profile({
     mustVerifyEmail,
@@ -31,16 +25,24 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage<SharedData>().props;
+    const { t } = useTranslations();
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: t('settings.profile', 'Profile settings'),
+            href: edit().url,
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Profile settings" />
+            <Head title={t('settings.profile', 'Profile settings')} />
 
             <SettingsLayout>
                 {/* Profile Header with Avatar */}
                 <SettingsCard
-                    title="Profile"
-                    description="Your public profile information"
+                    title={t('settings.profile', 'Profile')}
+                    description={t('settings.profile_desc', 'Your public profile information')}
                 >
                     <div className="space-y-6">
                         {/* Avatar Section */}
@@ -74,7 +76,7 @@ export default function Profile({
                                                 size="sm"
                                                 disabled={processing}
                                             >
-                                                Upload
+                                                {t('settings.upload', 'Upload')}
                                             </Button>
                                             <InputError message={errors.avatar} />
                                         </>
@@ -93,7 +95,7 @@ export default function Profile({
                                                 size="sm"
                                                 disabled={processing}
                                             >
-                                                Remove
+                                                {t('settings.remove_avatar', 'Remove')}
                                             </Button>
                                         )}
                                     </Form>
@@ -105,8 +107,8 @@ export default function Profile({
 
                 {/* Profile Information Form */}
                 <SettingsCard
-                    title="Personal Information"
-                    description="Update your name and email address"
+                    title={t('settings.profile_info', 'Personal Information')}
+                    description={t('settings.profile_info_desc', 'Update your name and email address')}
                 >
                     <Form
                         {...ProfileController.update.form()}
@@ -119,26 +121,26 @@ export default function Profile({
                             <>
                                 <div className="grid gap-6 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">Full Name</Label>
+                                        <Label htmlFor="name">{t('auth.full_name', 'Full Name')}</Label>
                                         <Input
                                             id="name"
                                             defaultValue={auth.user.name}
                                             name="name"
                                             autoComplete="name"
-                                            placeholder="Enter your full name"
+                                            placeholder={t('auth.enter_name', 'Enter your full name')}
                                         />
                                         <InputError message={errors.name} />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email Address</Label>
+                                        <Label htmlFor="email">{t('auth.email', 'Email Address')}</Label>
                                         <Input
                                             id="email"
                                             type="email"
                                             defaultValue={auth.user.email}
                                             name="email"
                                             autoComplete="username"
-                                            placeholder="Enter your email"
+                                            placeholder={t('auth.enter_email', 'Enter your email')}
                                         />
                                         <InputError message={errors.email} />
                                     </div>
@@ -159,7 +161,7 @@ export default function Profile({
                                             </p>
                                             {status === 'verification-link-sent' && (
                                                 <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                                                    A new verification link has been sent to your email address.
+                                                    {t('auth.verification_sent', 'A new verification link has been sent to your email address.')}
                                                 </p>
                                             )}
                                         </div>
@@ -172,7 +174,7 @@ export default function Profile({
                                         disabled={processing}
                                         data-test="update-profile-button"
                                     >
-                                        Save Changes
+                                        {t('common.save', 'Save Changes')}
                                     </Button>
 
                                     <Transition
@@ -183,7 +185,7 @@ export default function Profile({
                                         leaveTo="opacity-0"
                                     >
                                         <p className="text-sm text-green-600 dark:text-green-400">
-                                            Saved successfully
+                                            {t('settings.saved', 'Saved successfully')}
                                         </p>
                                     </Transition>
                                 </div>
@@ -194,8 +196,8 @@ export default function Profile({
 
                 {/* Danger Zone */}
                 <SettingsCard
-                    title="Danger Zone"
-                    description="Irreversible and destructive actions"
+                    title={t('settings.delete_account', 'Danger Zone')}
+                    description={t('settings.delete_account_desc', 'Irreversible and destructive actions')}
                     danger
                 >
                     <DeleteUser />

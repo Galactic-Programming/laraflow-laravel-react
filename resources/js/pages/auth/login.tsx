@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
@@ -26,16 +27,17 @@ export default function Login({
     canRegister,
 }: LoginProps) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const { t } = useTranslations();
 
     const socialRedirect = (provider: 'google' | 'github') =>
         `/auth/${provider}/redirect` as const;
 
     return (
         <AuthLayout
-            title="Welcome back"
-            description="Sign in to continue managing your projects"
+            title={t('auth.welcome_back', 'Welcome back')}
+            description={t('auth.sign_in_desc', 'Sign in to continue managing your projects')}
         >
-            <Head title="Log in" />
+            <Head title={t('auth.login', 'Log in')} />
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
@@ -53,7 +55,7 @@ export default function Login({
                         <div className="grid gap-4">
                             {/* Email */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -61,14 +63,14 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
-                                    placeholder="Enter your email address"
+                                    placeholder={t('auth.enter_email', 'Enter your email address')}
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             {/* Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
@@ -105,7 +107,7 @@ export default function Login({
                                         tabIndex={3}
                                     />
                                     <Label htmlFor="remember" className="text-muted-foreground text-sm font-normal">
-                                        Remember me
+                                        {t('auth.remember_me', 'Remember me')}
                                     </Label>
                                 </div>
 
@@ -115,7 +117,7 @@ export default function Login({
                                         className="text-sm"
                                         tabIndex={5}
                                     >
-                                        Forgot password?
+                                        {t('auth.forgot_password', 'Forgot your password?')}
                                     </TextLink>
                                 )}
                             </div>
@@ -128,15 +130,15 @@ export default function Login({
                                 data-test="login-button"
                             >
                                 {processing && <Spinner className="mr-2" />}
-                                Sign in
+                                {t('auth.login', 'Sign in')}
                             </Button>
                         </div>
 
                         {canRegister && (
                             <p className="text-center text-sm text-muted-foreground">
-                                New to LaraFlow?{' '}
+                                {t('auth.no_account', "Don't have an account?")}{' '}
                                 <TextLink href={register()} tabIndex={6}>
-                                    Create an account
+                                    {t('auth.sign_up', 'Sign up')}
                                 </TextLink>
                             </p>
                         )}
@@ -144,7 +146,7 @@ export default function Login({
                         {/* Divider */}
                         <div className="flex items-center gap-4">
                             <Separator className="flex-1" />
-                            <span className="text-xs text-muted-foreground uppercase">or continue with</span>
+                            <span className="text-xs text-muted-foreground uppercase">{t('auth.or_continue_with', 'or continue with')}</span>
                             <Separator className="flex-1" />
                         </div>
 

@@ -22,6 +22,8 @@ export default function LanguageDropdown({ defaultOpen, align = 'end', trigger }
 
     const handleLocaleChange = (newLocale: string) => {
         if (newLocale !== locale) {
+            // Flush all cached Inertia data before changing locale
+            router.flushAll();
             router.post(
                 `/locale/${newLocale}`,
                 {},

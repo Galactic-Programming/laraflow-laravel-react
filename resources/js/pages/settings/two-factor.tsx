@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { disable, enable, show } from '@/routes/two-factor';
@@ -18,17 +19,11 @@ interface TwoFactorProps {
     twoFactorEnabled?: boolean;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Two-Factor Authentication',
-        href: show.url(),
-    },
-];
-
 export default function TwoFactor({
     requiresConfirmation = false,
     twoFactorEnabled = false,
 }: TwoFactorProps) {
+    const { t } = useTranslations();
     const {
         qrCodeSvg,
         hasSetupData,
@@ -41,16 +36,23 @@ export default function TwoFactor({
     } = useTwoFactorAuth();
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: t('nav.two_factor', 'Two-Factor Authentication'),
+            href: show.url(),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Two-Factor Authentication" />
+            <Head title={t('nav.two_factor', 'Two-Factor Authentication')} />
             <SettingsLayout>
                 <SettingsCard
-                    title="Two-Factor Authentication"
-                    description="Add an extra layer of security to your account by requiring a verification code in addition to your password."
+                    title={t('settings.two_factor', 'Two-Factor Authentication')}
+                    description={t('settings.two_factor_desc', 'Add an extra layer of security to your account by requiring a verification code in addition to your password.')}
                     headerActions={
                         <Badge variant={twoFactorEnabled ? 'default' : 'destructive'}>
-                            {twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                            {twoFactorEnabled ? t('settings.enabled', 'Enabled') : t('settings.disabled', 'Disabled')}
                         </Badge>
                     }
                 >
@@ -61,10 +63,10 @@ export default function TwoFactor({
                                 <ShieldCheck className="mt-0.5 size-5 text-green-600 dark:text-green-400" />
                                 <div className="text-sm">
                                     <p className="font-medium text-green-800 dark:text-green-200">
-                                        Two-factor authentication is active
+                                        {t('settings.2fa_active', 'Two-factor authentication is active')}
                                     </p>
                                     <p className="text-green-700 dark:text-green-300">
-                                        You will be prompted for a secure, random code during login from your authenticator app.
+                                        {t('settings.2fa_active_desc', 'You will be prompted for a secure, random code during login from your authenticator app.')}
                                     </p>
                                 </div>
                             </div>
@@ -81,9 +83,9 @@ export default function TwoFactor({
                             {/* Disable Button */}
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-destructive">Disable 2FA</p>
+                                    <p className="font-medium text-destructive">{t('settings.disable_2fa', 'Disable 2FA')}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        This will remove the extra security layer from your account
+                                        {t('settings.disable_2fa_desc', 'This will remove the extra security layer from your account')}
                                     </p>
                                 </div>
                                 <Form {...disable.form()}>
@@ -94,7 +96,7 @@ export default function TwoFactor({
                                             disabled={processing}
                                         >
                                             <ShieldBan className="mr-2 size-4" />
-                                            Disable 2FA
+                                            {t('settings.disable_2fa', 'Disable 2FA')}
                                         </Button>
                                     )}
                                 </Form>
@@ -104,7 +106,7 @@ export default function TwoFactor({
                         <div className="space-y-6">
                             {/* Available Methods */}
                             <div className="space-y-4">
-                                <h4 className="text-sm font-medium">Available Authentication Methods</h4>
+                                <h4 className="text-sm font-medium">{t('settings.available_methods', 'Available Authentication Methods')}</h4>
 
                                 {/* Authenticator App */}
                                 <div className="flex items-center justify-between rounded-lg border p-4">
@@ -113,13 +115,13 @@ export default function TwoFactor({
                                             <Smartphone className="size-5 text-primary" />
                                         </div>
                                         <div>
-                                            <h4 className="font-medium">Authenticator App</h4>
+                                            <h4 className="font-medium">{t('settings.authenticator_app', 'Authenticator App')}</h4>
                                             <p className="text-sm text-muted-foreground">
-                                                Use Google Authenticator, Authy, or similar apps for time-based codes
+                                                {t('settings.authenticator_app_desc', 'Use Google Authenticator, Authy, or similar apps for time-based codes')}
                                             </p>
                                         </div>
                                     </div>
-                                    <Badge variant="outline">Recommended</Badge>
+                                    <Badge variant="outline">{t('settings.recommended', 'Recommended')}</Badge>
                                 </div>
 
                                 {/* Recovery Codes Info */}
@@ -129,9 +131,9 @@ export default function TwoFactor({
                                             <KeyRound className="size-5 text-muted-foreground" />
                                         </div>
                                         <div>
-                                            <h4 className="font-medium">Recovery Codes</h4>
+                                            <h4 className="font-medium">{t('settings.recovery_codes', 'Recovery Codes')}</h4>
                                             <p className="text-sm text-muted-foreground">
-                                                Backup codes for account recovery (generated after enabling 2FA)
+                                                {t('settings.recovery_codes_info', 'Backup codes for account recovery (generated after enabling 2FA)')}
                                             </p>
                                         </div>
                                     </div>
@@ -145,7 +147,7 @@ export default function TwoFactor({
                                 {hasSetupData ? (
                                     <Button onClick={() => setShowSetupModal(true)}>
                                         <ShieldCheck className="mr-2 size-4" />
-                                        Continue Setup
+                                        {t('settings.continue_setup', 'Continue Setup')}
                                     </Button>
                                 ) : (
                                     <Form
@@ -155,7 +157,7 @@ export default function TwoFactor({
                                         {({ processing }) => (
                                             <Button type="submit" disabled={processing}>
                                                 <ShieldCheck className="mr-2 size-4" />
-                                                Enable 2FA
+                                                {t('settings.enable_2fa', 'Enable 2FA')}
                                             </Button>
                                         )}
                                     </Form>

@@ -20,9 +20,19 @@ export type TestimonialItem = {
 
 type TestimonialsProps = {
     testimonials: TestimonialItem[]
+    subtitle?: string
+    title?: string
+    description?: string
+    roleAtText?: string
 }
 
-const Testimonials = ({ testimonials }: TestimonialsProps) => {
+const Testimonials = ({ 
+    testimonials,
+    subtitle = 'Success Stories',
+    title = 'What Our Users Say',
+    description = 'See how people are achieving their goals and staying productive with our platform.',
+    roleAtText = 'at'
+}: TestimonialsProps) => {
     return (
         <section className='py-12 sm:py-16'>
             <Carousel
@@ -34,12 +44,12 @@ const Testimonials = ({ testimonials }: TestimonialsProps) => {
             >
                 {/* Left Content */}
                 <div className='space-y-4 sm:w-1/2 lg:w-1/3'>
-                    <p className='text-primary text-sm font-medium uppercase'>Success Stories</p>
+                    <p className='text-primary text-sm font-medium uppercase'>{subtitle}</p>
 
-                    <h2 className='text-2xl font-semibold sm:text-3xl lg:text-4xl'>What Our Users Say</h2>
+                    <h2 className='text-2xl font-semibold sm:text-3xl lg:text-4xl'>{title}</h2>
 
                     <p className='text-muted-foreground text-xl'>
-                        See how people are achieving their goals and staying productive with our platform.
+                        {description}
                     </p>
 
                     <div className='flex items-center gap-4'>
@@ -75,7 +85,7 @@ const Testimonials = ({ testimonials }: TestimonialsProps) => {
                                             <div className='flex-1'>
                                                 <h4 className='font-medium'>{testimonial.name}</h4>
                                                 <p className='text-muted-foreground text-sm'>
-                                                    {testimonial.role} at{' '}
+                                                    {testimonial.role} {roleAtText}{' '}
                                                     <span className='text-card-foreground font-semibold'>{testimonial.company}</span>
                                                 </p>
                                             </div>

@@ -8,15 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 
 export default function ForgotPassword({ status }: { status?: string }) {
+    const { t } = useTranslations();
+
     return (
         <AuthLayout
-            title="Forgot Password?"
-            description="Enter your email and we'll send you instructions to reset your password"
+            title={t('auth.forgot_password', 'Forgot Password?')}
+            description={t('auth.forgot_password_desc', "Enter your email and we'll send you instructions to reset your password")}
         >
-            <Head title="Forgot password" />
+            <Head title={t('auth.forgot_password', 'Forgot password')} />
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
@@ -30,14 +33,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
                         <div className="grid gap-4">
                             {/* Email */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     autoFocus
                                     autoComplete="email"
-                                    placeholder="Enter your email address"
+                                    placeholder={t('auth.enter_email', 'Enter your email address')}
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -49,7 +52,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                 data-test="email-password-reset-link-button"
                             >
                                 {processing && <Spinner className="mr-2" />}
-                                Send Reset Link
+                                {t('auth.send_reset_link', 'Send Reset Link')}
                             </Button>
                         </div>
 
@@ -58,7 +61,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             className="group mx-auto flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
                             <ChevronLeftIcon className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                            <span>Back to login</span>
+                            <span>{t('auth.back_to_login', 'Back to login')}</span>
                         </Link>
                     </>
                 )}

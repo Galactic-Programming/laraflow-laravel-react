@@ -5,15 +5,25 @@ type FAQs = {
     answer: string
 }[]
 
-const FAQ = ({ faqItems }: { faqItems: FAQs }) => {
+type FAQProps = {
+    faqItems: FAQs
+    title?: string
+    description?: string
+}
+
+const FAQ = ({ 
+    faqItems,
+    title = "Need Help? We've Got Answers",
+    description = 'Explore Our Most Commonly Asked Questions and Find the Information You Need.'
+}: FAQProps) => {
     return (
         <section id='faq' className='py-12 sm:py-16'>
             <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
                 {/* FAQ Header */}
                 <div className='mb-8 space-y-4 text-center sm:mb-12'>
-                    <h2 className='text-2xl font-semibold md:text-3xl lg:text-4xl'>Need Help? We&apos;ve Got Answers</h2>
+                    <h2 className='text-2xl font-semibold md:text-3xl lg:text-4xl'>{title}</h2>
                     <p className='text-muted-foreground text-xl'>
-                        Explore Our Most Commonly Asked Questions and Find the Information You Need.
+                        {description}
                     </p>
                 </div>
 

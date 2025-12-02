@@ -3,6 +3,7 @@ import { SettingsCard } from '@/components/settings';
 import { AlertError } from '@/components/alert-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
@@ -28,18 +29,11 @@ interface ConnectionItemProps {
     isConnected: boolean;
     linkUrl: string;
     unlinkAction: string;
+    connectLabel: string;
+    disconnectLabel: string;
+    connectedLabel: string;
+    notConnectedLabel: string;
 }
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Connections',
-        href: '/settings/connections',
-    },
-];
 
 // =============================================================================
 // Components
@@ -52,6 +46,10 @@ function ConnectionItem({
     isConnected,
     linkUrl,
     unlinkAction,
+    connectLabel,
+    disconnectLabel,
+    connectedLabel,
+    notConnectedLabel,
 }: ConnectionItemProps) {
     return (
         <div className="flex items-center justify-between rounded-lg border p-4">
@@ -63,7 +61,7 @@ function ConnectionItem({
                     <div className="flex items-center gap-2">
                         <h4 className="font-medium">{name}</h4>
                         <Badge variant={isConnected ? 'default' : 'secondary'}>
-                            {isConnected ? 'Connected' : 'Not connected'}
+                            {isConnected ? connectedLabel : notConnectedLabel}
                         </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{description}</p>
@@ -83,7 +81,7 @@ function ConnectionItem({
                                 disabled={processing}
                             >
                                 <Link2Off className="mr-2 size-4" />
-                                Disconnect
+                                {disconnectLabel}
                             </Button>
                         )}
                     </Form>
@@ -91,7 +89,7 @@ function ConnectionItem({
                     <Button variant="outline" size="sm" asChild>
                         <a href={linkUrl}>
                             <Link2 className="mr-2 size-4" />
-                            Connect
+                            {connectLabel}
                         </a>
                     </Button>
                 )}
@@ -105,8 +103,16 @@ function ConnectionItem({
 // =============================================================================
 
 export default function Connections({ connections, status }: ConnectionsProps) {
+    const { t } = useTranslations();
     const linkUrl = (provider: Provider) => `/auth/${provider}/redirect` as const;
     const unlinkAction = (provider: Provider) => `/settings/connections/${provider}` as const;
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: t('nav.connections', 'Connections'),
+            href: '/settings/connections',
+        },
+    ];
 
     const { props } = usePage<{
         errors?: { oauth?: string; provider?: string };
@@ -120,11 +126,11 @@ export default function Connections({ connections, status }: ConnectionsProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Social Connections" />
+            <Head title={t('settings.connections', 'Social Connections')} />
             <SettingsLayout>
                 <SettingsCard
-                    title="Social Connections"
-                    description="Connect your accounts to enable single sign-on and easier access to your account."
+                    title={t('settings.connections', 'Social Connections')}
+                    description={t('settings.connections_desc', 'Connect your accounts to enable single sign-on and easier access to your account.')}
                 >
                     <div className="space-y-4">
                         {/* Success Status */}
@@ -153,21 +159,29 @@ export default function Connections({ connections, status }: ConnectionsProps) {
                         {/* Google Connection */}
                         <ConnectionItem
                             name="Google"
-                            description="Sign in with your Google account"
-                            icon={<GoogleIcon className="size-6" />}
+                            description={t('settings.sign_in_google', 'Sign in with your Google account')}
+                            icon={<GoogleIcon />}
                             isConnected={connections.google}
                             linkUrl={linkUrl('google')}
                             unlinkAction={unlinkAction('google')}
+                            connectLabel={t('settings.connect', 'Connect')}
+                            disconnectLabel={t('settings.disconnect', 'Disconnect')}
+                            connectedLabel={t('settings.connected', 'Connected')}
+                            notConnectedLabel={t('settings.not_connected', 'Not connected')}
                         />
 
                         {/* GitHub Connection */}
                         <ConnectionItem
                             name="GitHub"
-                            description="Sign in with your GitHub account"
-                            icon={<GitHubIcon className="size-6" />}
+                            description={t('settings.sign_in_github', 'Sign in with your GitHub account')}
+                            icon={<GitHubIcon />}
                             isConnected={connections.github}
                             linkUrl={linkUrl('github')}
                             unlinkAction={unlinkAction('github')}
+                            connectLabel={t('settings.connect', 'Connect')}
+                            disconnectLabel={t('settings.disconnect', 'Disconnect')}
+                            connectedLabel={t('settings.connected', 'Connected')}
+                            notConnectedLabel={t('settings.not_connected', 'Not connected')}
                         />
                     </div>
                 </SettingsCard>

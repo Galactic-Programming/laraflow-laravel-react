@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/user-password';
@@ -14,33 +15,34 @@ import { Form, Head } from '@inertiajs/react';
 import { Key } from 'lucide-react';
 import { useRef } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Password settings',
-        href: edit().url,
-    },
-];
-
 export default function Password() {
+    const { t } = useTranslations();
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: t('nav.password', 'Password settings'),
+            href: edit().url,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Password settings" />
+            <Head title={t('nav.password', 'Password settings')} />
 
             <SettingsLayout>
                 <SettingsCard
-                    title="Update Password"
-                    description="Ensure your account is using a long, random password to stay secure. We recommend using a password manager."
+                    title={t('settings.update_password', 'Update Password')}
+                    description={t('settings.update_password_desc', 'Ensure your account is using a long, random password to stay secure. We recommend using a password manager.')}
                 >
                     <div className="mb-6 flex items-center gap-3 rounded-lg bg-muted/50 p-4">
                         <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
                             <Key className="size-5 text-primary" />
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            <p className="font-medium text-foreground">Password Security</p>
-                            <p>Your password is your digital key. Keep it safe and secure!</p>
+                            <p className="font-medium text-foreground">{t('settings.password_security', 'Password Security')}</p>
+                            <p>{t('settings.password_security_desc', 'Your password is your digital key. Keep it safe and secure!')}</p>
                         </div>
                     </div>
 
@@ -68,40 +70,40 @@ export default function Password() {
                         {({ errors, processing, recentlySuccessful }) => (
                             <>
                                 <div className="space-y-2">
-                                    <Label htmlFor="current_password">Current Password</Label>
+                                    <Label htmlFor="current_password">{t('settings.current_password', 'Current Password')}</Label>
                                     <Input
                                         id="current_password"
                                         ref={currentPasswordInput}
                                         name="current_password"
                                         type="password"
                                         autoComplete="current-password"
-                                        placeholder="Enter your current password"
+                                        placeholder={t('settings.enter_current_password', 'Enter your current password')}
                                     />
                                     <InputError message={errors.current_password} />
                                 </div>
 
                                 <div className="grid gap-6 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="password">New Password</Label>
+                                        <Label htmlFor="password">{t('settings.new_password', 'New Password')}</Label>
                                         <Input
                                             id="password"
                                             ref={passwordInput}
                                             name="password"
                                             type="password"
                                             autoComplete="new-password"
-                                            placeholder="Enter new password"
+                                            placeholder={t('settings.enter_new_password', 'Enter new password')}
                                         />
                                         <InputError message={errors.password} />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="password_confirmation">Confirm Password</Label>
+                                        <Label htmlFor="password_confirmation">{t('settings.confirm_password', 'Confirm Password')}</Label>
                                         <Input
                                             id="password_confirmation"
                                             name="password_confirmation"
                                             type="password"
                                             autoComplete="new-password"
-                                            placeholder="Confirm new password"
+                                            placeholder={t('settings.confirm_new_password', 'Confirm new password')}
                                         />
                                         <InputError message={errors.password_confirmation} />
                                     </div>
@@ -114,7 +116,7 @@ export default function Password() {
                                         disabled={processing}
                                         data-test="update-password-button"
                                     >
-                                        Update Password
+                                        {t('settings.update_password', 'Update Password')}
                                     </Button>
 
                                     <Transition
@@ -125,7 +127,7 @@ export default function Password() {
                                         leaveTo="opacity-0"
                                     >
                                         <p className="text-sm text-green-600 dark:text-green-400">
-                                            Password updated successfully
+                                            {t('settings.password_updated', 'Password updated successfully')}
                                         </p>
                                     </Transition>
                                 </div>

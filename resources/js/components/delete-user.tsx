@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form } from '@inertiajs/react';
 import { useRef } from 'react';
+import { useTranslations } from '@/hooks/use-translations';
 
 export interface DeleteUserProps {
     /** Whether to wrap in DangerZone styling */
@@ -27,9 +28,10 @@ export interface DeleteUserProps {
 
 export function DeleteUser({
     showDangerZone = true,
-    warningTitle = 'Warning',
-    warningDescription = 'Please proceed with caution, this cannot be undone.',
+    warningTitle,
+    warningDescription,
 }: DeleteUserProps) {
+    const { t } = useTranslations();
     const passwordInput = useRef<HTMLInputElement>(null);
 
     const deleteButton = (
@@ -39,18 +41,15 @@ export function DeleteUser({
                     variant="destructive"
                     data-test="delete-user-button"
                 >
-                    Delete account
+                    {t('settings.delete_account_btn', 'Delete account')}
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogTitle>
-                    Are you sure you want to delete your account?
+                    {t('settings.delete_confirm_title', 'Are you sure you want to delete your account?')}
                 </DialogTitle>
                 <DialogDescription>
-                    Once your account is deleted, all of its resources
-                    and data will also be permanently deleted. Please
-                    enter your password to confirm you would like to
-                    permanently delete your account.
+                    {t('settings.delete_confirm_desc', 'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.')}
                 </DialogDescription>
 
                 <Form
@@ -77,7 +76,7 @@ export function DeleteUser({
                                     type="password"
                                     name="password"
                                     ref={passwordInput}
-                                    placeholder="Password"
+                                    placeholder={t('auth.password', 'Password')}
                                     autoComplete="current-password"
                                 />
 
@@ -92,7 +91,7 @@ export function DeleteUser({
                                             resetAndClearErrors()
                                         }
                                     >
-                                        Cancel
+                                        {t('common.cancel', 'Cancel')}
                                     </Button>
                                 </DialogClose>
 
@@ -105,7 +104,7 @@ export function DeleteUser({
                                         type="submit"
                                         data-test="confirm-delete-user-button"
                                     >
-                                        Delete account
+                                        {t('settings.delete_account_btn', 'Delete account')}
                                     </button>
                                 </Button>
                             </DialogFooter>
@@ -122,8 +121,8 @@ export function DeleteUser({
 
     return (
         <DangerZone
-            title={warningTitle}
-            description={warningDescription}
+            title={warningTitle || t('common.warning', 'Warning')}
+            description={warningDescription || t('settings.danger_zone_desc', 'Please proceed with caution, this cannot be undone.')}
         >
             {deleteButton}
         </DangerZone>

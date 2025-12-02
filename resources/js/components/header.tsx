@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/navigation-menu'
 
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/hooks/use-translations'
 
 import AppLogoIcon from '@/components/app-logo-icon'
 
@@ -51,6 +52,7 @@ const Header = ({
     dashboardUrl = '#',
     className
 }: HeaderProps) => {
+    const { t } = useTranslations()
     const isAuthenticated = auth?.user != null
     const hasNavigation = navigationData.length > 0
 
@@ -84,16 +86,16 @@ const Header = ({
                 <div className='flex items-center gap-2 max-md:hidden'>
                     {isAuthenticated ? (
                         <Button className='rounded-lg' asChild>
-                            <Link href={dashboardUrl}>Dashboard</Link>
+                            <Link href={dashboardUrl}>{t('nav.dashboard', 'Dashboard')}</Link>
                         </Button>
                     ) : (
                         <>
                             <Button variant='ghost' className='rounded-lg' asChild>
-                                <Link href={loginUrl}>Log in</Link>
+                                <Link href={loginUrl}>{t('auth.login', 'Log in')}</Link>
                             </Button>
                             {canRegister && (
                                 <Button className='rounded-lg' asChild>
-                                    <Link href={registerUrl}>Register</Link>
+                                    <Link href={registerUrl}>{t('auth.register', 'Register')}</Link>
                                 </Button>
                             )}
                         </>
@@ -104,16 +106,16 @@ const Header = ({
                 <div className='flex items-center gap-2 md:hidden'>
                     {isAuthenticated ? (
                         <Button className='rounded-lg' asChild>
-                            <Link href={dashboardUrl}>Dashboard</Link>
+                            <Link href={dashboardUrl}>{t('nav.dashboard', 'Dashboard')}</Link>
                         </Button>
                     ) : (
                         <>
                             <Button variant='ghost' size='sm' className='rounded-lg' asChild>
-                                <Link href={loginUrl}>Log in</Link>
+                                <Link href={loginUrl}>{t('auth.login', 'Log in')}</Link>
                             </Button>
                             {canRegister && (
                                 <Button size='sm' className='rounded-lg' asChild>
-                                    <Link href={registerUrl}>Register</Link>
+                                    <Link href={registerUrl}>{t('auth.register', 'Register')}</Link>
                                 </Button>
                             )}
                         </>

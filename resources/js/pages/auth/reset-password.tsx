@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 
 interface ResetPasswordProps {
@@ -17,15 +18,16 @@ interface ResetPasswordProps {
 }
 
 export default function ResetPassword({ token, email }: ResetPasswordProps) {
+    const { t } = useTranslations();
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
     return (
         <AuthLayout
-            title="Reset Password"
-            description="Please enter your new password to update your account security"
+            title={t('auth.reset_password', 'Reset Password')}
+            description={t('auth.reset_password_desc', 'Please enter your new password to update your account security')}
         >
-            <Head title="Reset password" />
+            <Head title={t('auth.reset_password', 'Reset password')} />
 
             <Form
                 {...update.form()}
@@ -38,7 +40,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                         <div className="grid gap-4">
                             {/* Email (readonly) */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -53,7 +55,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
 
                             {/* New Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password">New password</Label>
+                                <Label htmlFor="password">{t('auth.new_password', 'New password')}</Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
@@ -84,7 +86,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
 
                             {/* Confirm Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password_confirmation">Confirm password</Label>
+                                <Label htmlFor="password_confirmation">{t('auth.confirm_new_password', 'Confirm password')}</Label>
                                 <div className="relative">
                                     <Input
                                         id="password_confirmation"
@@ -120,7 +122,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                 data-test="reset-password-button"
                             >
                                 {processing && <Spinner className="mr-2" />}
-                                Set New Password
+                                {t('auth.reset_password', 'Set New Password')}
                             </Button>
                         </div>
 
@@ -129,7 +131,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                             className="group mx-auto flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
                             <ChevronLeftIcon className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                            <span>Back to login</span>
+                            <span>{t('auth.back_to_login', 'Back to login')}</span>
                         </Link>
                     </>
                 )}

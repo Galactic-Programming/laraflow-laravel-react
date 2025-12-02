@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 
 interface ConditionProps {
@@ -14,6 +15,7 @@ interface ConditionProps {
 
 export default function Condition({ type = 'terms' }: ConditionProps) {
     const isTerms = type === 'terms';
+    const { t } = useTranslations();
 
     const handleTabChange = (value: string) => {
         router.visit(`/${value}`, { preserveScroll: true });
@@ -21,10 +23,10 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
 
     return (
         <AuthLayout
-            title={isTerms ? 'Terms of Service' : 'Privacy Policy'}
-            description={isTerms ? 'Please read our terms carefully' : 'How we handle your data'}
+            title={isTerms ? t('condition.terms_title', 'Terms of Service') : t('condition.privacy_title', 'Privacy Policy')}
+            description={isTerms ? t('condition.terms_desc', 'Please read our terms carefully') : t('condition.privacy_desc', 'How we handle your data')}
         >
-            <Head title={isTerms ? 'Terms of Service' : 'Privacy Policy'} />
+            <Head title={isTerms ? t('condition.terms_title', 'Terms of Service') : t('condition.privacy_title', 'Privacy Policy')} />
 
             <div className="flex flex-col gap-5">
                 {/* Tabs Navigation */}
@@ -32,11 +34,11 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="terms" className="gap-2">
                             <FileTextIcon className="size-4" />
-                            Terms
+                            {t('auth.terms', 'Terms')}
                         </TabsTrigger>
                         <TabsTrigger value="privacy" className="gap-2">
                             <ShieldCheckIcon className="size-4" />
-                            Privacy
+                            {t('auth.privacy_policy', 'Privacy')}
                         </TabsTrigger>
                     </TabsList>
 
@@ -117,19 +119,19 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
 
                 {/* Summary Highlights */}
                 <div className="rounded-lg border border-dashed bg-muted/20 p-4">
-                    <h4 className="mb-3 text-sm font-medium text-foreground">Key Points</h4>
+                    <h4 className="mb-3 text-sm font-medium text-foreground">{t('condition.key_points', 'Key Points')}</h4>
                     <ul className="space-y-2">
                         {isTerms ? (
                             <>
-                                <Highlight text="You must be 18+ to use this service" />
-                                <Highlight text="You're responsible for your account security" />
-                                <Highlight text="We may update terms with notice" />
+                                <Highlight text={t('condition.terms_point_1', 'You must be 18+ to use this service')} />
+                                <Highlight text={t('condition.terms_point_2', "You're responsible for your account security")} />
+                                <Highlight text={t('condition.terms_point_3', 'We may update terms with notice')} />
                             </>
                         ) : (
                             <>
-                                <Highlight text="We never sell your personal data" />
-                                <Highlight text="You can delete your data anytime" />
-                                <Highlight text="We use encryption to protect your info" />
+                                <Highlight text={t('condition.privacy_point_1', 'We never sell your personal data')} />
+                                <Highlight text={t('condition.privacy_point_2', 'You can delete your data anytime')} />
+                                <Highlight text={t('condition.privacy_point_3', 'We use encryption to protect your info')} />
                             </>
                         )}
                     </ul>
@@ -141,7 +143,7 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
                 <Button variant="outline" asChild className="w-full">
                     <TextLink href="/register" className="no-underline gap-2">
                         <ArrowLeftIcon className="size-4" />
-                        Back to Register
+                        {t('condition.back_to_register', 'Back to Register')}
                     </TextLink>
                 </Button>
             </div>

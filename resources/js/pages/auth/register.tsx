@@ -12,21 +12,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 
 export default function Register() {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+    const { t } = useTranslations();
 
     const socialRedirect = (provider: 'google' | 'github') =>
         `/auth/${provider}/redirect` as const;
 
     return (
         <AuthLayout
-            title="Create an account"
-            description="Ship Faster and Focus on Growth"
+            title={t('auth.create_account', 'Create an account')}
+            description={t('auth.create_account_desc', 'Ship Faster and Focus on Growth')}
         >
-            <Head title="Register" />
+            <Head title={t('auth.register', 'Register')} />
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
@@ -37,7 +39,7 @@ export default function Register() {
                         <div className="grid gap-4">
                             {/* Name */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="name">Full name</Label>
+                                <Label htmlFor="name">{t('auth.full_name', 'Full name')}</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -45,28 +47,28 @@ export default function Register() {
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="name"
-                                    placeholder="Enter your full name"
+                                    placeholder={t('auth.enter_name', 'Enter your full name')}
                                 />
                                 <InputError message={errors.name} />
                             </div>
 
                             {/* Email */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     tabIndex={2}
                                     autoComplete="email"
-                                    placeholder="Enter your email address"
+                                    placeholder={t('auth.enter_email', 'Enter your email address')}
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             {/* Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
@@ -96,7 +98,7 @@ export default function Register() {
 
                             {/* Confirm Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password_confirmation">Confirm password</Label>
+                                <Label htmlFor="password_confirmation">{t('auth.confirm_password_field', 'Confirm password')}</Label>
                                 <div className="relative">
                                     <Input
                                         id="password_confirmation"
@@ -132,13 +134,13 @@ export default function Register() {
                                     tabIndex={5}
                                 />
                                 <Label htmlFor="terms" className="text-sm font-normal">
-                                    <span className="text-muted-foreground">I agree to the</span>{' '}
+                                    <span className="text-muted-foreground">{t('auth.agree_terms', 'I agree to the')}</span>{' '}
                                     <TextLink href="/terms">
-                                        Terms
+                                        {t('auth.terms', 'Terms')}
                                     </TextLink>
                                     <span className="text-muted-foreground"> & </span>
                                     <TextLink href="/privacy">
-                                        Privacy Policy
+                                        {t('auth.privacy_policy', 'Privacy Policy')}
                                     </TextLink>
                                 </Label>
                             </div>
@@ -151,21 +153,21 @@ export default function Register() {
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner className="mr-2" />}
-                                Create account
+                                {t('auth.create_account', 'Create account')}
                             </Button>
                         </div>
 
                         <p className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
+                            {t('auth.already_have_account', 'Already have an account?')}{' '}
                             <TextLink href={login()} tabIndex={7}>
-                                Sign in instead
+                                {t('auth.sign_in_instead', 'Sign in instead')}
                             </TextLink>
                         </p>
 
                         {/* Divider */}
                         <div className="flex items-center gap-4">
                             <Separator className="flex-1" />
-                            <span className="text-xs text-muted-foreground uppercase">or continue with</span>
+                            <span className="text-xs text-muted-foreground uppercase">{t('auth.or_continue_with', 'or continue with')}</span>
                             <Separator className="flex-1" />
                         </div>
 

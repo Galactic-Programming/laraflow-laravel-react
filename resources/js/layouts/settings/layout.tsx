@@ -9,36 +9,39 @@ import { edit as editPassword } from '@/routes/user-password';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
-
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Password',
-        href: editPassword(),
-        icon: null,
-    },
-    {
-        title: 'Two-Factor Auth',
-        href: show(),
-        icon: null,
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
-    {
-        title: 'Connections',
-        href: '/settings/connections',
-        icon: null,
-    },
-];
+import { useTranslations } from '@/hooks/use-translations';
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { t } = useTranslations();
+    
+    const sidebarNavItems: NavItem[] = [
+        {
+            title: t('settings.profile', 'Profile'),
+            href: edit(),
+            icon: null,
+        },
+        {
+            title: t('settings.password', 'Password'),
+            href: editPassword(),
+            icon: null,
+        },
+        {
+            title: t('settings.two_factor', 'Two-Factor Auth'),
+            href: show(),
+            icon: null,
+        },
+        {
+            title: t('settings.appearance', 'Appearance'),
+            href: editAppearance(),
+            icon: null,
+        },
+        {
+            title: t('settings.connections', 'Connections'),
+            href: '/settings/connections',
+            icon: null,
+        },
+    ];
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
@@ -49,8 +52,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     return (
         <div className="px-4 py-6">
             <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
+                title={t('settings.title', 'Settings')}
+                description={t('settings.description', 'Manage your profile and account settings')}
             />
 
             <div className="flex flex-col lg:flex-row lg:space-x-12">

@@ -5,19 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 import { store } from '@/routes/password/confirm';
 import { Form, Head } from '@inertiajs/react';
 
 export default function ConfirmPassword() {
+    const { t } = useTranslations();
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
     return (
         <AuthLayout
-            title="Confirm Password"
-            description="This is a secure area of the application. Please confirm your password before continuing."
+            title={t('auth.confirm_password', 'Confirm Password')}
+            description={t('auth.confirm_password_desc', 'This is a secure area of the application. Please confirm your password before continuing.')}
         >
-            <Head title="Confirm password" />
+            <Head title={t('auth.confirm_password', 'Confirm password')} />
 
             <Form
                 {...store.form()}
@@ -28,7 +30,7 @@ export default function ConfirmPassword() {
                     <div className="grid gap-4">
                         {/* Password */}
                         <div className="space-y-1.5">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
@@ -63,7 +65,7 @@ export default function ConfirmPassword() {
                             data-test="confirm-password-button"
                         >
                             {processing && <Spinner className="mr-2" />}
-                            Confirm Password
+                            {t('auth.confirm_password', 'Confirm Password')}
                         </Button>
                     </div>
                 )}
