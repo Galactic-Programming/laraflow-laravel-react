@@ -5,15 +5,16 @@ import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 
 import DeleteUser from '@/components/delete-user';
-import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
+import { ProfileHeader } from '@/components/profile-header';
+import { SettingsCard } from '@/components/settings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -36,75 +37,77 @@ export default function Profile({
             <Head title="Profile settings" />
 
             <SettingsLayout>
-                {/* Avatar management */}
-
-                <HeadingSmall
-                    title="Avatar"
-                    description="Upload or remove your profile picture"
-                />
-                <div className="mt-4 flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage
-                            src={auth.user.avatar ?? undefined}
-                            alt={auth.user.name}
-                        />
-                        <AvatarFallback>
-                            {auth.user.name?.charAt(0) ?? 'U'}
-                        </AvatarFallback>
-                    </Avatar>
-                    <Form
-                        action="/settings/avatar"
-                        method="patch"
-                        encType="multipart/form-data"
-                        options={{ preserveScroll: true }}
-                        className="flex items-center gap-3"
-                    >
-                        {({ processing, errors }) => (
-                            <>
-                                <Input
-                                    type="file"
-                                    name="avatar"
-                                    accept="image/*"
-                                    className="w-56"
-                                />
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="outline"
+                {/* Profile Header with Avatar */}
+                <SettingsCard
+                    title="Profile"
+                    description="Your public profile information"
+                >
+                    <div className="space-y-6">
+                        {/* Avatar Section */}
+                        <div className="flex flex-col gap-4">
+                            <ProfileHeader
+                                name={auth.user.name}
+                                avatarUrl={auth.user.avatar}
+                                email={auth.user.email}
+                                showCard={false}
+                                avatarSize="md"
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Form
+                                    action="/settings/avatar"
+                                    method="patch"
+                                    encType="multipart/form-data"
+                                    options={{ preserveScroll: true }}
+                                    className="flex flex-wrap items-center gap-2"
                                 >
-                                    Upload
-                                </Button>
-                                <InputError message={errors.avatar} />
-                            </>
-                        )}
-                    </Form>
+                                    {({ processing, errors }) => (
+                                        <>
+                                            <Input
+                                                type="file"
+                                                name="avatar"
+                                                accept="image/*"
+                                                className="w-full max-w-48"
+                                            />
+                                            <Button
+                                                type="submit"
+                                                variant="default"
+                                                size="sm"
+                                                disabled={processing}
+                                            >
+                                                Upload
+                                            </Button>
+                                            <InputError message={errors.avatar} />
+                                        </>
+                                    )}
+                                </Form>
 
-                    {auth.user.avatar && (
-                        <Form
-                            action="/settings/avatar"
-                            method="delete"
-                            options={{ preserveScroll: true }}
-                        >
-                            {({ processing }) => (
-                                <Button
-                                    disabled={processing}
-                                    className="outline"
-                                >
-                                    Remove
-                                </Button>
-                            )}
-                        </Form>
-                    )}
-                </div>
+                                {auth.user.avatar && (
+                                    <Form
+                                        action="/settings/avatar"
+                                        method="delete"
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                disabled={processing}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </Form>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </SettingsCard>
 
-
-                {/* Profile information */}
-                <div className="space-y-6">
-                    <HeadingSmall
-                        title="Profile information"
-                        description="Update your name and email address"
-                    />
-
+                {/* Profile Information Form */}
+                <SettingsCard
+                    title="Personal Information"
+                    description="Update your name and email address"
+                >
                     <Form
                         {...ProfileController.update.form()}
                         options={{
@@ -114,76 +117,62 @@ export default function Profile({
                     >
                         {({ processing, recentlySuccessful, errors }) => (
                             <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
+                                <div className="grid gap-6 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name">Full Name</Label>
+                                        <Input
+                                            id="name"
+                                            defaultValue={auth.user.name}
+                                            name="name"
+                                            autoComplete="name"
+                                            placeholder="Enter your full name"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
 
-                                    <Input
-                                        id="name"
-                                        className="mt-1 block w-full"
-                                        defaultValue={auth.user.name}
-                                        name="name"
-                                        autoComplete="name"
-                                        placeholder="Full name"
-                                    />
-
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.name}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email">Email address</Label>
-
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        className="mt-1 block w-full"
-                                        defaultValue={auth.user.email}
-                                        name="email"
-                                        autoComplete="username"
-                                        placeholder="Email address"
-                                    />
-
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.email}
-                                    />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email Address</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            defaultValue={auth.user.email}
+                                            name="email"
+                                            autoComplete="username"
+                                            placeholder="Enter your email"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
                                 </div>
 
                                 {mustVerifyEmail &&
                                     auth.user.email_verified_at === null && (
-                                        <div>
-                                            <p className="-mt-4 text-sm text-muted-foreground">
-                                                Your email address is
-                                                unverified.{' '}
+                                        <div className="rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/20">
+                                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                                Your email address is unverified.{' '}
                                                 <Link
                                                     href={send()}
                                                     as="button"
-                                                    className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                    className="font-medium underline underline-offset-4 hover:no-underline"
                                                 >
-                                                    Click here to resend the
-                                                    verification email.
+                                                    Click here to resend the verification email.
                                                 </Link>
                                             </p>
-
-                                            {status ===
-                                                'verification-link-sent' && (
-                                                    <div className="mt-2 text-sm font-medium text-green-600">
-                                                        A new verification link has
-                                                        been sent to your email
-                                                        address.
-                                                    </div>
-                                                )}
+                                            {status === 'verification-link-sent' && (
+                                                <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+                                                    A new verification link has been sent to your email address.
+                                                </p>
+                                            )}
                                         </div>
                                     )}
+
+                                <Separator />
 
                                 <div className="flex items-center gap-4">
                                     <Button
                                         disabled={processing}
                                         data-test="update-profile-button"
                                     >
-                                        Save
+                                        Save Changes
                                     </Button>
 
                                     <Transition
@@ -193,17 +182,24 @@ export default function Profile({
                                         leave="transition ease-in-out"
                                         leaveTo="opacity-0"
                                     >
-                                        <p className="text-sm text-neutral-600">
-                                            Saved
+                                        <p className="text-sm text-green-600 dark:text-green-400">
+                                            Saved successfully
                                         </p>
                                     </Transition>
                                 </div>
                             </>
                         )}
                     </Form>
-                </div>
+                </SettingsCard>
 
-                <DeleteUser />
+                {/* Danger Zone */}
+                <SettingsCard
+                    title="Danger Zone"
+                    description="Irreversible and destructive actions"
+                    danger
+                >
+                    <DeleteUser />
+                </SettingsCard>
             </SettingsLayout>
         </AppLayout>
     );
