@@ -9,15 +9,17 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as ProviderUserContract;
 use Laravel\Socialite\Facades\Socialite;
 
-class SocialLoginController extends Controller
+class SocialController extends Controller
 {
     /**
-     * Redirect the user to the OAuth Provider.
+     * Redirect user to OAuth Provider.
+     * Works for both login (guest) and linking (authenticated user).
      */
     public function redirect(Request $request, string $provider): RedirectResponse
     {
@@ -30,67 +32,123 @@ class SocialLoginController extends Controller
             $driver = $driver->scopes(['read:user', 'user:email']);
         }
 
+        // If user is authenticated, store linking intent in cache using a unique state key.
+        // We use cache instead of session because session cookies may not survive
+        // the cross-site OAuth redirect (SameSite=Lax policy).
+        if ($request->user() !== null) {
+            $stateKey = 'social_link:' . Str::random(40);
+            Cache::put($stateKey, $request->user()->id, now()->addMinutes(10));
+
+            // Pass the state key through OAuth state parameter
+            return $driver->with(['state' => $stateKey])->redirect();
+        }
+
         return $driver->redirect();
     }
 
     /**
-     * Obtain the user information from provider and log them in.
+     * Handle OAuth callback from provider.
+     * Handles both login (guest) and linking (authenticated user).
      */
     public function callback(Request $request, string $provider): RedirectResponse
     {
         $this->assertAllowedProvider($provider);
 
+        // Check for linking intent from state parameter (stored in cache)
+        $stateKey = $request->input('state');
+        $linkingUserId = null;
+
+        if ($stateKey !== null && str_starts_with($stateKey, 'social_link:')) {
+            $linkingUserId = Cache::pull($stateKey);
+        }
+
         try {
+            // Use stateless mode to avoid session state verification issues
+            // caused by SameSite cookie policy during cross-site OAuth redirect.
             /** @var ProviderUserContract $providerUser */
-            $providerUser = Socialite::driver($provider)->user();
+            $providerUser = Socialite::driver($provider)->stateless()->user();
         } catch (\Throwable $e) {
-            Log::warning('Social login failed to retrieve user', [
+            Log::warning('Social OAuth failed to retrieve user', [
                 'provider' => $provider,
                 'error' => $e->getMessage(),
             ]);
+
+            // If this was a linking attempt, redirect to connections page
+            if ($linkingUserId !== null) {
+                return to_route('connections.show')->withErrors([
+                    'oauth' => __('Unable to link :provider. Please try again.', ['provider' => ucfirst($provider)]),
+                ]);
+            }
 
             return redirect()->route('login')->withErrors([
                 'oauth' => __('Unable to authenticate with :provider. Please try again.', ['provider' => ucfirst($provider)]),
             ]);
         }
 
-        // If the user is already authenticated, treat this as a linking flow and
-        // attach the provider account to the current user. This allows us to
-        // reuse the same callback URL for both login and linking.
-        if ($request->user() !== null) {
-            $authUser = $request->user();
-            $providerId = (string) $providerUser->getId();
-
-            // Prevent linking if this provider id is already linked to another user
-            $conflict = SocialAccount::query()
-                ->where('provider', $provider)
-                ->where('provider_id', $providerId)
-                ->where('user_id', '!=', $authUser->id)
-                ->exists();
-
-            if ($conflict) {
-                return to_route('connections.show')->withErrors([
-                    'provider' => __('This :provider account is already linked to another user.', ['provider' => ucfirst($provider)]),
-                ]);
-            }
-
-            // Upsert for this user + provider
-            $account = SocialAccount::query()->firstOrNew([
-                'user_id' => $authUser->id,
-                'provider' => $provider,
-            ]);
-
-            $account->provider_id = $providerId;
-            $this->fillTokens($account, $providerUser);
-            $account->avatar = $providerUser->getAvatar();
-            $account->save();
-
-            // Adopt avatar from provider if user doesn't have one yet
-            $this->maybeUpdateUserAvatar($authUser, $providerUser->getAvatar());
-
-            return to_route('connections.show')->with('status', __(':provider account linked.', ['provider' => ucfirst($provider)]));
+        // Determine if this is a linking flow
+        $authUser = $request->user();
+        if ($authUser === null && $linkingUserId !== null) {
+            // Restore user from linking intent stored in cache
+            $authUser = User::find($linkingUserId);
         }
 
+        // Handle linking flow for authenticated users
+        if ($authUser !== null) {
+            return $this->handleLinking($authUser, $provider, $providerUser);
+        }
+
+        // Handle login/registration flow for guests
+        return $this->handleLogin($provider, $providerUser);
+    }
+
+    /**
+     * Handle linking a social account to an authenticated user.
+     */
+    protected function handleLinking(User $user, string $provider, ProviderUserContract $providerUser): RedirectResponse
+    {
+        $providerId = (string) $providerUser->getId();
+
+        // Prevent linking if this provider id is already linked to another user
+        $conflict = SocialAccount::query()
+            ->where('provider', $provider)
+            ->where('provider_id', $providerId)
+            ->where('user_id', '!=', $user->id)
+            ->exists();
+
+        if ($conflict) {
+            return to_route('connections.show')->withErrors([
+                'provider' => __('This :provider account is already linked to another user.', ['provider' => ucfirst($provider)]),
+            ]);
+        }
+
+        // Upsert for this user + provider
+        $account = SocialAccount::query()->firstOrNew([
+            'user_id' => $user->id,
+            'provider' => $provider,
+        ]);
+
+        $account->provider_id = $providerId;
+        $this->fillTokens($account, $providerUser);
+        $account->avatar = $providerUser->getAvatar();
+        $account->save();
+
+        // Adopt avatar from provider if user doesn't have one yet
+        $this->maybeUpdateUserAvatar($user, $providerUser->getAvatar());
+
+        // Ensure user is logged in (in case session was lost during OAuth redirect)
+        if (Auth::guest()) {
+            Auth::login($user);
+            request()->session()->regenerate();
+        }
+
+        return to_route('connections.show')->with('status', __(':provider account linked.', ['provider' => ucfirst($provider)]));
+    }
+
+    /**
+     * Handle login or registration via social provider for guests.
+     */
+    protected function handleLogin(string $provider, ProviderUserContract $providerUser): RedirectResponse
+    {
         $email = $providerUser->getEmail();
         $providerId = (string) $providerUser->getId();
 
@@ -108,8 +166,6 @@ class SocialLoginController extends Controller
 
         if ($socialAccount !== null) {
             $this->updateSocialAccountTokens($socialAccount, $providerUser);
-
-            // If the user hasn't set an avatar yet, adopt the provider avatar (do not overwrite existing)
             $this->maybeUpdateUserAvatar($socialAccount->user, $providerUser->getAvatar());
 
             return $this->loginAndRedirect($socialAccount->user);
@@ -124,17 +180,13 @@ class SocialLoginController extends Controller
             $user = User::query()->create([
                 'name' => $name,
                 'email' => $email,
-                // Random strong password (user can set a new one later)
                 'password' => Str::password(32),
             ]);
 
             // Mark email as verified if provider supplied an email
-            $user->forceFill([
-                'email_verified_at' => now(),
-            ])->save();
+            $user->forceFill(['email_verified_at' => now()])->save();
         }
 
-        // If the existing user has no avatar yet, set it from provider (only once)
         $this->maybeUpdateUserAvatar($user, $providerUser->getAvatar());
 
         // Create the social account link
@@ -151,7 +203,7 @@ class SocialLoginController extends Controller
 
     protected function assertAllowedProvider(string $provider): void
     {
-        if (! in_array($provider, ['google', 'github'], true)) {
+        if (!in_array($provider, ['google', 'github'], true)) {
             abort(404);
         }
     }
@@ -159,14 +211,9 @@ class SocialLoginController extends Controller
     protected function loginAndRedirect(Authenticatable $user): RedirectResponse
     {
         Auth::login($user);
-        $this->regenerateSession();
+        request()->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
-    }
-
-    protected function regenerateSession(): void
-    {
-        request()->session()->regenerate();
     }
 
     protected function updateSocialAccountTokens(SocialAccount $account, ProviderUserContract $providerUser): void
@@ -178,16 +225,12 @@ class SocialLoginController extends Controller
 
     protected function fillTokens(SocialAccount $account, ProviderUserContract $providerUser): void
     {
-        // OAuth2 fields
         $account->token = $providerUser->token ?? null;
         $account->refresh_token = $providerUser->refreshToken ?? null;
         $expiresIn = $providerUser->expiresIn ?? null;
         $account->expires_at = is_numeric($expiresIn) ? now()->addSeconds((int) $expiresIn) : null;
     }
 
-    /**
-     * Update the user's avatar from the provider if the user doesn't have one yet.
-     */
     protected function maybeUpdateUserAvatar(User $user, ?string $providerAvatar): void
     {
         if ((string) ($user->avatar ?? '') === '') {

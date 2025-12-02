@@ -12,8 +12,9 @@ type ConnectionsProps = {
 };
 
 export default function Connections({ connections, status }: ConnectionsProps) {
+    // Use unified redirect route for linking (same as login route)
     const linkUrl = (provider: 'google' | 'github') =>
-        `/auth/${provider}/link` as const;
+        `/auth/${provider}/redirect` as const;
 
     const { props } = usePage<{
         errors?: { oauth?: string; provider?: string };
