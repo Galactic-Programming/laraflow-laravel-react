@@ -1,45 +1,156 @@
-import { Link } from '@inertiajs/react'
-import { GithubIcon, TwitterIcon } from 'lucide-react'
+import type { ReactNode } from 'react';
+import { Link, type InertiaLinkProps } from '@inertiajs/react';
+import { GithubIcon, TwitterIcon, type LucideIcon } from 'lucide-react';
 
-import { Separator } from '@/components/ui/separator'
-import AppLogoIcon from '@/components/app-logo-icon'
+import { Separator } from '@/components/ui/separator';
+import AppLogoIcon from '@/components/app-logo-icon';
+import { cn } from '@/lib/utils';
 
-const Footer = () => {
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface FooterLink {
+    /** Link label */
+    label: string;
+    /** Link URL */
+    href: string;
+    /** Open in new tab */
+    external?: boolean;
+}
+
+export interface FooterSocialLink {
+    /** Icon component */
+    icon: LucideIcon;
+    /** Link URL */
+    href: string;
+    /** Accessible label */
+    label: string;
+}
+
+export interface FooterProps {
+    /** Brand name */
+    brandName?: string;
+    /** Logo component or element */
+    logo?: ReactNode;
+    /** Home link URL */
+    homeHref?: InertiaLinkProps['href'];
+    /** Navigation links */
+    links?: FooterLink[];
+    /** Social media links */
+    socialLinks?: FooterSocialLink[];
+    /** Copyright text (use {year} for dynamic year) */
+    copyright?: string;
+    /** Show separator between main and copyright */
+    showSeparator?: boolean;
+    /** Use muted background */
+    mutedBackground?: boolean;
+    /** Additional class name */
+    className?: string;
+}
+
+// ============================================================================
+// Default Values
+// ============================================================================
+
+const defaultLinks: FooterLink[] = [
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'FAQ', href: '#faq' },
+    { label: 'Contact', href: 'mailto:contact@laraflow.app' },
+];
+
+const defaultSocialLinks: FooterSocialLink[] = [
+    { icon: GithubIcon, href: 'https://github.com', label: 'GitHub' },
+    { icon: TwitterIcon, href: 'https://twitter.com', label: 'Twitter' },
+];
+
+// ============================================================================
+// Footer Component
+// ============================================================================
+
+export function Footer({
+    brandName = 'LaraFlow',
+    logo,
+    homeHref = '/',
+    links = defaultLinks,
+    socialLinks = defaultSocialLinks,
+    copyright = '© {year} LaraFlow. Made with ❤️ for better productivity.',
+    showSeparator = true,
+    mutedBackground = true,
+    className,
+}: FooterProps) {
+    const currentYear = new Date().getFullYear();
+    const formattedCopyright = copyright.replace('{year}', String(currentYear));
+
     return (
-        <footer className='bg-muted'>
-            <div className='mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 max-md:flex-col sm:px-6 sm:py-6 md:gap-6 md:py-8'>
+        <footer className={cn(mutedBackground && 'bg-muted', className)}>
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 max-md:flex-col sm:px-6 sm:py-6 md:gap-6 md:py-8">
                 {/* Logo */}
-                <Link href='/' className='flex items-center gap-3'>
-                    <AppLogoIcon className='size-8 fill-current text-foreground' />
-                    <span className='font-semibold'>LaraFlow</span>
+                <Link href={homeHref} className="flex items-center gap-3">
+                    {logo || <AppLogoIcon className="size-8 fill-current text-foreground" />}
+                    <span className="font-semibold">{brandName}</span>
                 </Link>
 
-                <div className='flex items-center gap-5 whitespace-nowrap text-sm'>
-                    <a href='#features' className='text-muted-foreground hover:text-foreground transition-colors'>Features</a>
-                    <a href='#pricing' className='text-muted-foreground hover:text-foreground transition-colors'>Pricing</a>
-                    <a href='#faq' className='text-muted-foreground hover:text-foreground transition-colors'>FAQ</a>
-                    <a href='mailto:contact@laraflow.app' className='text-muted-foreground hover:text-foreground transition-colors'>Contact</a>
-                </div>
+                {/* Navigation Links */}
+                {links.length > 0 && (
+                    <div className="flex items-center gap-5 whitespace-nowrap text-sm">
+                        {links.map((link) =>
+                            link.external ? (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {link.label}
+                                </a>
+                            ) : (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {link.label}
+                                </a>
+                            )
+                        )}
+                    </div>
+                )}
 
-                <div className='flex items-center gap-4'>
-                    <a href='https://github.com' target='_blank' rel='noopener noreferrer' className='text-muted-foreground hover:text-foreground transition-colors'>
-                        <GithubIcon className='size-5' />
-                    </a>
-                    <a href='https://twitter.com' target='_blank' rel='noopener noreferrer' className='text-muted-foreground hover:text-foreground transition-colors'>
-                        <TwitterIcon className='size-5' />
-                    </a>
-                </div>
+                {/* Social Links */}
+                {socialLinks.length > 0 && (
+                    <div className="flex items-center gap-4">
+                        {socialLinks.map((social) => (
+                            <a
+                                key={social.href}
+                                href={social.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={social.label}
+                            >
+                                <social.icon className="size-5" />
+                            </a>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            <Separator />
+            {showSeparator && <Separator />}
 
-            <div className='mx-auto flex max-w-7xl justify-center px-4 py-8 sm:px-6'>
-                <p className='text-muted-foreground text-center text-sm text-balance'>
-                    © {new Date().getFullYear()} LaraFlow. Made with ❤️ for better productivity.
+            <div className="mx-auto flex max-w-7xl justify-center px-4 py-8 sm:px-6">
+                <p className="text-muted-foreground text-balance text-center text-sm">
+                    {formattedCopyright}
                 </p>
             </div>
         </footer>
-    )
+    );
 }
 
-export default Footer
+// ============================================================================
+// Default Export (for backward compatibility)
+// ============================================================================
+
+export default Footer;

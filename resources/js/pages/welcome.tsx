@@ -4,11 +4,11 @@ import { Head, usePage } from '@inertiajs/react';
 import HeroSection from '@/components/hero-section'
 import Header from '@/components/header'
 import { LayoutDashboardIcon, ListTodoIcon, CalendarIcon, BarChart3Icon, UsersIcon, BellIcon } from 'lucide-react'
-import Features from '@/components/features-section'
+import { Features, type FeatureItem } from '@/components/features-section'
 import LogoCloud from '@/components/logo-cloud';
 import Testimonials from '@/components/testimonials';
 import type { TestimonialItem } from '@/components/testimonials';
-import PricingCards from '@/components/pricing';
+import { PricingCards, type PricingPlan } from '@/components/pricing';
 import FAQ from '@/components/faq';
 import Footer from '@/components/footer';
 
@@ -19,7 +19,7 @@ export default function Welcome({
 }) {
     const { auth } = usePage<SharedData>().props;
 
-    const featuresList = [
+    const featuresList: FeatureItem[] = [
         {
             icon: LayoutDashboardIcon,
             title: 'Intuitive Dashboard',
@@ -111,7 +111,7 @@ export default function Welcome({
         }
     ]
 
-    const pricingData = [
+    const pricingData: PricingPlan[] = [
         {
             id: 'starter',
             title: 'Starter',
@@ -177,10 +177,10 @@ export default function Welcome({
 
                 {/* Main Content */}
                 <main className='flex flex-col'>
-                    <HeroSection />
+                    <HeroSection cta={{ text: 'Get Started', href: register() }} />
 
                     {/* Features Section */}
-                    <Features featuresList={featuresList} />
+                    <Features features={featuresList} ctaHref={login()} />
 
                     {/* Logo Cloud Section */}
                     <LogoCloud />
@@ -189,7 +189,7 @@ export default function Welcome({
                     <Testimonials testimonials={testimonials} />
 
                     {/* Pricing Section */}
-                    <PricingCards pricingData={pricingData} />
+                    <PricingCards plans={pricingData} />
 
                     {/* FAQ Section */}
                     <FAQ faqItems={faqItems} />
