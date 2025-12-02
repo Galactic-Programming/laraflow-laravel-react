@@ -22,11 +22,62 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface Translations {
+    nav?: {
+        home?: string;
+        dashboard?: string;
+        settings?: string;
+        profile?: string;
+        password?: string;
+        appearance?: string;
+        two_factor?: string;
+        connections?: string;
+    };
+    auth?: {
+        login?: string;
+        register?: string;
+        logout?: string;
+        forgot_password?: string;
+        reset_password?: string;
+        confirm_password?: string;
+        email?: string;
+        password?: string;
+        remember_me?: string;
+    };
+    settings?: {
+        profile_info?: string;
+        profile_info_desc?: string;
+        update_password?: string;
+        update_password_desc?: string;
+        delete_account?: string;
+        delete_account_desc?: string;
+        appearance?: string;
+        appearance_desc?: string;
+        two_factor?: string;
+        two_factor_desc?: string;
+        connections?: string;
+        connections_desc?: string;
+    };
+    common?: {
+        save?: string;
+        cancel?: string;
+        delete?: string;
+        confirm?: string;
+        loading?: string;
+        success?: string;
+        error?: string;
+        warning?: string;
+    };
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    locale: string;
+    availableLocales: Record<string, string>;
+    translations: Translations;
     [key: string]: unknown;
 }
 

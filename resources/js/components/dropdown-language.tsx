@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import type { ReactNode } from 'react';
+
+import { router, usePage } from '@inertiajs/react';
 
 import {
     DropdownMenu,
@@ -8,6 +9,7 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { type SharedData } from '@/types';
 
 type Props = {
     trigger: ReactNode;
@@ -16,37 +18,35 @@ type Props = {
 };
 
 export default function LanguageDropdown({ defaultOpen, align = 'end', trigger }: Props) {
-    const [language, setLanguage] = useState('english');
+    const { locale, availableLocales } = usePage<SharedData>().props;
+
+    const handleLocaleChange = (newLocale: string) => {
+        if (newLocale !== locale) {
+            router.post(
+                `/locale/${newLocale}`,
+                {},
+                {
+                    preserveScroll: true,
+                    preserveState: false,
+                },
+            );
+        }
+    };
 
     return (
         <DropdownMenu defaultOpen={defaultOpen}>
             <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
             <DropdownMenuContent className="w-40" align={align}>
-                <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
-                    <DropdownMenuRadioItem
-                        value="english"
-                        className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
-                    >
-                        English
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem
-                        value="german"
-                        className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
-                    >
-                        Deutsch
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem
-                        value="spanish"
-                        className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
-                    >
-                        Española
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem
-                        value="vietnamese"
-                        className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
-                    >
-                        Tiếng Việt
-                    </DropdownMenuRadioItem>
+                <DropdownMenuRadioGroup value={locale} onValueChange={handleLocaleChange}>
+                    {Object.entries(availableLocales).map(([code, name]) => (
+                        <DropdownMenuRadioItem
+                            key={code}
+                            value={code}
+                            className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
+                        >
+                            {name}
+                        </DropdownMenuRadioItem>
+                    ))}
                 </DropdownMenuRadioGroup>
             </DropdownMenuContent>
         </DropdownMenu>
