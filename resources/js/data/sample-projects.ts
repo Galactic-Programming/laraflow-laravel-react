@@ -1,0 +1,204 @@
+import { type Project } from '@/components/project-board';
+
+export const sampleProjects: Project[] = [
+    {
+        id: 1,
+        title: 'Mobile App',
+        subtitle: 'Prototyping',
+        progress: 78,
+        timeLeft: '1 week left',
+        date: 'May 01, 2021',
+        color: 'bg-orange-500 dark:bg-orange-900',
+        progressColor: 'bg-orange-500',
+        badgeColor: 'bg-orange-500',
+        icon: '📱',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 2,
+        title: 'Design Learn Management System',
+        subtitle: 'UI/UX Design',
+        progress: 32,
+        timeLeft: '2 week left',
+        date: 'June 04, 2021',
+        color: 'bg-blue-200 dark:bg-blue-900',
+        progressColor: 'bg-blue-500',
+        badgeColor: 'bg-blue-500',
+        icon: '💻',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 3,
+        title: 'Chat Mobile App',
+        subtitle: 'Prototyping',
+        progress: 64,
+        timeLeft: '6 week left',
+        date: 'Oct 27, 2021',
+        color: 'bg-pink-200 dark:bg-pink-900',
+        progressColor: 'bg-pink-500',
+        badgeColor: 'bg-pink-500',
+        icon: '💬',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 4,
+        title: 'Store Dashboard',
+        subtitle: 'UI/UX Design',
+        progress: 45,
+        timeLeft: '3 week left',
+        date: 'Sep 16, 2021',
+        color: 'bg-green-200 dark:bg-green-900',
+        progressColor: 'bg-green-500',
+        badgeColor: 'bg-green-500',
+        icon: '📊',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 5,
+        title: 'NFT Marketplace App',
+        subtitle: 'Prototyping',
+        progress: 69,
+        timeLeft: '4 week left',
+        date: 'Jan 03, 2021',
+        color: 'bg-purple-200 dark:bg-purple-900',
+        progressColor: 'bg-red-500',
+        badgeColor: 'bg-red-500',
+        icon: '🎨',
+        team: [
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 6,
+        title: 'Mobile App',
+        subtitle: 'Prototyping',
+        progress: 56,
+        timeLeft: '2 week left',
+        date: 'May 09, 2021',
+        color: 'bg-blue-200 dark:bg-blue-900',
+        progressColor: 'bg-blue-500',
+        badgeColor: 'bg-blue-500',
+        icon: '📱',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 7,
+        title: 'LMS App Design',
+        subtitle: 'UI/UX Design',
+        progress: 78,
+        timeLeft: '2 week left',
+        date: 'Jan 03, 2021',
+        color: 'bg-yellow-200 dark:bg-yellow-900',
+        progressColor: 'bg-orange-500',
+        badgeColor: 'bg-orange-500',
+        icon: '🎓',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+    {
+        id: 8,
+        title: 'Design Learn Management System',
+        subtitle: 'UI/UX Design',
+        progress: 25,
+        timeLeft: '1 week left',
+        date: 'June 04, 2021',
+        color: 'bg-blue-200 dark:bg-blue-900',
+        progressColor: 'bg-blue-500',
+        badgeColor: 'bg-blue-500',
+        icon: '💻',
+        team: [
+            {
+                id: 1,
+                avatar: 'https://bundui-images.netlify.app/avatars/01.png',
+            },
+            {
+                id: 2,
+                avatar: 'https://bundui-images.netlify.app/avatars/02.png',
+            },
+            {
+                id: 3,
+                avatar: 'https://bundui-images.netlify.app/avatars/03.png',
+            },
+        ],
+    },
+];
