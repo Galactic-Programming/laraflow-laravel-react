@@ -34,7 +34,6 @@ export default function ConfirmPassword() {
                                     id="password"
                                     type={isPasswordVisible ? 'text' : 'password'}
                                     name="password"
-                                    required
                                     autoFocus
                                     autoComplete="current-password"
                                     placeholder="••••••••••••"

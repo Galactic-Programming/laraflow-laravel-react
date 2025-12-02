@@ -59,7 +59,6 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                         id="password"
                                         type={isPasswordVisible ? 'text' : 'password'}
                                         name="password"
-                                        required
                                         autoFocus
                                         tabIndex={1}
                                         autoComplete="new-password"
@@ -91,7 +90,6 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                         id="password_confirmation"
                                         type={isConfirmPasswordVisible ? 'text' : 'password'}
                                         name="password_confirmation"
-                                        required
                                         tabIndex={2}
                                         autoComplete="new-password"
                                         placeholder="••••••••••••"

@@ -42,7 +42,6 @@ export default function Register() {
                                     id="name"
                                     type="text"
                                     name="name"
-                                    required
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="name"
@@ -58,7 +57,6 @@ export default function Register() {
                                     id="email"
                                     type="email"
                                     name="email"
-                                    required
                                     tabIndex={2}
                                     autoComplete="email"
                                     placeholder="Enter your email address"
@@ -74,7 +72,6 @@ export default function Register() {
                                         id="password"
                                         type={isPasswordVisible ? 'text' : 'password'}
                                         name="password"
-                                        required
                                         tabIndex={3}
                                         autoComplete="new-password"
                                         placeholder="••••••••••••"
@@ -105,7 +102,6 @@ export default function Register() {
                                         id="password_confirmation"
                                         type={isConfirmPasswordVisible ? 'text' : 'password'}
                                         name="password_confirmation"
-                                        required
                                         tabIndex={4}
                                         autoComplete="new-password"
                                         placeholder="••••••••••••"
@@ -133,7 +129,6 @@ export default function Register() {
                                 <Checkbox
                                     id="terms"
                                     name="terms"
-                                    required
                                     tabIndex={5}
                                 />
                                 <Label htmlFor="terms" className="text-sm font-normal">

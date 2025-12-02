@@ -58,7 +58,6 @@ export default function Login({
                                     id="email"
                                     type="email"
                                     name="email"
-                                    required
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
@@ -75,7 +74,6 @@ export default function Login({
                                         id="password"
                                         type={isPasswordVisible ? 'text' : 'password'}
                                         name="password"
-                                        required
                                         tabIndex={2}
                                         autoComplete="current-password"
                                         placeholder="••••••••••••"

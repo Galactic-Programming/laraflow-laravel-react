@@ -72,7 +72,6 @@ export default function TwoFactorChallenge() {
                                         type="text"
                                         placeholder="Enter your recovery code"
                                         autoFocus
-                                        required
                                     />
                                     <InputError message={errors.recovery_code} />
                                 </div>
