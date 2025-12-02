@@ -177,7 +177,11 @@ export default function Welcome({
 
                 {/* Main Content */}
                 <main className='flex flex-col'>
-                    <HeroSection cta={{ text: 'Get Started', href: register() }} />
+                    {/* Hero Section */}
+                    <HeroSection
+                        cta={{ text: 'Get Started', href: register() }}
+                        showRippleEffect
+                    />
 
                     {/* Features Section */}
                     <Features features={featuresList} ctaHref={login()} />

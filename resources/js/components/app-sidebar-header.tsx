@@ -2,6 +2,7 @@ import { LanguagesIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import LanguageDropdown from '@/components/dropdown-language';
 import ProfileDropdown from '@/components/dropdown-profile';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -26,6 +27,9 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             <div className="flex items-center gap-1.5">
+                <AnimatedThemeToggler
+                    className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                />
                 <LanguageDropdown
                     trigger={
                         <Button variant="ghost" size="icon">

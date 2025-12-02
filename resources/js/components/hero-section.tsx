@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { Link, type InertiaLinkProps } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +53,14 @@ export interface HeroSectionProps {
     className?: string;
     /** Content container class name */
     contentClassName?: string;
+    /** Show background ripple effect */
+    showRippleEffect?: boolean;
+    /** Ripple effect configuration */
+    rippleConfig?: {
+        rows?: number;
+        cols?: number;
+        cellSize?: number;
+    };
 }
 
 // ============================================================================
@@ -130,6 +139,8 @@ export function HeroSection({
     id,
     className,
     contentClassName,
+    showRippleEffect = false,
+    rippleConfig,
 }: HeroSectionProps) {
     // Check if title is HeroTitleProps object
     const isHeroTitleProps = (t: HeroSectionProps['title']): t is HeroTitleProps => {
@@ -164,14 +175,23 @@ export function HeroSection({
         <section
             id={id}
             className={cn(
-                'flex min-h-[calc(80dvh-4rem)] flex-1 flex-col justify-between gap-8 overflow-x-hidden pt-6 sm:gap-12 sm:pt-12 lg:gap-16 lg:pt-16',
+                'relative flex min-h-[calc(80dvh-4rem)] flex-1 flex-col justify-between gap-8 overflow-hidden pt-6 sm:gap-12 sm:pt-12 lg:gap-16 lg:pt-16',
                 className
             )}
         >
+            {/* Background Ripple Effect */}
+            {showRippleEffect && (
+                <BackgroundRippleEffect
+                    rows={rippleConfig?.rows}
+                    cols={rippleConfig?.cols}
+                    cellSize={rippleConfig?.cellSize}
+                />
+            )}
+
             {/* Hero Content */}
             <div
                 className={cn(
-                    'mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8',
+                    'relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8',
                     contentClassName
                 )}
             >
