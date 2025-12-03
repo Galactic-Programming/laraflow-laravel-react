@@ -35,6 +35,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -89,10 +90,6 @@ interface Props {
     projects?: Project[];
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Projects', href: '/projects' },
-];
-
 const projectColors = [
     '#3b82f6', // blue
     '#ef4444', // red
@@ -145,6 +142,7 @@ const isLightColor = (color: string): boolean => {
 };
 
 export default function ProjectsIndex({ projects = [] }: Props) {
+    const { t } = useTranslations();
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('recent');
     const [filterBy, setFilterBy] = useState('all');
@@ -154,6 +152,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
     const [deleteProject, setDeleteProject] = useState<Project | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [editProject, setEditProject] = useState<Project | null>(null);
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: t('projects.title', 'Projects'), href: '/projects' },
+    ];
 
     useEffect(() => {
         // Trigger mount animation after a small delay for smoother entrance
@@ -261,7 +263,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Projects" />
+            <Head title={t('projects.title', 'Projects')} />
 
             <div
                 className={`flex h-full flex-1 flex-col p-6 transition-all duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}
@@ -278,12 +280,12 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             <h1
                                 className={`text-2xl font-bold transition-all delay-100 duration-500 ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'}`}
                             >
-                                Projects
+                                {t('projects.title', 'Projects')}
                             </h1>
                             <p
                                 className={`text-sm text-muted-foreground transition-all delay-200 duration-500 ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'}`}
                             >
-                                Manage and organize your work
+                                {t('projects.subtitle', 'Manage and organize your work')}
                             </p>
                         </div>
                     </div>
@@ -296,7 +298,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                     <div className="flex items-center gap-4">
                         <div className="space-y-1">
                             <span className="text-xs text-muted-foreground">
-                                Sort by
+                                {t('projects.sort_by', 'Sort by')}
                             </span>
                             <Select value={sortBy} onValueChange={setSortBy}>
                                 <SelectTrigger className="h-9 w-[160px] transition-shadow duration-200 focus:shadow-md">
@@ -304,13 +306,13 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="recent">
-                                        Recent activity
+                                        {t('projects.recent_activity', 'Recent activity')}
                                     </SelectItem>
                                     <SelectItem value="name">
-                                        Alphabetically
+                                        {t('projects.alphabetically', 'Alphabetically')}
                                     </SelectItem>
                                     <SelectItem value="created">
-                                        Date created
+                                        {t('projects.date_created', 'Date created')}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -318,7 +320,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
 
                         <div className="space-y-1">
                             <span className="text-xs text-muted-foreground">
-                                Filter by
+                                {t('projects.filter_by', 'Filter by')}
                             </span>
                             <Select
                                 value={filterBy}
@@ -329,16 +331,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
-                                        All projects
+                                        {t('projects.all_projects', 'All projects')}
                                     </SelectItem>
                                     <SelectItem value="active">
-                                        Active
+                                        {t('projects.active', 'Active')}
                                     </SelectItem>
                                     <SelectItem value="archived">
-                                        Archived
+                                        {t('projects.archived', 'Archived')}
                                     </SelectItem>
                                     <SelectItem value="completed">
-                                        Completed
+                                        {t('projects.completed', 'Completed')}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -346,7 +348,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
 
                         <div className="space-y-1">
                             <span className="text-xs text-muted-foreground">
-                                Visibility
+                                {t('projects.visibility', 'Visibility')}
                             </span>
                             <Select
                                 value={visibilityFilter}
@@ -356,12 +358,12 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All</SelectItem>
+                                    <SelectItem value="all">{t('projects.all', 'All')}</SelectItem>
                                     <SelectItem value="private">
-                                        Private
+                                        {t('projects.private', 'Private')}
                                     </SelectItem>
                                     <SelectItem value="public">
-                                        Public
+                                        {t('projects.public', 'Public')}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -370,13 +372,13 @@ export default function ProjectsIndex({ projects = [] }: Props) {
 
                     <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">
-                            Search
+                            {t('projects.search', 'Search')}
                         </span>
                         <div className="group relative">
                             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
                             <Input
                                 type="text"
-                                placeholder="Search projects..."
+                                placeholder={t('projects.search_placeholder', 'Search projects...')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="h-9 w-[200px] pl-9 transition-all duration-200 focus:w-[240px] focus:shadow-md"
@@ -462,7 +464,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                 }
                                             >
                                                 <Pencil className="mr-2 size-4" />
-                                                Edit project
+                                                {t('projects.edit_project', 'Edit project')}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
@@ -471,7 +473,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                 }
                                             >
                                                 <Trash2 className="mr-2 size-4" />
-                                                Delete project
+                                                {t('projects.delete_project', 'Delete project')}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -553,11 +555,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             </div>
                         </div>
                         <h3 className="mb-2 text-xl font-semibold">
-                            No projects yet
+                            {t('projects.no_projects', 'No projects yet')}
                         </h3>
                         <p className="mb-6 max-w-sm text-center text-muted-foreground">
-                            Create your first project to start organizing your
-                            tasks and collaborate with your team.
+                            {t('projects.no_projects_desc', 'Create your first project to start organizing your tasks and collaborate with your team.')}
                         </p>
                         <Button
                             onClick={() => setIsCreateOpen(true)}
@@ -565,7 +566,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             className="gap-2 shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30"
                         >
                             <Plus className="size-4" />
-                            Create your first project
+                            {t('projects.create_first', 'Create your first project')}
                         </Button>
                     </div>
                 )}
@@ -576,7 +577,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
                             <Search className="size-6 text-muted-foreground" />
                         </div>
-                        <p>No projects found matching "{searchQuery}"</p>
+                        <p>{t('projects.no_results', 'No projects found matching')} "{searchQuery}"</p>
                     </div>
                 )}
             </div>
@@ -590,11 +591,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                Create new project
+                                {t('projects.create_title', 'Create new project')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Fill in the details below to create your
-                                project.
+                                {t('projects.create_desc', 'Fill in the details below to create your project.')}
                             </p>
                         </SheetHeader>
 
@@ -608,7 +608,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '100ms' }}
                             >
                                 <Label htmlFor="name" className="text-base">
-                                    Project name
+                                    {t('projects.project_name', 'Project name')}
                                 </Label>
                                 <Input
                                     id="name"
@@ -616,7 +616,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setData('name', e.target.value)
                                     }
-                                    placeholder="Enter project name"
+                                    placeholder={t('projects.project_name_placeholder', 'Enter project name')}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                                 {errors.name && (
@@ -635,9 +635,9 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     htmlFor="description"
                                     className="text-base"
                                 >
-                                    Description
+                                    {t('projects.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('projects.description_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -646,7 +646,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setData('description', e.target.value)
                                     }
-                                    placeholder="What's this project about?"
+                                    placeholder={t('projects.description_placeholder', "What's this project about?")}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -657,7 +657,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '300ms' }}
                             >
                                 <Label className="text-base">
-                                    Project color
+                                    {t('projects.project_color', 'Project color')}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {projectColors.map((color, index) => (
@@ -750,7 +750,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">Visibility</Label>
+                                <Label className="text-base">{t('projects.visibility_label', 'Visibility')}</Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <button
                                         type="button"
@@ -779,10 +779,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                         : 'text-foreground'
                                                 }`}
                                             >
-                                                Private
+                                                {t('projects.private_label', 'Private')}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                Only you can access
+                                                {t('projects.private_desc', 'Only you can access')}
                                             </p>
                                         </div>
                                     </button>
@@ -812,10 +812,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                         : 'text-foreground'
                                                 }`}
                                             >
-                                                Public
+                                                {t('projects.public_label', 'Public')}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                Anyone can view
+                                                {t('projects.public_desc', 'Anyone can view')}
                                             </p>
                                         </div>
                                     </button>
@@ -834,7 +834,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-md"
                                     onClick={() => setIsCreateOpen(false)}
                                 >
-                                    Cancel
+                                    {t('projects.cancel', 'Cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
@@ -845,7 +845,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     {processing && (
                                         <Loader2 className="mr-2 size-4 animate-spin" />
                                     )}
-                                    Create project
+                                    {t('projects.create_btn', 'Create project')}
                                 </Button>
                             </div>
                         </form>
@@ -865,10 +865,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                Edit project
+                                {t('projects.edit_title', 'Edit project')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Update your project details below.
+                                {t('projects.edit_desc', 'Update your project details below.')}
                             </p>
                         </SheetHeader>
 
@@ -885,7 +885,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     htmlFor="edit-name"
                                     className="text-base"
                                 >
-                                    Project name
+                                    {t('projects.project_name', 'Project name')}
                                 </Label>
                                 <Input
                                     id="edit-name"
@@ -893,7 +893,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setEditData('name', e.target.value)
                                     }
-                                    placeholder="Enter project name"
+                                    placeholder={t('projects.project_name_placeholder', 'Enter project name')}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                                 {editErrors.name && (
@@ -912,9 +912,9 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     htmlFor="edit-description"
                                     className="text-base"
                                 >
-                                    Description
+                                    {t('projects.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('projects.description_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -926,7 +926,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    placeholder="What's this project about?"
+                                    placeholder={t('projects.description_placeholder', "What's this project about?")}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -937,7 +937,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '300ms' }}
                             >
                                 <Label className="text-base">
-                                    Project color
+                                    {t('projects.project_color', 'Project color')}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {projectColors.map((color, index) => (
@@ -1004,7 +1004,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '350ms' }}
                             >
                                 <Label className="text-base">
-                                    Project icon
+                                    {t('projects.project_icon', 'Project icon')}
                                 </Label>
                                 <div className="grid grid-cols-10 gap-2">
                                     {projectIcons.map(
@@ -1033,7 +1033,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">Visibility</Label>
+                                <Label className="text-base">{t('projects.visibility_label', 'Visibility')}</Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <button
                                         type="button"
@@ -1056,10 +1056,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         />
                                         <div className="text-center">
                                             <p className="font-medium text-foreground">
-                                                Private
+                                                {t('projects.private_label', 'Private')}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                Only you can access
+                                                {t('projects.private_desc', 'Only you can access')}
                                             </p>
                                         </div>
                                     </button>
@@ -1083,10 +1083,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         />
                                         <div className="text-center">
                                             <p className="font-medium text-foreground">
-                                                Public
+                                                {t('projects.public_label', 'Public')}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                Anyone can view
+                                                {t('projects.public_desc', 'Anyone can view')}
                                             </p>
                                         </div>
                                     </button>
@@ -1105,7 +1105,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-md"
                                     onClick={() => setEditProject(null)}
                                 >
-                                    Cancel
+                                    {t('projects.cancel', 'Cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
@@ -1116,7 +1116,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     {editProcessing && (
                                         <Loader2 className="mr-2 size-4 animate-spin" />
                                     )}
-                                    Save changes
+                                    {t('projects.save_btn', 'Save changes')}
                                 </Button>
                             </div>
                         </form>
@@ -1131,19 +1131,18 @@ export default function ProjectsIndex({ projects = [] }: Props) {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete project</AlertDialogTitle>
+                        <AlertDialogTitle>{t('projects.delete_title', 'Delete project')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete{' '}
+                            {t('projects.delete_confirm', 'Are you sure you want to delete')}{' '}
                             <span className="font-semibold text-foreground">
                                 "{deleteProject?.name}"
                             </span>
-                            ? This action cannot be undone and all associated
-                            data will be permanently removed.
+                            {t('projects.delete_warning', '? This action cannot be undone and all associated data will be permanently removed.')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isDeleting}>
-                            Cancel
+                            {t('projects.cancel', 'Cancel')}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
@@ -1153,7 +1152,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             {isDeleting && (
                                 <Loader2 className="mr-2 size-4 animate-spin" />
                             )}
-                            Delete
+                            {t('projects.delete_btn', 'Delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
