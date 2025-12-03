@@ -55,18 +55,54 @@ class Subscription extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * Check if subscription grants access to premium features.
+     * User still has access if subscription is active OR cancelled but not yet expired.
+     */
+    public function hasAccess(): bool
+    {
+        // Active subscription always has access
+        if ($this->status === 'active') {
+            return $this->ends_at === null || $this->ends_at->isFuture();
+        }
+
+        // Cancelled subscription still has access until ends_at
+        if ($this->status === 'cancelled') {
+            return $this->ends_at !== null && $this->ends_at->isFuture();
+        }
+
+        // Expired, past_due, or other statuses = no access
+        return false;
+    }
+
+    /**
+     * Check if subscription is technically active (not cancelled).
+     */
     public function isActive(): bool
     {
         return $this->status === 'active' && ($this->ends_at === null || $this->ends_at->isFuture());
     }
 
+    /**
+     * Check if subscription is cancelled but still has access.
+     */
+    public function isCancelledButActive(): bool
+    {
+        return $this->status === 'cancelled'
+            && $this->ends_at !== null
+            && $this->ends_at->isFuture();
+    }
+
+    /**
+     * Check if user has Professional plan access (includes cancelled but not expired).
+     */
     public function isProfessional(): bool
     {
-        return $this->isActive() && $this->plan?->isProfessional();
+        return $this->hasAccess() && $this->plan?->isProfessional();
     }
 
     public function isStarter(): bool
     {
-        return $this->isActive() && $this->plan?->isStarter();
+        return $this->hasAccess() && $this->plan?->isStarter();
     }
 }

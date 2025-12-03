@@ -199,3 +199,73 @@ it('sets correct ends_at for yearly subscription', function () {
     expect($daysDiff)->toBeGreaterThanOrEqual(365);
     expect($daysDiff)->toBeLessThanOrEqual(366);
 });
+
+it('cancelled subscription still has access until ends_at', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'cancelled',
+        'starts_at' => now()->subWeek(),
+        'ends_at' => now()->addWeeks(3), // Still has 3 weeks left
+        'cancelled_at' => now(),
+    ]);
+
+    // Subscription should still have access
+    expect($subscription->hasAccess())->toBeTrue();
+    expect($subscription->isProfessional())->toBeTrue();
+
+    // User should still be professional
+    $user->refresh();
+    expect($user->isProfessional())->toBeTrue();
+    expect($user->hasPremiumAccess())->toBeTrue();
+});
+
+it('cancelled subscription loses access after ends_at', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'cancelled',
+        'starts_at' => now()->subMonth(),
+        'ends_at' => now()->subDay(), // Already expired
+        'cancelled_at' => now()->subWeek(),
+    ]);
+
+    // Subscription should NOT have access
+    expect($subscription->hasAccess())->toBeFalse();
+    expect($subscription->isProfessional())->toBeFalse();
+
+    // User should NOT be professional
+    $user->refresh();
+    expect($user->isProfessional())->toBeFalse();
+});
+
+it('shows cancelled subscription on billing page with access info', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'cancelled',
+        'starts_at' => now()->subWeek(),
+        'ends_at' => now()->addWeeks(3),
+        'cancelled_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get('/settings/billing');
+
+    $response->assertStatus(200);
+    $response->assertInertia(
+        fn($page) => $page
+            ->component('settings/billing')
+            ->has('subscription')
+            ->where('subscription.status', 'cancelled')
+            ->where('subscription.plan', 'Professional')
+    );
+});

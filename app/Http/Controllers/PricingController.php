@@ -32,22 +32,24 @@ class PricingController extends Controller
                 'is_free' => $plan->isFree(),
             ]);
 
-        // Get current user's subscription status
+        // Get current user's subscription status (includes cancelled but not expired)
         $currentPlan = null;
         $isSubscribed = false;
         $subscription = null;
 
         if ($request->user()) {
-            $activeSubscription = $request->user()->activeSubscription;
-            if ($activeSubscription) {
-                $currentPlan = $activeSubscription->plan?->slug;
+            $currentSubscription = $request->user()->currentSubscription;
+            if ($currentSubscription && $currentSubscription->hasAccess()) {
+                $currentPlan = $currentSubscription->plan?->slug;
                 $isSubscribed = true;
                 $subscription = [
-                    'id' => $activeSubscription->id,
-                    'plan_slug' => $activeSubscription->plan?->slug,
-                    'billing_interval' => $activeSubscription->plan?->billing_interval,
-                    'ends_at' => $activeSubscription->ends_at?->format('M d, Y'),
-                    'ends_at_timestamp' => $activeSubscription->ends_at?->timestamp,
+                    'id' => $currentSubscription->id,
+                    'status' => $currentSubscription->status,
+                    'plan_slug' => $currentSubscription->plan?->slug,
+                    'billing_interval' => $currentSubscription->plan?->billing_interval,
+                    'ends_at' => $currentSubscription->ends_at?->format('M d, Y'),
+                    'ends_at_timestamp' => $currentSubscription->ends_at?->timestamp,
+                    'is_cancelled' => $currentSubscription->status === 'cancelled',
                 ];
             }
         }
@@ -72,7 +74,7 @@ class PricingController extends Controller
     public function billing(Request $request): Response
     {
         $user = $request->user();
-        $subscription = $user->activeSubscription;
+        $subscription = $user->currentSubscription;
         $payments = $user->payments()
             ->with('plan')
             ->latest()

@@ -66,6 +66,32 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Check if this Stripe subscription ID already exists (prevent duplicate webhook processing)
+        $existingStripeSubscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)->first();
+        if ($existingStripeSubscription) {
+            Log::info('Subscription already exists for this Stripe subscription ID', [
+                'stripe_subscription_id' => $stripeSubscriptionId,
+                'existing_subscription_id' => $existingStripeSubscription->id,
+            ]);
+
+            return;
+        }
+
+        // Check if user already has an active subscription that hasn't expired
+        $existingActiveSubscription = $user->currentSubscription;
+        if ($existingActiveSubscription && $existingActiveSubscription->hasAccess()) {
+            Log::warning('User already has active subscription, rejecting new checkout', [
+                'user_id' => $user->id,
+                'existing_subscription_id' => $existingActiveSubscription->id,
+                'ends_at' => $existingActiveSubscription->ends_at,
+            ]);
+
+            // Note: In production, you might want to issue a refund via Stripe API
+            // For now, we just log and skip creating a new subscription
+
+            return;
+        }
+
         // Determine the plan based on amount paid
         $amountTotal = ($session['amount_total'] ?? 0) / 100; // Convert from cents
         $plan = $this->determinePlanFromAmount($amountTotal);
@@ -74,12 +100,11 @@ class StripeWebhookController extends Controller
         $startsAt = now();
         $endsAt = $this->calculateEndDate($startsAt, $plan);
 
-        // Cancel any existing active subscription for this user
+        // Cancel any existing subscription for this user (shouldn't have active ones at this point)
         Subscription::where('user_id', $user->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'cancelled'])
             ->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now(),
+                'status' => 'expired',
             ]);
 
         // Create new subscription

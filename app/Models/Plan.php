@@ -46,7 +46,7 @@ class Plan extends Model
 
     public function isProfessional(): bool
     {
-        return $this->slug === 'professional';
+        return str_starts_with($this->slug, 'professional');
     }
 
     public function isStarter(): bool

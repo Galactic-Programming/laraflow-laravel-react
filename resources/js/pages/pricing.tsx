@@ -24,25 +24,60 @@ interface Plan {
     is_free: boolean;
 }
 
+interface Subscription {
+    id: number;
+    status: string;
+    plan_slug: string | null;
+    billing_interval: string | null;
+    ends_at: string | null;
+    ends_at_timestamp: number | null;
+    is_cancelled: boolean;
+}
+
 interface Props {
     plans: Plan[];
     currentPlan: string | null;
-    isSubscribed: boolean;
+    subscription: Subscription | null;
     stripePaymentLinks: {
         professional_monthly: string | null;
         professional_yearly: string | null;
     };
 }
 
-export default function Pricing({ plans, currentPlan, isSubscribed, stripePaymentLinks }: Props) {
+export default function Pricing({ plans, currentPlan, subscription, stripePaymentLinks }: Props) {
     const { auth } = usePage<SharedData>().props;
     const { t } = useTranslations();
     const [isAnnual, setIsAnnual] = useState(false);
 
     // Group plans by slug for pricing display
-    const starterPlan = plans.find((p) => p.slug === 'starter');
     const monthlyPlan = plans.find((p) => p.slug === 'professional-monthly');
     const yearlyPlan = plans.find((p) => p.slug === 'professional-yearly');
+
+    // Check if user has an active subscription that hasn't expired
+    // This prevents duplicate purchases
+    const hasActiveSubscription = subscription !== null && subscription.ends_at_timestamp !== null;
+    const subscriptionEndsAt = subscription?.ends_at;
+
+    // Determine if subscription button should be disabled
+    const shouldDisableSubscribe = (): boolean => {
+        if (!auth.user) return false; // Guest can click to go to login
+        if (!hasActiveSubscription) return false; // No active sub, can subscribe
+
+        // If user has active subscription, disable all subscribe buttons
+        // They need to wait until current period ends
+        return true;
+    };
+
+    // Get the message to show when subscription is disabled
+    const getSubscribeDisabledMessage = (): string | null => {
+        if (!hasActiveSubscription) return null;
+
+        if (subscription?.is_cancelled) {
+            return t('pricing.wait_until_expired', 'Your current subscription is active until {date}. You can subscribe to a new plan after that.').replace('{date}', subscriptionEndsAt || '');
+        }
+
+        return t('pricing.already_subscribed', 'You already have an active subscription until {date}. Cancel first to switch plans.').replace('{date}', subscriptionEndsAt || '');
+    };
 
     const getCheckoutUrl = (paymentLink: string | null) => {
         if (!paymentLink) return null;
@@ -61,7 +96,6 @@ export default function Pricing({ plans, currentPlan, isSubscribed, stripePaymen
         }
     };
 
-    const professionalPlan = isAnnual ? yearlyPlan : monthlyPlan;
     const professionalPaymentLink = isAnnual
         ? stripePaymentLinks.professional_yearly
         : stripePaymentLinks.professional_monthly;
@@ -164,7 +198,7 @@ export default function Pricing({ plans, currentPlan, isSubscribed, stripePaymen
                                             t('pricing.get_started', 'Get Started')
                                         )
                                     ) : (
-                                        <a href={register()}>{t('pricing.sign_up_free', 'Sign Up Free')}</a>
+                                        <a href={register.url()}>{t('pricing.sign_up_free', 'Sign Up Free')}</a>
                                     )}
                                 </Button>
                             </CardContent>
@@ -204,19 +238,25 @@ export default function Pricing({ plans, currentPlan, isSubscribed, stripePaymen
 
                                 <Button
                                     className="w-full"
-                                    disabled={currentPlan?.startsWith('professional') || !professionalPaymentLink}
+                                    disabled={shouldDisableSubscribe() || !professionalPaymentLink}
                                     onClick={() => handleSubscribe(professionalPaymentLink)}
                                 >
                                     {currentPlan?.startsWith('professional')
                                         ? t('pricing.current', 'Current')
-                                        : isSubscribed
-                                            ? t('pricing.upgrade', 'Upgrade')
+                                        : hasActiveSubscription
+                                            ? t('pricing.subscribed', 'Subscribed')
                                             : t('pricing.subscribe', 'Subscribe')}
                                 </Button>
 
                                 {!professionalPaymentLink && (
                                     <p className="text-center text-sm text-muted-foreground">
                                         {t('pricing.coming_soon', 'Payment integration coming soon')}
+                                    </p>
+                                )}
+
+                                {hasActiveSubscription && auth.user && (
+                                    <p className="text-center text-sm text-amber-600 dark:text-amber-400">
+                                        {getSubscribeDisabledMessage()}
                                     </p>
                                 )}
                             </CardContent>

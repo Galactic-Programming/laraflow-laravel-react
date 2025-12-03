@@ -71,7 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get the active subscription for the user.
+     * Get the active subscription for the user (status = active only).
      *
      * @return HasOne<Subscription, $this>
      */
@@ -79,6 +79,25 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Subscription::class)
             ->where('status', 'active')
+            ->latestOfMany();
+    }
+
+    /**
+     * Get the current valid subscription (active OR cancelled but not expired).
+     * This is the subscription that grants access to premium features.
+     *
+     * @return HasOne<Subscription, $this>
+     */
+    public function currentSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->where(function ($query) {
+                $query->where('status', 'active')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'cancelled')
+                            ->where('ends_at', '>', now());
+                    });
+            })
             ->latestOfMany();
     }
 
@@ -93,11 +112,20 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Check if user has Professional plan.
+     * Check if user has Professional plan access.
+     * Returns true even if subscription is cancelled but not yet expired.
      */
     public function isProfessional(): bool
     {
-        return $this->activeSubscription?->isProfessional() ?? false;
+        return $this->currentSubscription?->isProfessional() ?? false;
+    }
+
+    /**
+     * Check if user has any premium access (not on free plan).
+     */
+    public function hasPremiumAccess(): bool
+    {
+        return $this->currentSubscription?->hasAccess() ?? false;
     }
 
     /**
@@ -105,7 +133,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getPlanName(): string
     {
-        return $this->activeSubscription?->plan?->name ?? 'Starter';
+        return $this->currentSubscription?->plan?->name ?? 'Starter';
     }
 
     /**
