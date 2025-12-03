@@ -18,6 +18,17 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function show(int $id): Response
+    {
+        $project = auth()->user()->projects()
+            ->with(['taskLists.tasks'])
+            ->findOrFail($id);
+
+        return Inertia::render('projects/show', [
+            'project' => $project,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -53,6 +64,18 @@ class ProjectController extends Controller
     {
         $project = auth()->user()->projects()->findOrFail($id);
         $project->delete();
+
+        return redirect()->route('projects.index');
+    }
+
+    public function updateStatus(Request $request, int $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,completed,archived'],
+        ]);
+
+        $project = auth()->user()->projects()->findOrFail($id);
+        $project->update($validated);
 
         return redirect()->route('projects.index');
     }

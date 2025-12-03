@@ -1,4 +1,8 @@
 import {
+    SelectableStatusBadge,
+    type StatusType,
+} from '@/components/status-badge';
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -77,6 +81,8 @@ export interface Project {
     status: 'active' | 'archived' | 'completed';
     visibility: 'private' | 'public';
     due_date?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface Props {
@@ -213,16 +219,35 @@ export default function ProjectsIndex({ projects = [] }: Props) {
         });
     };
 
-    const filteredProjects = projects.filter((project) => {
-        const matchesSearch = project.name
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
-        const matchesStatus = filterBy === 'all' || project.status === filterBy;
-        const matchesVisibility =
-            visibilityFilter === 'all' ||
-            project.visibility === visibilityFilter;
-        return matchesSearch && matchesStatus && matchesVisibility;
-    });
+    const filteredProjects = projects
+        .filter((project) => {
+            const matchesSearch = project.name
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase());
+            const matchesStatus =
+                filterBy === 'all' || project.status === filterBy;
+            const matchesVisibility =
+                visibilityFilter === 'all' ||
+                project.visibility === visibilityFilter;
+            return matchesSearch && matchesStatus && matchesVisibility;
+        })
+        .sort((a, b) => {
+            switch (sortBy) {
+                case 'name':
+                    return a.name.localeCompare(b.name);
+                case 'created':
+                    return (
+                        new Date(b.created_at ?? 0).getTime() -
+                        new Date(a.created_at ?? 0).getTime()
+                    );
+                case 'recent':
+                default:
+                    return (
+                        new Date(b.updated_at ?? 0).getTime() -
+                        new Date(a.updated_at ?? 0).getTime()
+                    );
+            }
+        });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -364,25 +389,27 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                 <div
                     className={`grid grid-cols-1 gap-4 transition-all delay-400 duration-500 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
                 >
-                    {/* Create New */}
-                    <button
-                        onClick={() => setIsCreateOpen(true)}
-                        className={`group relative flex aspect-[16/10] w-full items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed border-border transition-all duration-500 hover:scale-[1.02] hover:border-primary/50 hover:bg-primary/5 hover:shadow-xl hover:shadow-primary/20 ${mounted ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
-                        style={{ transitionDelay: '450ms' }}
-                    >
-                        {/* Animated gradient background */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/5 to-primary/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary),.1),transparent_70%)] opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
+                    {/* Create New - only show when there are projects */}
+                    {projects.length > 0 && (
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className={`group relative flex aspect-[16/10] w-full items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed border-border transition-all duration-500 hover:scale-[1.02] hover:border-primary/50 hover:bg-primary/5 hover:shadow-xl hover:shadow-primary/20 ${mounted ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+                            style={{ transitionDelay: '450ms' }}
+                        >
+                            {/* Animated gradient background */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/5 to-primary/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary),.1),transparent_70%)] opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
 
-                        <div className="relative flex items-center gap-2">
-                            <div className="flex size-10 items-center justify-center rounded-full bg-muted/50 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/10">
-                                <Plus className="size-5 text-muted-foreground transition-all duration-500 group-hover:rotate-180 group-hover:text-primary" />
+                            <div className="relative flex items-center gap-2">
+                                <div className="flex size-10 items-center justify-center rounded-full bg-muted/50 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/10">
+                                    <Plus className="size-5 text-muted-foreground transition-all duration-500 group-hover:rotate-180 group-hover:text-primary" />
+                                </div>
+                                <span className="text-sm font-medium text-muted-foreground transition-colors duration-300 group-hover:text-primary">
+                                    Create new project
+                                </span>
                             </div>
-                            <span className="text-sm font-medium text-muted-foreground transition-colors duration-300 group-hover:text-primary">
-                                Create new project
-                            </span>
-                        </div>
-                    </button>
+                        </button>
+                    )}
 
                     {/* Project Cards */}
                     {filteredProjects.map((project, index) => {
@@ -391,13 +418,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                         return (
                             <div
                                 key={project.id}
-                                className={`group relative flex aspect-[16/10] w-full flex-col overflow-hidden rounded-xl transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl ${mounted ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-95 opacity-0'}`}
+                                className={`group relative flex aspect-[16/10] w-full cursor-pointer flex-col overflow-hidden rounded-xl transition-all duration-200 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl ${mounted ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-95 opacity-0'}`}
                                 style={{
                                     backgroundColor: project.color,
                                     transitionDelay: mounted
                                         ? '0ms'
                                         : `${500 + (index + 1) * 100}ms`,
                                 }}
+                                onClick={() =>
+                                    router.visit(`/projects/${project.id}`)
+                                }
                             >
                                 {/* Animated background patterns */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20" />
@@ -449,7 +479,7 @@ export default function ProjectsIndex({ projects = [] }: Props) {
 
                                 {/* Content */}
                                 <div
-                                    className={`absolute right-0 bottom-0 left-0 flex flex-col justify-end p-4 transition-all duration-200 ${isLight ? 'bg-gradient-to-t from-black/60 via-black/30 to-transparent group-hover:from-black/70' : 'bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:from-black/90'}`}
+                                    className={`absolute right-0 bottom-0 left-0 z-10 flex flex-col justify-end p-4 transition-all duration-200 ${isLight ? 'bg-gradient-to-t from-black/60 via-black/30 to-transparent group-hover:from-black/70' : 'bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:from-black/90'}`}
                                 >
                                     {/* Description - only visible on hover */}
                                     {project.description && (
@@ -471,43 +501,38 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                 </div>
                                             )}
                                             {/* Status */}
-                                            <div
-                                                className={`flex items-center gap-1 rounded-full px-2 py-0.5 backdrop-blur-sm ${
-                                                    project.status === 'active'
-                                                        ? 'bg-emerald-500/30'
-                                                        : project.status ===
-                                                            'completed'
-                                                          ? 'bg-blue-500/30'
-                                                          : 'bg-gray-500/30'
-                                                }`}
-                                            >
-                                                <div
-                                                    className={`size-1.5 rounded-full ${
-                                                        project.status ===
-                                                        'active'
-                                                            ? 'animate-pulse bg-emerald-400'
-                                                            : project.status ===
-                                                                'completed'
-                                                              ? 'bg-blue-400'
-                                                              : 'bg-gray-400'
-                                                    }`}
-                                                />
-                                                <span className="text-[10px] font-medium text-white/90 capitalize">
-                                                    {project.status}
-                                                </span>
-                                            </div>
+                                            <SelectableStatusBadge
+                                                status={
+                                                    project.status as StatusType
+                                                }
+                                                onStatusChange={(newStatus) => {
+                                                    router.patch(
+                                                        `/projects/${project.id}/status`,
+                                                        { status: newStatus },
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
+                                                }}
+                                                size="sm"
+                                                showChevron={false}
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                className="text-white [&>span]:text-white"
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Shine effect on hover */}
                                 <div
-                                    className={`absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r from-transparent to-transparent transition-transform duration-500 ease-out group-hover:translate-x-full ${isLight ? 'via-black/10' : 'via-white/20'}`}
+                                    className={`pointer-events-none absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r from-transparent to-transparent transition-transform duration-500 ease-out group-hover:translate-x-full ${isLight ? 'via-black/10' : 'via-white/20'}`}
                                 />
 
                                 {/* Border glow */}
                                 <div
-                                    className={`absolute inset-0 rounded-xl ring-2 transition-all duration-200 ${isLight ? 'ring-black/0 group-hover:ring-black/10' : 'ring-white/0 group-hover:ring-white/20'}`}
+                                    className={`pointer-events-none absolute inset-0 rounded-xl ring-2 transition-all duration-200 ${isLight ? 'ring-black/0 group-hover:ring-black/10' : 'ring-white/0 group-hover:ring-white/20'}`}
                                 />
                             </div>
                         );

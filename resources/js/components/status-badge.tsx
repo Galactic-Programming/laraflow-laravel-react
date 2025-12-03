@@ -1,16 +1,20 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva, type VariantProps } from 'class-variance-authority';
 import {
     CheckCircleIcon,
-    CircleIcon,
+    ChevronDownIcon,
     CircleDotIcon,
-    XCircleIcon,
-    PauseCircleIcon,
-    AlertCircleIcon,
+    CircleIcon,
     type LucideIcon,
-} from "lucide-react";
+} from 'lucide-react';
+import * as React from 'react';
 
-import { cn } from "@/lib/utils";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 /* -----------------------------------------------------------------------------
  * Types & Constants
@@ -18,15 +22,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Available status types for the StatusBadge component.
- * Maps to common task/project management statuses.
  */
-export type StatusType =
-    | "todo"
-    | "in_progress"
-    | "done"
-    | "cancelled"
-    | "on_hold"
-    | "pending";
+export type StatusType = 'active' | 'completed' | 'archived';
 
 /**
  * Configuration for each status type including display properties.
@@ -47,41 +44,25 @@ export interface StatusConfig {
  * Can be overridden via props.
  */
 export const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
-    todo: {
-        label: "To Do",
-        icon: CircleIcon,
-        iconClassName: "text-muted-foreground",
-        badgeClassName: "border-muted-foreground/30 bg-muted/50",
-    },
-    in_progress: {
-        label: "In Progress",
+    active: {
+        label: 'Active',
         icon: CircleDotIcon,
-        iconClassName: "text-blue-500 dark:text-blue-400",
-        badgeClassName: "border-blue-500/30 bg-blue-500/10 dark:border-blue-400/30 dark:bg-blue-400/10",
+        iconClassName: 'text-blue-500 dark:text-blue-400',
+        badgeClassName:
+            'border-blue-500/30 bg-blue-500/10 dark:border-blue-400/30 dark:bg-blue-400/10',
     },
-    done: {
-        label: "Done",
+    completed: {
+        label: 'Completed',
         icon: CheckCircleIcon,
-        iconClassName: "text-green-600 dark:text-green-400",
-        badgeClassName: "border-green-600/30 bg-green-600/10 dark:border-green-400/30 dark:bg-green-400/10",
+        iconClassName: 'text-green-600 dark:text-green-400',
+        badgeClassName:
+            'border-green-600/30 bg-green-600/10 dark:border-green-400/30 dark:bg-green-400/10',
     },
-    cancelled: {
-        label: "Cancelled",
-        icon: XCircleIcon,
-        iconClassName: "text-red-500 dark:text-red-400",
-        badgeClassName: "border-red-500/30 bg-red-500/10 dark:border-red-400/30 dark:bg-red-400/10",
-    },
-    on_hold: {
-        label: "On Hold",
-        icon: PauseCircleIcon,
-        iconClassName: "text-amber-500 dark:text-amber-400",
-        badgeClassName: "border-amber-500/30 bg-amber-500/10 dark:border-amber-400/30 dark:bg-amber-400/10",
-    },
-    pending: {
-        label: "Pending",
-        icon: AlertCircleIcon,
-        iconClassName: "text-orange-500 dark:text-orange-400",
-        badgeClassName: "border-orange-500/30 bg-orange-500/10 dark:border-orange-400/30 dark:bg-orange-400/10",
+    archived: {
+        label: 'Archived',
+        icon: CircleIcon,
+        iconClassName: 'text-muted-foreground',
+        badgeClassName: 'border-muted-foreground/30 bg-muted/50',
     },
 };
 
@@ -90,19 +71,19 @@ export const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
  * -------------------------------------------------------------------------- */
 
 const statusBadgeVariants = cva(
-    "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors",
+    'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors',
     {
         variants: {
             size: {
-                sm: "px-1.5 py-0.5 text-[10px] [&>svg]:size-2.5",
-                md: "px-2 py-0.5 text-xs [&>svg]:size-3",
-                lg: "px-2.5 py-1 text-sm [&>svg]:size-3.5",
+                sm: 'px-1.5 py-0.5 text-[10px] [&>svg]:size-2.5',
+                md: 'px-2 py-0.5 text-xs [&>svg]:size-3',
+                lg: 'px-2.5 py-1 text-sm [&>svg]:size-3.5',
             },
         },
         defaultVariants: {
-            size: "md",
+            size: 'md',
         },
-    }
+    },
 );
 
 /* -----------------------------------------------------------------------------
@@ -110,8 +91,8 @@ const statusBadgeVariants = cva(
  * -------------------------------------------------------------------------- */
 
 export interface StatusBadgeProps
-    extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children">,
-    VariantProps<typeof statusBadgeVariants> {
+    extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'>,
+        VariantProps<typeof statusBadgeVariants> {
     /** The status type to display */
     status: StatusType;
     /** Custom label to override the default */
@@ -173,13 +154,112 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
                 className={cn(
                     statusBadgeVariants({ size }),
                     config.badgeClassName,
-                    className
+                    className,
                 )}
                 {...badgeProps}
             >
                 {showIcon && (
                     <Icon
-                        className={cn("shrink-0", config.iconClassName)}
+                        className={cn('shrink-0', config.iconClassName)}
+                        aria-hidden="true"
+                    />
+                )}
+                <span>{displayLabel}</span>
+            </span>
+        );
+    },
+);
+StatusBadge.displayName = 'StatusBadge';
+
+/* -----------------------------------------------------------------------------
+ * SelectableStatusBadge Component
+ * -------------------------------------------------------------------------- */
+
+export interface SelectableStatusBadgeProps
+    extends Omit<StatusBadgeProps, 'status'> {
+    /** Current selected status */
+    status: StatusType;
+    /** Available statuses to select from */
+    availableStatuses?: StatusType[];
+    /** Callback when status changes */
+    onStatusChange?: (status: StatusType) => void;
+    /** Whether the dropdown is disabled */
+    disabled?: boolean;
+    /** Show chevron indicator */
+    showChevron?: boolean;
+}
+
+/**
+ * An interactive status badge with dropdown menu for changing status.
+ *
+ * @example
+ * // Basic usage with all statuses
+ * <SelectableStatusBadge
+ *   status={currentStatus}
+ *   onStatusChange={setCurrentStatus}
+ * />
+ *
+ * @example
+ * // With specific statuses
+ * <SelectableStatusBadge
+ *   status={currentStatus}
+ *   availableStatuses={["todo", "in_progress", "done"]}
+ *   onStatusChange={setCurrentStatus}
+ * />
+ */
+const SelectableStatusBadge = React.forwardRef<
+    HTMLButtonElement,
+    SelectableStatusBadgeProps
+>((props, ref) => {
+    const {
+        status,
+        availableStatuses = Object.keys(STATUS_CONFIG) as StatusType[],
+        onStatusChange,
+        size,
+        label,
+        icon,
+        showIcon = true,
+        showChevron = true,
+        customConfig,
+        disabled = false,
+        className,
+        ...badgeProps
+    } = props;
+
+    const config = {
+        ...STATUS_CONFIG[status],
+        ...customConfig?.[status],
+    };
+
+    const Icon = icon ?? config.icon;
+    const displayLabel = label ?? config.label;
+
+    const handleStatusSelect = React.useCallback(
+        (newStatus: StatusType) => {
+            if (onStatusChange && newStatus !== status) {
+                onStatusChange(newStatus);
+            }
+        },
+        [onStatusChange, status],
+    );
+
+    if (disabled || !onStatusChange) {
+        // Render as non-interactive badge when disabled
+        return (
+            <span
+                data-slot="selectable-status-badge"
+                data-status={status}
+                className={cn(
+                    statusBadgeVariants({ size }),
+                    config.badgeClassName,
+                    disabled && 'cursor-not-allowed opacity-50',
+                    className,
+                )}
+                {...badgeProps}
+            >
+                {showIcon && (
+                    <Icon
+                        className={cn('shrink-0', config.iconClassName)}
                         aria-hidden="true"
                     />
                 )}
@@ -187,123 +267,201 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
             </span>
         );
     }
-);
-StatusBadge.displayName = "StatusBadge";
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    ref={ref}
+                    type="button"
+                    data-slot="selectable-status-badge"
+                    data-status={status}
+                    className={cn(
+                        statusBadgeVariants({ size }),
+                        config.badgeClassName,
+                        'cursor-pointer transition-all outline-none',
+                        'hover:opacity-80',
+                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                        className,
+                    )}
+                    {...badgeProps}
+                >
+                    {showIcon && (
+                        <Icon
+                            className={cn('shrink-0', config.iconClassName)}
+                            aria-hidden="true"
+                        />
+                    )}
+                    <span>{displayLabel}</span>
+                    {showChevron && (
+                        <ChevronDownIcon
+                            className="size-3 shrink-0 opacity-50"
+                            aria-hidden="true"
+                        />
+                    )}
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[140px]">
+                {availableStatuses.map((statusOption) => {
+                    const optionConfig = {
+                        ...STATUS_CONFIG[statusOption],
+                        ...customConfig?.[statusOption],
+                    };
+                    const OptionIcon = optionConfig.icon;
+
+                    return (
+                        <DropdownMenuItem
+                            key={statusOption}
+                            onClick={() => handleStatusSelect(statusOption)}
+                            className={cn(
+                                'gap-2',
+                                status === statusOption && 'bg-accent',
+                            )}
+                        >
+                            <OptionIcon
+                                className={cn(
+                                    'size-4 shrink-0',
+                                    optionConfig.iconClassName,
+                                )}
+                                aria-hidden="true"
+                            />
+                            <span>{optionConfig.label}</span>
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+});
+SelectableStatusBadge.displayName = 'SelectableStatusBadge';
 
 /* -----------------------------------------------------------------------------
- * SelectableStatusBadge Component
+ * StatusSelect Component (Alternative with more control)
  * -------------------------------------------------------------------------- */
 
-export interface SelectableStatusBadgeProps extends Omit<StatusBadgeProps, "status"> {
+export interface StatusSelectProps {
     /** Current selected status */
-    status: StatusType;
-    /** Whether the badge is selected */
-    selected?: boolean;
-    /** Callback when selection changes */
-    onSelectedChange?: (selected: boolean) => void;
-    /** Available statuses to cycle through when clicked */
-    availableStatuses?: StatusType[];
-    /** Callback when status changes (if availableStatuses is provided) */
-    onStatusChange?: (status: StatusType) => void;
+    value: StatusType;
+    /** Callback when status changes */
+    onValueChange: (status: StatusType) => void;
+    /** Available statuses to select from */
+    options?: StatusType[];
+    /** Placeholder text when no status selected */
+    placeholder?: string;
+    /** Whether the select is disabled */
+    disabled?: boolean;
+    /** Size variant */
+    size?: 'sm' | 'md' | 'lg';
+    /** Whether to show icons */
+    showIcon?: boolean;
+    /** Custom status configuration */
+    customConfig?: Partial<Record<StatusType, Partial<StatusConfig>>>;
+    /** Additional className */
+    className?: string;
 }
 
 /**
- * A selectable/interactive status badge that can toggle selection
- * or cycle through available statuses.
+ * A status select component with dropdown menu for changing status.
+ * More controlled alternative to SelectableStatusBadge.
  *
  * @example
- * // Toggle selection
- * <SelectableStatusBadge
- *   status="todo"
- *   selected={isSelected}
- *   onSelectedChange={setIsSelected}
- * />
- *
- * @example
- * // Cycle through statuses
- * <SelectableStatusBadge
- *   status={currentStatus}
- *   availableStatuses={["todo", "in_progress", "done"]}
- *   onStatusChange={setCurrentStatus}
+ * <StatusSelect
+ *   value={status}
+ *   onValueChange={setStatus}
+ *   options={["todo", "in_progress", "done"]}
  * />
  */
-const SelectableStatusBadge = React.forwardRef<HTMLButtonElement, SelectableStatusBadgeProps>(
-    (props, ref) => {
-        const {
-            status,
-            selected,
-            onSelectedChange,
-            availableStatuses,
-            onStatusChange,
-            size,
-            label,
-            icon,
-            showIcon = true,
-            customConfig,
-            className,
-            ...badgeProps
-        } = props;
+function StatusSelect({
+    value,
+    onValueChange,
+    options = Object.keys(STATUS_CONFIG) as StatusType[],
+    placeholder = 'Select status',
+    disabled = false,
+    size = 'md',
+    showIcon = true,
+    customConfig,
+    className,
+}: StatusSelectProps) {
+    const config = value
+        ? { ...STATUS_CONFIG[value], ...customConfig?.[value] }
+        : null;
 
-        const handleClick = React.useCallback(() => {
-            if (availableStatuses && onStatusChange) {
-                // Cycle to next status
-                const currentIndex = availableStatuses.indexOf(status);
-                const nextIndex = (currentIndex + 1) % availableStatuses.length;
-                onStatusChange(availableStatuses[nextIndex]!);
-            } else if (onSelectedChange !== undefined) {
-                // Toggle selection
-                onSelectedChange(!selected);
-            }
-        }, [availableStatuses, onStatusChange, status, onSelectedChange, selected]);
+    const Icon = config?.icon;
+    const displayLabel = config?.label ?? placeholder;
 
-        const config = {
-            ...STATUS_CONFIG[status],
-            ...customConfig?.[status],
-        };
-
-        const Icon = icon ?? config.icon;
-        const displayLabel = label ?? config.label;
-
-        return (
-            <button
-                ref={ref}
-                type="button"
-                data-slot="selectable-status-badge"
-                data-status={status}
-                data-selected={selected ?? undefined}
-                onClick={handleClick}
-                className={cn(
-                    statusBadgeVariants({ size }),
-                    config.badgeClassName,
-                    "cursor-pointer outline-none transition-all",
-                    "hover:opacity-80",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                    selected && "ring-2 ring-ring ring-offset-1",
-                    className
-                )}
-                {...badgeProps}
-            >
-                {showIcon && (
-                    <Icon
-                        className={cn("shrink-0", config.iconClassName)}
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild disabled={disabled}>
+                <button
+                    type="button"
+                    data-slot="status-select"
+                    data-status={value}
+                    disabled={disabled}
+                    className={cn(
+                        statusBadgeVariants({ size }),
+                        config?.badgeClassName ?? 'border-border bg-background',
+                        'cursor-pointer transition-all outline-none',
+                        'hover:opacity-80',
+                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                        disabled && 'cursor-not-allowed opacity-50',
+                        className,
+                    )}
+                >
+                    {showIcon && Icon && (
+                        <Icon
+                            className={cn('shrink-0', config?.iconClassName)}
+                            aria-hidden="true"
+                        />
+                    )}
+                    <span>{displayLabel}</span>
+                    <ChevronDownIcon
+                        className="size-3 shrink-0 opacity-50"
                         aria-hidden="true"
                     />
-                )}
-                <span>{displayLabel}</span>
-            </button>
-        );
-    }
-);
-SelectableStatusBadge.displayName = "SelectableStatusBadge";
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[140px]">
+                {options.map((statusOption) => {
+                    const optionConfig = {
+                        ...STATUS_CONFIG[statusOption],
+                        ...customConfig?.[statusOption],
+                    };
+                    const OptionIcon = optionConfig.icon;
+
+                    return (
+                        <DropdownMenuItem
+                            key={statusOption}
+                            onClick={() => onValueChange(statusOption)}
+                            className={cn(
+                                'gap-2',
+                                value === statusOption && 'bg-accent',
+                            )}
+                        >
+                            <OptionIcon
+                                className={cn(
+                                    'size-4 shrink-0',
+                                    optionConfig.iconClassName,
+                                )}
+                                aria-hidden="true"
+                            />
+                            <span>{optionConfig.label}</span>
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
 /* -----------------------------------------------------------------------------
  * Exports
  * -------------------------------------------------------------------------- */
 
 export {
-    StatusBadge,
     SelectableStatusBadge,
+    StatusBadge,
     statusBadgeVariants,
+    StatusSelect,
 };
 
 export default StatusBadge;
