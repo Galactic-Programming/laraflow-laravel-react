@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Auth\SocialController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -24,6 +26,17 @@ Route::get('/privacy', function () {
 // Locale switching
 Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
+// Pricing page (accessible to all)
+Route::get('pricing', [PricingController::class, 'index'])->name('pricing');
+
+// Stripe payment success redirect (public route)
+Route::get('payment/success', [PricingController::class, 'paymentSuccess'])->name('payment.success');
+
+// Stripe webhook (no CSRF, no auth)
+Route::post('webhooks/stripe', [StripeWebhookController::class, 'handle'])
+    ->name('webhooks.stripe')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
@@ -44,4 +57,4 @@ Route::get('auth/{provider}/callback', [SocialController::class, 'callback'])
     ->whereIn('provider', ['google', 'github'])
     ->name('social.callback');
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

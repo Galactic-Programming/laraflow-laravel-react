@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\Settings\AvatarController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -40,4 +41,8 @@ Route::middleware('auth')->group(function () {
         ->name('avatar.update');
     Route::delete('settings/avatar', [AvatarController::class, 'destroy'])
         ->name('avatar.destroy');
+
+    // Billing management
+    Route::get('settings/billing', [PricingController::class, 'billing'])
+        ->name('billing.show');
 });

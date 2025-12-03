@@ -46,4 +46,15 @@ return [
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
         'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
+
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'payment_links' => [
+            'professional_monthly' => env('STRIPE_PAYMENT_LINK_PROFESSIONAL_MONTHLY'),
+            'professional_yearly' => env('STRIPE_PAYMENT_LINK_PROFESSIONAL_YEARLY'),
+        ],
+        'customer_portal_url' => env('STRIPE_CUSTOMER_PORTAL_URL'),
+    ],
 ];

@@ -13,7 +13,7 @@ import { useTranslations } from '@/hooks/use-translations';
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { t } = useTranslations();
-    
+
     const sidebarNavItems: NavItem[] = [
         {
             title: t('settings.profile', 'Profile'),
@@ -38,6 +38,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
         {
             title: t('settings.connections', 'Connections'),
             href: '/settings/connections',
+            icon: null,
+        },
+        {
+            title: t('settings.billing', 'Billing'),
+            href: '/settings/billing',
             icon: null,
         },
     ];

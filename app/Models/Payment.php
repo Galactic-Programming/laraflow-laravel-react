@@ -15,6 +15,8 @@ class Payment extends Model
         'currency',
         'status',
         'payment_method',
+        'stripe_payment_intent_id',
+        'stripe_invoice_id',
         'transaction_id',
         'metadata',
         'paid_at',
