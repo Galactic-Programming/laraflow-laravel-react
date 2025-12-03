@@ -20,7 +20,7 @@ class PricingController extends Controller
         $plans = Plan::where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(fn(Plan $plan) => [
+            ->map(fn (Plan $plan) => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
@@ -92,7 +92,7 @@ class PricingController extends Controller
                 'ends_at_timestamp' => $subscription->ends_at?->timestamp,
                 'cancelled_at' => $subscription->cancelled_at?->format('M d, Y'),
             ] : null,
-            'payments' => $payments->map(fn($payment) => [
+            'payments' => $payments->map(fn ($payment) => [
                 'id' => $payment->id,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
@@ -100,13 +100,29 @@ class PricingController extends Controller
                 'plan' => $payment->plan?->name,
                 'paid_at' => $payment->paid_at?->format('M d, Y'),
             ]),
-            'customerPortalUrl' => config('services.stripe.customer_portal_url'),
+            // Only return portal URL if it's properly configured (not a placeholder)
+            'customerPortalUrl' => $this->getValidCustomerPortalUrl(),
             'paymentSuccess' => $request->has('success'),
             'stripePaymentLinks' => [
                 'professional_monthly' => config('services.stripe.payment_links.professional_monthly'),
                 'professional_yearly' => config('services.stripe.payment_links.professional_yearly'),
             ],
         ]);
+    }
+
+    /**
+     * Get the Stripe Customer Portal URL if properly configured.
+     */
+    private function getValidCustomerPortalUrl(): ?string
+    {
+        $url = config('services.stripe.customer_portal_url');
+
+        // Return null if not configured or is a placeholder
+        if (empty($url) || str_contains($url, 'test_xxx') || str_contains($url, 'placeholder')) {
+            return null;
+        }
+
+        return $url;
     }
 
     /**
@@ -117,7 +133,7 @@ class PricingController extends Controller
         $user = $request->user();
         $subscription = $user->activeSubscription;
 
-        if (!$subscription) {
+        if (! $subscription) {
             return back()->with('error', 'No active subscription found.');
         }
 
@@ -142,7 +158,7 @@ class PricingController extends Controller
             'subscription_id' => $subscription->id,
         ]);
 
-        return back()->with('success', 'Your subscription has been cancelled. You will have access until ' . $subscription->ends_at?->format('M d, Y') . '.');
+        return back()->with('success', 'Your subscription has been cancelled. You will have access until '.$subscription->ends_at?->format('M d, Y').'.');
     }
 
     /**
@@ -157,7 +173,7 @@ class PricingController extends Controller
             ->where('ends_at', '>', now())
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return back()->with('error', 'No cancelled subscription found to resume.');
         }
 
