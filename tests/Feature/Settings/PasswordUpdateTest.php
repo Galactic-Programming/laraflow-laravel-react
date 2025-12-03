@@ -21,15 +21,15 @@ test('password can be updated', function () {
         ->from(route('user-password.edit'))
         ->put(route('user-password.update'), [
             'current_password' => 'password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'Qw8$pLm5!xYz',
+            'password_confirmation' => 'Qw8$pLm5!xYz',
         ]);
 
     $response
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('user-password.edit'));
 
-    expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
+    expect(Hash::check('Qw8$pLm5!xYz', $user->refresh()->password))->toBeTrue();
 });
 
 test('correct password must be provided to update password', function () {
@@ -40,8 +40,8 @@ test('correct password must be provided to update password', function () {
         ->from(route('user-password.edit'))
         ->put(route('user-password.update'), [
             'current_password' => 'wrong-password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'Qw8$pLm5!xYz',
+            'password_confirmation' => 'Qw8$pLm5!xYz',
         ]);
 
     $response
