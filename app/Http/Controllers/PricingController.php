@@ -20,7 +20,7 @@ class PricingController extends Controller
         $plans = Plan::where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(fn (Plan $plan) => [
+            ->map(fn(Plan $plan) => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
@@ -92,7 +92,7 @@ class PricingController extends Controller
                 'ends_at_timestamp' => $subscription->ends_at?->timestamp,
                 'cancelled_at' => $subscription->cancelled_at?->format('M d, Y'),
             ] : null,
-            'payments' => $payments->map(fn ($payment) => [
+            'payments' => $payments->map(fn($payment) => [
                 'id' => $payment->id,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
@@ -133,7 +133,7 @@ class PricingController extends Controller
         $user = $request->user();
         $subscription = $user->activeSubscription;
 
-        if (! $subscription) {
+        if (!$subscription) {
             return back()->with('error', 'No active subscription found.');
         }
 
@@ -158,7 +158,7 @@ class PricingController extends Controller
             'subscription_id' => $subscription->id,
         ]);
 
-        return back()->with('success', 'Your subscription has been cancelled. You will have access until '.$subscription->ends_at?->format('M d, Y').'.');
+        return back()->with('success', 'Your subscription has been cancelled. You will have access until ' . $subscription->ends_at?->format('M d, Y') . '.');
     }
 
     /**
@@ -173,7 +173,7 @@ class PricingController extends Controller
             ->where('ends_at', '>', now())
             ->first();
 
-        if (! $subscription) {
+        if (!$subscription) {
             return back()->with('error', 'No cancelled subscription found to resume.');
         }
 
