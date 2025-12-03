@@ -1,23 +1,25 @@
 import { LanguagesIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import LanguageDropdown from '@/components/dropdown-language';
-import ProfileDropdown from '@/components/dropdown-profile';
+// import ProfileDropdown from '@/components/dropdown-profile';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+// import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useInitials } from '@/hooks/use-initials';
-import { type BreadcrumbItem as BreadcrumbItemType, type SharedData } from '@/types';
-import { usePage } from '@inertiajs/react';
+// import { useInitials } from '@/hooks/use-initials';
+import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+// Uncomment below when enabling ProfileDropdown:
+// import { type SharedData } from '@/types';
+// import { usePage } from '@inertiajs/react';
 
 export function AppSidebarHeader({
     breadcrumbs = [],
 }: {
     breadcrumbs?: BreadcrumbItemType[];
 }) {
-    const { auth } = usePage<SharedData>().props;
-    const getInitials = useInitials();
+    // const { auth } = usePage<SharedData>().props;
+    // const getInitials = useInitials();
 
     return (
         <header className="bg-background sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
@@ -32,12 +34,12 @@ export function AppSidebarHeader({
                 />
                 <LanguageDropdown
                     trigger={
-                        <Button variant="ghost" size="icon">
+                        <Button variant="outline" size="icon">
                             <LanguagesIcon className="size-5" />
                         </Button>
                     }
                 />
-                <ProfileDropdown
+                {/* <ProfileDropdown
                     trigger={
                         <Button variant="ghost" size="icon" className="size-9">
                             <Avatar className="size-8 rounded-md">
@@ -48,7 +50,7 @@ export function AppSidebarHeader({
                             </Avatar>
                         </Button>
                     }
-                />
+                /> */}
             </div>
         </header>
     );
