@@ -45,4 +45,8 @@ Route::middleware('auth')->group(function () {
     // Billing management
     Route::get('settings/billing', [PricingController::class, 'billing'])
         ->name('billing.show');
+    Route::post('settings/billing/cancel', [PricingController::class, 'cancelSubscription'])
+        ->name('billing.cancel');
+    Route::post('settings/billing/resume', [PricingController::class, 'resumeSubscription'])
+        ->name('billing.resume');
 });

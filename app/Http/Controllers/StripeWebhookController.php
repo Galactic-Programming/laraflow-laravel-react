@@ -43,7 +43,7 @@ class StripeWebhookController extends Controller
     {
         $userId = $session['client_reference_id'] ?? null;
 
-        if (! $userId) {
+        if (!$userId) {
             Log::warning('Checkout completed without client_reference_id');
 
             return;
@@ -51,32 +51,117 @@ class StripeWebhookController extends Controller
 
         $user = User::find($userId);
 
-        if (! $user) {
+        if (!$user) {
             Log::warning('User not found for checkout', ['user_id' => $userId]);
 
             return;
         }
 
-        // Find plan by Stripe Price ID
-        $stripePriceId = $session['line_items']['data'][0]['price']['id'] ?? null;
-        $plan = $stripePriceId ? Plan::where('stripe_price_id', $stripePriceId)->first() : null;
+        // Get subscription ID from session
+        $stripeSubscriptionId = $session['subscription'] ?? null;
 
-        // Create or update subscription
-        $subscription = Subscription::updateOrCreate(
-            ['stripe_subscription_id' => $session['subscription']],
-            [
+        if (!$stripeSubscriptionId) {
+            Log::warning('Checkout completed without subscription ID');
+
+            return;
+        }
+
+        // Determine the plan based on amount paid
+        $amountTotal = ($session['amount_total'] ?? 0) / 100; // Convert from cents
+        $plan = $this->determinePlanFromAmount($amountTotal);
+
+        // Calculate subscription end date based on plan's billing interval
+        $startsAt = now();
+        $endsAt = $this->calculateEndDate($startsAt, $plan);
+
+        // Cancel any existing active subscription for this user
+        Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+            ]);
+
+        // Create new subscription
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'plan_id' => $plan?->id,
+            'status' => 'active',
+            'stripe_subscription_id' => $stripeSubscriptionId,
+            'stripe_customer_id' => $session['customer'] ?? null,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+        ]);
+
+        // Create initial payment record from checkout
+        if ($amountTotal > 0) {
+            Payment::create([
                 'user_id' => $user->id,
+                'subscription_id' => $subscription->id,
                 'plan_id' => $plan?->id,
-                'status' => 'active',
-                'stripe_customer_id' => $session['customer'],
-                'starts_at' => now(),
-            ]
-        );
+                'amount' => $amountTotal,
+                'currency' => strtoupper($session['currency'] ?? 'USD'),
+                'status' => 'completed',
+                'payment_method' => 'stripe',
+                'stripe_payment_intent_id' => $session['payment_intent'] ?? null,
+                'paid_at' => now(),
+            ]);
+
+            Log::info('Initial payment recorded from checkout', [
+                'user_id' => $user->id,
+                'amount' => $amountTotal,
+                'plan' => $plan?->slug,
+            ]);
+        }
 
         Log::info('Subscription created from checkout', [
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
+            'stripe_subscription_id' => $stripeSubscriptionId,
+            'plan' => $plan?->slug,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
         ]);
+    }
+
+    /**
+     * Determine the plan based on the payment amount.
+     */
+    private function determinePlanFromAmount(float $amount): ?Plan
+    {
+        // Try to find exact match first
+        $plan = Plan::where('price', $amount)
+            ->where('is_active', true)
+            ->first();
+
+        if ($plan) {
+            return $plan;
+        }
+
+        // Fallback: If amount is >= 50, assume yearly, otherwise monthly
+        if ($amount >= 50) {
+            return Plan::where('slug', 'professional-yearly')->first();
+        }
+
+        return Plan::where('slug', 'professional-monthly')->first();
+    }
+
+    /**
+     * Calculate subscription end date based on plan's billing interval.
+     */
+    private function calculateEndDate(\Carbon\Carbon $startsAt, ?Plan $plan): \Carbon\Carbon
+    {
+        if (!$plan) {
+            return $startsAt->copy()->addMonth();
+        }
+
+        return match ($plan->billing_interval) {
+            'year' => $startsAt->copy()->addYear(),
+            'month' => $startsAt->copy()->addMonth(),
+            'week' => $startsAt->copy()->addWeek(),
+            'day' => $startsAt->copy()->addDay(),
+            default => $startsAt->copy()->addMonth(),
+        };
     }
 
     /**
@@ -84,6 +169,11 @@ class StripeWebhookController extends Controller
      */
     private function handleSubscriptionCreated(array $stripeSubscription): void
     {
+        Log::info('Processing subscription.created', [
+            'stripe_subscription_id' => $stripeSubscription['id'],
+            'customer' => $stripeSubscription['customer'] ?? null,
+        ]);
+
         $this->updateSubscriptionFromStripe($stripeSubscription);
     }
 
@@ -102,7 +192,7 @@ class StripeWebhookController extends Controller
     {
         $subscription = Subscription::where('stripe_subscription_id', $stripeSubscription['id'])->first();
 
-        if (! $subscription) {
+        if (!$subscription) {
             // Try to find by customer ID if subscription doesn't exist yet
             $subscription = Subscription::where('stripe_customer_id', $stripeSubscription['customer'])
                 ->whereNull('stripe_subscription_id')
@@ -113,7 +203,7 @@ class StripeWebhookController extends Controller
             }
         }
 
-        if (! $subscription) {
+        if (!$subscription) {
             Log::warning('Subscription not found for update', [
                 'stripe_subscription_id' => $stripeSubscription['id'],
             ]);
@@ -135,7 +225,7 @@ class StripeWebhookController extends Controller
             'ends_at' => isset($stripeSubscription['current_period_end'])
                 ? now()->setTimestamp($stripeSubscription['current_period_end'])
                 : null,
-            'cancelled_at' => $stripeSubscription['canceled_at']
+            'cancelled_at' => isset($stripeSubscription['canceled_at']) && $stripeSubscription['canceled_at']
                 ? now()->setTimestamp($stripeSubscription['canceled_at'])
                 : null,
         ]);
@@ -153,7 +243,7 @@ class StripeWebhookController extends Controller
     {
         $subscription = Subscription::where('stripe_subscription_id', $stripeSubscription['id'])->first();
 
-        if (! $subscription) {
+        if (!$subscription) {
             return;
         }
 
@@ -170,9 +260,20 @@ class StripeWebhookController extends Controller
      */
     private function handleInvoicePaid(array $invoice): void
     {
-        $subscription = Subscription::where('stripe_subscription_id', $invoice['subscription'])->first();
+        // Check if subscription exists in invoice
+        $stripeSubscriptionId = $invoice['subscription'] ?? null;
 
-        if (! $subscription) {
+        if (!$stripeSubscriptionId) {
+            Log::info('Invoice paid without subscription (one-time payment)', ['invoice_id' => $invoice['id']]);
+
+            return;
+        }
+
+        $subscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)->first();
+
+        if (!$subscription) {
+            Log::warning('Subscription not found for invoice', ['stripe_subscription_id' => $stripeSubscriptionId]);
+
             return;
         }
 
@@ -180,18 +281,18 @@ class StripeWebhookController extends Controller
             'user_id' => $subscription->user_id,
             'subscription_id' => $subscription->id,
             'plan_id' => $subscription->plan_id,
-            'amount' => $invoice['amount_paid'] / 100, // Convert from cents
-            'currency' => strtoupper($invoice['currency']),
+            'amount' => ($invoice['amount_paid'] ?? 0) / 100, // Convert from cents
+            'currency' => strtoupper($invoice['currency'] ?? 'USD'),
             'status' => 'completed',
             'payment_method' => 'stripe',
-            'stripe_payment_intent_id' => $invoice['payment_intent'],
+            'stripe_payment_intent_id' => $invoice['payment_intent'] ?? null,
             'stripe_invoice_id' => $invoice['id'],
             'paid_at' => now(),
         ]);
 
         Log::info('Payment recorded', [
             'subscription_id' => $subscription->id,
-            'amount' => $invoice['amount_paid'] / 100,
+            'amount' => ($invoice['amount_paid'] ?? 0) / 100,
         ]);
     }
 
@@ -200,9 +301,15 @@ class StripeWebhookController extends Controller
      */
     private function handleInvoicePaymentFailed(array $invoice): void
     {
-        $subscription = Subscription::where('stripe_subscription_id', $invoice['subscription'])->first();
+        $stripeSubscriptionId = $invoice['subscription'] ?? null;
 
-        if (! $subscription) {
+        if (!$stripeSubscriptionId) {
+            return;
+        }
+
+        $subscription = Subscription::where('stripe_subscription_id', $stripeSubscriptionId)->first();
+
+        if (!$subscription) {
             return;
         }
 
@@ -212,8 +319,8 @@ class StripeWebhookController extends Controller
             'user_id' => $subscription->user_id,
             'subscription_id' => $subscription->id,
             'plan_id' => $subscription->plan_id,
-            'amount' => $invoice['amount_due'] / 100,
-            'currency' => strtoupper($invoice['currency']),
+            'amount' => ($invoice['amount_due'] ?? 0) / 100,
+            'currency' => strtoupper($invoice['currency'] ?? 'USD'),
             'status' => 'failed',
             'payment_method' => 'stripe',
             'stripe_invoice_id' => $invoice['id'],

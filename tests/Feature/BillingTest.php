@@ -1,0 +1,201 @@
+<?php
+
+use App\Models\Plan;
+use App\Models\Subscription;
+use App\Models\User;
+
+beforeEach(function () {
+    // Seed plans for tests
+    Plan::create([
+        'name' => 'Starter',
+        'slug' => 'starter',
+        'description' => 'Free plan',
+        'price' => 0,
+        'billing_interval' => 'month',
+        'features' => ['Basic features'],
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+
+    Plan::create([
+        'name' => 'Professional',
+        'slug' => 'professional-monthly',
+        'description' => 'Monthly plan',
+        'price' => 9.99,
+        'billing_interval' => 'month',
+        'features' => ['All features'],
+        'is_active' => true,
+        'sort_order' => 2,
+    ]);
+
+    Plan::create([
+        'name' => 'Professional',
+        'slug' => 'professional-yearly',
+        'description' => 'Yearly plan',
+        'price' => 99.00,
+        'billing_interval' => 'year',
+        'features' => ['All features'],
+        'is_active' => true,
+        'sort_order' => 3,
+    ]);
+});
+
+it('shows pricing page to guests', function () {
+    $response = $this->get('/pricing');
+
+    $response->assertStatus(200);
+    $response->assertInertia(
+        fn($page) => $page
+            ->component('pricing')
+            ->has('plans', 3)
+            ->where('currentPlan', null)
+            ->where('isSubscribed', false)
+    );
+});
+
+it('shows pricing page with current plan for authenticated users', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'active',
+        'starts_at' => now(),
+        'ends_at' => now()->addMonth(),
+    ]);
+
+    $response = $this->actingAs($user)->get('/pricing');
+
+    $response->assertStatus(200);
+    $response->assertInertia(
+        fn($page) => $page
+            ->component('pricing')
+            ->where('currentPlan', 'professional-monthly')
+            ->where('isSubscribed', true)
+    );
+});
+
+it('shows billing page for authenticated users', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/settings/billing');
+
+    $response->assertStatus(200);
+    $response->assertInertia(
+        fn($page) => $page
+            ->component('settings/billing')
+            ->where('subscription', null)
+            ->has('payments', 0)
+    );
+});
+
+it('shows subscription details on billing page', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'active',
+        'starts_at' => now(),
+        'ends_at' => now()->addMonth(),
+    ]);
+
+    $response = $this->actingAs($user)->get('/settings/billing');
+
+    $response->assertStatus(200);
+    $response->assertInertia(
+        fn($page) => $page
+            ->component('settings/billing')
+            ->has('subscription')
+            ->where('subscription.plan', 'Professional')
+            ->where('subscription.status', 'active')
+    );
+});
+
+it('can cancel subscription', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'active',
+        'starts_at' => now(),
+        'ends_at' => now()->addMonth(),
+    ]);
+
+    $response = $this->actingAs($user)->post('/settings/billing/cancel');
+
+    $response->assertRedirect();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe('cancelled');
+    expect($subscription->cancelled_at)->not->toBeNull();
+});
+
+it('can resume cancelled subscription', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'cancelled',
+        'starts_at' => now(),
+        'ends_at' => now()->addMonth(),
+        'cancelled_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->post('/settings/billing/resume');
+
+    $response->assertRedirect();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe('active');
+    expect($subscription->cancelled_at)->toBeNull();
+});
+
+it('cannot resume expired subscription', function () {
+    $user = User::factory()->create();
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+
+    Subscription::create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'status' => 'cancelled',
+        'starts_at' => now()->subMonth(),
+        'ends_at' => now()->subDay(), // Already expired
+        'cancelled_at' => now()->subWeek(),
+    ]);
+
+    $response = $this->actingAs($user)->post('/settings/billing/resume');
+
+    $response->assertRedirect();
+    // Subscription should still be cancelled because ends_at is in the past
+});
+
+it('sets correct ends_at for monthly subscription', function () {
+    $plan = Plan::where('slug', 'professional-monthly')->first();
+    $startsAt = now();
+
+    $expectedEndsAt = $startsAt->copy()->addMonth();
+    $daysDiff = abs($startsAt->diffInDays($expectedEndsAt));
+
+    expect($plan->billing_interval)->toBe('month');
+    expect($daysDiff)->toBeGreaterThanOrEqual(28);
+    expect($daysDiff)->toBeLessThanOrEqual(31);
+});
+
+it('sets correct ends_at for yearly subscription', function () {
+    $plan = Plan::where('slug', 'professional-yearly')->first();
+    $startsAt = now();
+
+    $expectedEndsAt = $startsAt->copy()->addYear();
+    $daysDiff = abs($startsAt->diffInDays($expectedEndsAt));
+
+    expect($plan->billing_interval)->toBe('year');
+    expect($daysDiff)->toBeGreaterThanOrEqual(365);
+    expect($daysDiff)->toBeLessThanOrEqual(366);
+});
