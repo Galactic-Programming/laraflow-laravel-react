@@ -11,10 +11,10 @@ return new class extends Migration
     public function up(): void
     {
         $defaultColumns = [
-            ['name' => 'To Do', 'color' => '#6b7280', 'position' => 0],
+            ['name' => 'Pending', 'color' => '#6b7280', 'position' => 0],
             ['name' => 'In Progress', 'color' => '#3b82f6', 'position' => 1],
-            ['name' => 'Review', 'color' => '#f59e0b', 'position' => 2],
-            ['name' => 'Done', 'color' => '#10b981', 'position' => 3],
+            ['name' => 'Completed', 'color' => '#f59e0b', 'position' => 2],
+            ['name' => 'Cancelled', 'color' => '#10b981', 'position' => 3],
         ];
 
         // Get projects without any task lists

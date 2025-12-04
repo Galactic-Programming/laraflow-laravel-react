@@ -1,3 +1,13 @@
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +43,11 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import {
     closestCenter,
+    closestCorners,
     DndContext,
     KeyboardSensor,
     PointerSensor,
+    useDroppable,
     useSensor,
     useSensors,
     type DragEndEvent,
@@ -47,6 +59,7 @@ import {
     SortableContext,
     sortableKeyboardCoordinates,
     useSortable,
+    verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Head, Link, router } from '@inertiajs/react';
@@ -61,6 +74,7 @@ import {
     Check,
     ChevronDown,
     Code,
+    Copy,
     Database,
     EyeOff,
     FileText,
@@ -72,6 +86,7 @@ import {
     Lightbulb,
     MessageSquare,
     MoreHorizontal,
+    MoreVertical,
     Package,
     Pencil,
     PenTool,
@@ -231,12 +246,14 @@ function DraggableKanbanColumn({
     hasAnimated,
     index,
     onAddTask,
+    tasks,
 }: {
     column: KanbanColumn;
     headerContent: React.ReactNode;
     hasAnimated: boolean;
     index: number;
     onAddTask: () => void;
+    tasks: Task[];
 }) {
     const {
         attributes,
@@ -283,6 +300,45 @@ function DraggableKanbanColumn({
 
             {/* Cards Container */}
             <div className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
+                {/* Task Cards */}
+                {tasks.map((task) => (
+                    <div
+                        key={task.id}
+                        className="rounded-lg border bg-background p-3 shadow-sm transition-shadow hover:shadow-md"
+                    >
+                        <h4 className="mb-2 text-sm font-medium">
+                            {task.title}
+                        </h4>
+                        {task.description && (
+                            <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
+                                {task.description}
+                            </p>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span
+                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                        task.priority === 'high'
+                                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                                            : task.priority === 'medium'
+                                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+                                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                    }`}
+                                >
+                                    {task.priority}
+                                </span>
+                            </div>
+                            {task.due_date && (
+                                <span className="text-xs text-muted-foreground">
+                                    {new Date(
+                                        task.due_date,
+                                    ).toLocaleDateString()}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
                 {/* Add task button - shows on hover in center */}
                 <button
                     onClick={onAddTask}
@@ -291,6 +347,311 @@ function DraggableKanbanColumn({
                     <Plus className="size-4" />
                     <span>Add task</span>
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// Droppable Task List Container for Table View
+function DroppableTaskList({
+    listId,
+    listName,
+    children,
+}: {
+    listId: number;
+    listName: string;
+    children: React.ReactNode;
+}) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `list-${listId}`,
+        data: { listId },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`min-h-[40px] transition-all duration-200 ${isOver ? 'bg-primary/10 ring-2 ring-primary/30 ring-inset' : ''}`}
+        >
+            {children}
+            {/* Drop zone indicator when empty or hovering */}
+            {isOver && (
+                <div className="flex items-center justify-center border-b border-dashed border-primary/50 bg-primary/5 px-4 py-3 text-sm text-primary">
+                    Drop here to move to "{listName}"
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Sortable Task Row Component for Table View
+function SortableTaskRow({
+    task,
+    taskIndex,
+    listId,
+    projectId,
+    gridCols,
+    columns,
+    getStatusColor,
+    getStatusLabel,
+    getPriorityColor,
+    handleCompleteTask,
+    handleDuplicateTask,
+    handleDeleteTask,
+    handleUpdateStatus,
+    handleOpenTaskDetail,
+}: {
+    task: Task;
+    taskIndex: number;
+    listId: number;
+    projectId: number;
+    gridCols: string;
+    columns: ColumnConfig[];
+    getStatusColor: (status: string) => string;
+    getStatusLabel: (status: string) => string;
+    getPriorityColor: (priority: string) => string;
+    handleCompleteTask: (taskId: number) => void;
+    handleDuplicateTask: (taskId: number) => void;
+    handleDeleteTask: (task: Task) => void;
+    handleUpdateStatus: (taskId: number, status: Task['status']) => void;
+    handleOpenTaskDetail: (task: Task) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: task.id,
+        data: { task, listId },
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition:
+            transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+        opacity: isDragging ? 0.8 : 1,
+        zIndex: isDragging ? 50 : undefined,
+        gridTemplateColumns: `${gridCols} 40px`,
+        gridColumn: '1 / -1',
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group grid cursor-grab border-b transition-all duration-150 hover:bg-muted/30 active:cursor-grabbing ${isDragging ? 'bg-muted/50 shadow-lg' : ''}`}
+            {...attributes}
+            {...listeners}
+        >
+            {/* Task Title */}
+            <div
+                className="flex items-center gap-1 px-3 py-3"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <button
+                    onClick={() => handleOpenTaskDetail(task)}
+                    className={`cursor-pointer text-left text-sm hover:text-primary hover:underline ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
+                >
+                    {task.title}
+                </button>
+                {task.subtasks_total && task.subtasks_total > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Check className="size-3" />
+                        {task.subtasks_completed}/{task.subtasks_total}
+                    </span>
+                )}
+            </div>
+
+            {/* Status */}
+            {columns.find((c) => c.id === 'status')?.visible && (
+                <div
+                    className="flex items-center px-3 py-3"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent">
+                                <div
+                                    className="size-3 rounded"
+                                    style={{
+                                        backgroundColor: getStatusColor(
+                                            task.status,
+                                        ),
+                                    }}
+                                />
+                                <span className="text-sm">
+                                    {getStatusLabel(task.status)}
+                                </span>
+                                <ChevronDown className="size-3 text-muted-foreground" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-40">
+                            {(
+                                [
+                                    'pending',
+                                    'in_progress',
+                                    'completed',
+                                    'cancelled',
+                                ] as const
+                            ).map((status) => (
+                                <DropdownMenuItem
+                                    key={status}
+                                    onClick={() =>
+                                        handleUpdateStatus(task.id, status)
+                                    }
+                                    className="flex items-center gap-2"
+                                >
+                                    <div
+                                        className="size-3 rounded"
+                                        style={{
+                                            backgroundColor:
+                                                getStatusColor(status),
+                                        }}
+                                    />
+                                    <span>{getStatusLabel(status)}</span>
+                                    {task.status === status && (
+                                        <Check className="ml-auto size-4" />
+                                    )}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )}
+
+            {/* Priority */}
+            {columns.find((c) => c.id === 'priority')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    {task.priority ? (
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="size-3 rounded"
+                                style={{
+                                    backgroundColor: getPriorityColor(
+                                        task.priority,
+                                    ),
+                                }}
+                            />
+                            <span className="text-sm capitalize">
+                                {task.priority}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">–</span>
+                    )}
+                </div>
+            )}
+
+            {/* Due Date */}
+            {columns.find((c) => c.id === 'dueDate')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                          })
+                        : '–'}
+                </div>
+            )}
+
+            {/* Assignee */}
+            {columns.find((c) => c.id === 'assignee')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    {task.assigned_to ? (
+                        <div className="flex items-center gap-2">
+                            <Avatar className="size-6">
+                                <AvatarImage src="" />
+                                <AvatarFallback className="text-xs">
+                                    Me
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">Me</span>
+                        </div>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">–</span>
+                    )}
+                </div>
+            )}
+
+            {/* Created At */}
+            {columns.find((c) => c.id === 'createdAt')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {task.created_at
+                        ? new Date(task.created_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                          })
+                        : '–'}
+                </div>
+            )}
+
+            {/* Completed At */}
+            {columns.find((c) => c.id === 'completedAt')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {task.completed_at
+                        ? new Date(task.completed_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                          })
+                        : '–'}
+                </div>
+            )}
+
+            {/* Creator */}
+            {columns.find((c) => c.id === 'creator')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    <div className="flex items-center gap-2">
+                        <Avatar className="size-6">
+                            <AvatarImage src="" />
+                            <AvatarFallback className="text-xs">
+                                Me
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">Me</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-center px-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="size-8 opacity-0 transition-opacity group-hover:opacity-100"
+                            size="icon"
+                        >
+                            <MoreVertical className="size-4" />
+                            <span className="sr-only">Open menu</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-44 p-2">
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => handleDuplicateTask(task.id)}
+                                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors hover:bg-accent"
+                            >
+                                <Copy className="size-4" />
+                                Duplicate task
+                            </button>
+                            <button
+                                onClick={() => handleDeleteTask(task)}
+                                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-950/50"
+                            >
+                                <Trash2 className="size-4" />
+                                Delete task
+                            </button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
             </div>
         </div>
     );
@@ -334,6 +695,7 @@ export interface Task {
     position: number;
     due_date?: string;
     completed_at?: string;
+    created_at?: string;
     assigned_to?: number;
     created_by: number;
     subtasks_completed?: number;
@@ -399,78 +761,13 @@ const getProjectIcon = (iconName?: string): LucideIcon => {
     return found?.icon ?? Folder;
 };
 
-// Mock data for demonstration
-const mockTaskLists: TaskList[] = [
-    {
-        id: 1,
-        project_id: 1,
-        name: 'Active tasks',
-        color: '#3b82f6',
-        position: 0,
-        tasks: [
-            {
-                id: 1,
-                task_list_id: 1,
-                title: 'Design homepage mockup',
-                priority: 'high',
-                status: 'in_progress',
-                position: 0,
-                due_date: '2025-12-10',
-                assigned_to: 1,
-                created_by: 1,
-                subtasks_completed: 2,
-                subtasks_total: 5,
-            },
-            {
-                id: 2,
-                task_list_id: 1,
-                title: 'Set up database schema',
-                priority: 'medium',
-                status: 'pending',
-                position: 1,
-                created_by: 1,
-            },
-            {
-                id: 3,
-                task_list_id: 1,
-                title: 'Implement authentication',
-                priority: 'high',
-                status: 'in_progress',
-                position: 2,
-                due_date: '2025-12-05',
-                assigned_to: 1,
-                created_by: 1,
-            },
-        ],
-    },
-    {
-        id: 2,
-        project_id: 1,
-        name: 'Completed',
-        color: '#22c55e',
-        position: 1,
-        tasks: [
-            {
-                id: 4,
-                task_list_id: 2,
-                title: 'Project setup',
-                priority: 'low',
-                status: 'completed',
-                position: 0,
-                completed_at: '2025-12-01',
-                created_by: 1,
-            },
-        ],
-    },
-];
-
 const getStatusColor = (status: string) => {
     switch (status) {
-        case 'completed':
+        case 'Completed':
             return '#22c55e';
-        case 'in_progress':
+        case 'In Progress':
             return '#3b82f6';
-        case 'cancelled':
+        case 'Cancelled':
             return '#ef4444';
         default:
             return '#a855f7'; // pending - purple like "New task"
@@ -480,13 +777,18 @@ const getStatusColor = (status: string) => {
 const getStatusLabel = (status: string) => {
     switch (status) {
         case 'completed':
+        case 'Completed':
             return 'Completed';
         case 'in_progress':
+        case 'In Progress':
             return 'In Progress';
         case 'cancelled':
+        case 'Cancelled':
             return 'Cancelled';
+        case 'pending':
+        case 'Pending':
         default:
-            return 'New task';
+            return 'Pending';
     }
 };
 
@@ -539,7 +841,7 @@ export default function ProjectShow({ project }: Props) {
     const [mounted, setMounted] = useState(false);
     const [kanbanAnimated, setKanbanAnimated] = useState(false);
     const [expandedLists, setExpandedLists] = useState<number[]>(
-        mockTaskLists.map((l) => l.id),
+        project.task_lists?.map((l) => l.id) || [],
     );
     const [columns, setColumns] = useState<ColumnConfig[]>(getInitialColumns);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -572,6 +874,22 @@ export default function ProjectShow({ project }: Props) {
     >(null);
     const [selectedColumnForDetails, setSelectedColumnForDetails] =
         useState<KanbanColumn | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
+    const [isDeletingTask, setIsDeletingTask] = useState(false);
+    // Task detail/edit state
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [isEditingTask, setIsEditingTask] = useState(false);
+    const [editTaskForm, setEditTaskForm] = useState({
+        title: '',
+        description: '',
+        priority: 'medium' as 'low' | 'medium' | 'high',
+        status: 'pending' as Task['status'],
+        due_date: '',
+    });
+    // Local state for task lists to enable optimistic updates
+    const [localTaskLists, setLocalTaskLists] = useState<TaskList[]>(
+        () => project.task_lists || [],
+    );
     const [taskForm, setTaskForm] = useState({
         title: '',
         description: '',
@@ -581,7 +899,7 @@ export default function ProjectShow({ project }: Props) {
             | 'in_progress'
             | 'completed'
             | 'cancelled',
-        task_list_id: mockTaskLists[0]?.id || 1,
+        task_list_id: project.task_lists?.[0]?.id || 1,
         due_date: '',
     });
     const ProjectIcon = getProjectIcon(project.icon);
@@ -622,7 +940,7 @@ export default function ProjectShow({ project }: Props) {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 5,
+                distance: 3,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -667,6 +985,152 @@ export default function ProjectShow({ project }: Props) {
                 );
 
                 return newItems;
+            });
+        }
+    };
+
+    const handleTaskDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeData = active.data.current as
+            | { task: Task; listId: number }
+            | undefined;
+        if (!activeData) return;
+
+        const activeTaskId = active.id as number;
+        const sourceListId = activeData.listId;
+
+        // Check if dropping on a list container
+        const overId = over.id.toString();
+        let targetListId: number;
+        let targetTaskId: number | null = null;
+
+        if (overId.startsWith('list-')) {
+            // Dropping directly on a list container
+            targetListId = parseInt(overId.replace('list-', ''));
+        } else {
+            // Dropping on another task
+            const overData = over.data.current as
+                | { task: Task; listId: number }
+                | undefined;
+            if (!overData) return;
+            targetListId = overData.listId;
+            targetTaskId = over.id as number;
+        }
+
+        // Same list reordering
+        if (sourceListId === targetListId) {
+            if (targetTaskId === null || activeTaskId === targetTaskId) return;
+
+            setLocalTaskLists((prevLists) => {
+                const newLists = prevLists.map((list) => {
+                    if (list.id !== sourceListId) return list;
+
+                    const oldIndex = list.tasks.findIndex(
+                        (t) => t.id === activeTaskId,
+                    );
+                    const newIndex = list.tasks.findIndex(
+                        (t) => t.id === targetTaskId,
+                    );
+
+                    if (oldIndex === -1 || newIndex === -1) return list;
+
+                    const reorderedTasks = arrayMove(
+                        list.tasks,
+                        oldIndex,
+                        newIndex,
+                    );
+
+                    // Send to server in background
+                    const tasksToSend = reorderedTasks.map((task, index) => ({
+                        id: task.id,
+                        position: index,
+                    }));
+                    router.post(
+                        `/projects/${project.id}/tasks/reorder`,
+                        { tasks: tasksToSend },
+                        { preserveScroll: true, preserveState: true },
+                    );
+
+                    return { ...list, tasks: reorderedTasks };
+                });
+                return newLists;
+            });
+        } else {
+            // Moving to different list - optimistic update
+            setLocalTaskLists((prevLists) => {
+                const sourceList = prevLists.find((l) => l.id === sourceListId);
+                const targetList = prevLists.find((l) => l.id === targetListId);
+                if (!sourceList || !targetList) return prevLists;
+
+                const taskIndex = sourceList.tasks.findIndex(
+                    (t) => t.id === activeTaskId,
+                );
+                if (taskIndex === -1) return prevLists;
+
+                const task = sourceList.tasks[taskIndex];
+
+                // Calculate new position
+                let newPosition = 0;
+                if (targetTaskId !== null) {
+                    const targetIndex = targetList.tasks.findIndex(
+                        (t) => t.id === targetTaskId,
+                    );
+                    newPosition =
+                        targetIndex !== -1
+                            ? targetIndex
+                            : targetList.tasks.length;
+                } else {
+                    newPosition = targetList.tasks.length;
+                }
+
+                // Determine new status based on target list name
+                const statusMap: Record<string, Task['status']> = {
+                    pending: 'pending',
+                    in_progress: 'in_progress',
+                    completed: 'completed',
+                    cancelled: 'cancelled',
+                };
+                const newStatus = statusMap[targetList.name] || task.status;
+
+                // Create new lists with the task moved
+                const newLists = prevLists.map((list) => {
+                    if (list.id === sourceListId) {
+                        return {
+                            ...list,
+                            tasks: list.tasks.filter(
+                                (t) => t.id !== activeTaskId,
+                            ),
+                        };
+                    }
+                    if (list.id === targetListId) {
+                        const newTasks = [...list.tasks];
+                        newTasks.splice(newPosition, 0, {
+                            ...task,
+                            task_list_id: targetListId,
+                            status: newStatus,
+                            completed_at:
+                                newStatus === 'completed'
+                                    ? new Date().toISOString()
+                                    : undefined,
+                        });
+                        return { ...list, tasks: newTasks };
+                    }
+                    return list;
+                });
+
+                // Send to server in background (no reload needed)
+                router.patch(
+                    `/projects/${project.id}/tasks/${activeTaskId}/move`,
+                    {
+                        task_list_id: targetListId,
+                        position: newPosition,
+                    },
+                    { preserveScroll: true, preserveState: true },
+                );
+
+                return newLists;
             });
         }
     };
@@ -728,8 +1192,271 @@ export default function ProjectShow({ project }: Props) {
         );
     };
 
+    const handleCreateTask = () => {
+        router.post(
+            `/projects/${project.id}/tasks`,
+            {
+                task_list_id: taskForm.task_list_id,
+                title: taskForm.title,
+                description: taskForm.description || null,
+                priority: taskForm.priority,
+                status: taskForm.status,
+                due_date: taskForm.due_date || null,
+                assigned_to: null, // Will be implemented later
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsCreateTaskOpen(false);
+                    setTaskForm({
+                        title: '',
+                        description: '',
+                        priority: 'medium',
+                        status: 'pending',
+                        task_list_id: project.task_lists?.[0]?.id || 1,
+                        due_date: '',
+                    });
+                    setSelectedColumnForTask(null);
+                    // Reload to sync table and kanban views
+                    router.reload();
+                },
+            },
+        );
+    };
+
+    const handleCompleteTask = (taskId: number) => {
+        router.patch(
+            `/projects/${project.id}/tasks/${taskId}/complete`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    router.reload();
+                },
+            },
+        );
+    };
+
+    const handleDuplicateTask = (taskId: number) => {
+        router.post(
+            `/projects/${project.id}/tasks/${taskId}/duplicate`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    router.reload();
+                },
+            },
+        );
+    };
+
+    const handleDeleteTask = (task: Task) => {
+        setDeleteTask(task);
+    };
+
+    const handleUpdateStatus = (taskId: number, status: Task['status']) => {
+        // Optimistic update
+        setLocalTaskLists((prevLists) => {
+            const statusToListMap: Record<string, string> = {
+                pending: 'pending',
+                in_progress: 'in_progress',
+                completed: 'completed',
+                cancelled: 'cancelled',
+            };
+
+            const targetListName = statusToListMap[status];
+            const targetList = prevLists.find((l) => l.name === targetListName);
+            const sourceList = prevLists.find((l) =>
+                l.tasks.some((t) => t.id === taskId),
+            );
+
+            if (!sourceList) return prevLists;
+
+            const task = sourceList.tasks.find((t) => t.id === taskId);
+            if (!task) return prevLists;
+
+            // If target list exists and is different, move the task
+            if (targetList && targetList.id !== sourceList.id) {
+                return prevLists.map((list) => {
+                    if (list.id === sourceList.id) {
+                        return {
+                            ...list,
+                            tasks: list.tasks.filter((t) => t.id !== taskId),
+                        };
+                    }
+                    if (list.id === targetList.id) {
+                        return {
+                            ...list,
+                            tasks: [
+                                ...list.tasks,
+                                {
+                                    ...task,
+                                    status,
+                                    task_list_id: targetList.id,
+                                    completed_at:
+                                        status === 'completed'
+                                            ? new Date().toISOString()
+                                            : undefined,
+                                },
+                            ],
+                        };
+                    }
+                    return list;
+                });
+            }
+
+            // Just update status in place (when no matching list found)
+            return prevLists.map((list) => ({
+                ...list,
+                tasks: list.tasks.map((t) =>
+                    t.id === taskId
+                        ? {
+                              ...t,
+                              status,
+                              completed_at:
+                                  status === 'completed'
+                                      ? new Date().toISOString()
+                                      : undefined,
+                          }
+                        : t,
+                ),
+            }));
+        });
+
+        // Send to server using fetch (avoid Inertia's page reload behavior)
+        fetch(`/projects/${project.id}/tasks/${taskId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') || '',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ status }),
+        }).catch(() => {
+            // Revert on error by reloading
+            router.reload();
+        });
+    };
+
+    const confirmDeleteTask = () => {
+        if (!deleteTask) return;
+
+        setIsDeletingTask(true);
+        router.delete(`/projects/${project.id}/tasks/${deleteTask.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload();
+            },
+            onFinish: () => {
+                setIsDeletingTask(false);
+                setDeleteTask(null);
+            },
+        });
+    };
+
+    const handleOpenTaskDetail = (task: Task) => {
+        setSelectedTask(task);
+        setEditTaskForm({
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority,
+            status: task.status,
+            due_date: task.due_date || '',
+        });
+        setIsEditingTask(false);
+    };
+
+    const handleUpdateTask = () => {
+        if (!selectedTask) return;
+
+        // Optimistic update
+        setLocalTaskLists((prevLists) =>
+            prevLists.map((list) => ({
+                ...list,
+                tasks: list.tasks.map((t) =>
+                    t.id === selectedTask.id
+                        ? {
+                              ...t,
+                              title: editTaskForm.title,
+                              description:
+                                  editTaskForm.description || undefined,
+                              priority: editTaskForm.priority,
+                              status: editTaskForm.status,
+                              due_date: editTaskForm.due_date || undefined,
+                              completed_at:
+                                  editTaskForm.status === 'completed'
+                                      ? new Date().toISOString()
+                                      : undefined,
+                          }
+                        : t,
+                ),
+            })),
+        );
+
+        // Update selected task locally
+        setSelectedTask((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      title: editTaskForm.title,
+                      description: editTaskForm.description || undefined,
+                      priority: editTaskForm.priority,
+                      status: editTaskForm.status,
+                      due_date: editTaskForm.due_date || undefined,
+                  }
+                : null,
+        );
+
+        setIsEditingTask(false);
+
+        // Send to server
+        fetch(`/projects/${project.id}/tasks/${selectedTask.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') || '',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                title: editTaskForm.title,
+                description: editTaskForm.description || null,
+                priority: editTaskForm.priority,
+                status: editTaskForm.status,
+                due_date: editTaskForm.due_date || null,
+            }),
+        }).catch(() => {
+            router.reload();
+        });
+    };
+
     const handleAddTaskToColumn = (columnId: number) => {
         setSelectedColumnForTask(columnId);
+
+        // Find the column name to set the appropriate status
+        const column = kanbanColumns.find((c) => c.id === columnId);
+        const statusMap: Record<string, Task['status']> = {
+            pending: 'pending',
+            in_progress: 'in_progress',
+            completed: 'completed',
+            cancelled: 'cancelled',
+        };
+        const newStatus = column
+            ? statusMap[column.name] || 'pending'
+            : 'pending';
+
+        setTaskForm((prev) => ({
+            ...prev,
+            task_list_id: columnId,
+            status: newStatus,
+        }));
         setIsCreateTaskOpen(true);
     };
 
@@ -748,6 +1475,11 @@ export default function ProjectShow({ project }: Props) {
         const timer = setTimeout(() => setMounted(true), 50);
         return () => clearTimeout(timer);
     }, []);
+
+    // Sync local task lists when project.task_lists changes from server
+    useEffect(() => {
+        setLocalTaskLists(project.task_lists || []);
+    }, [project.task_lists]);
 
     // Sync kanban columns when project.task_lists changes from server
     useEffect(() => {
@@ -869,7 +1601,7 @@ export default function ProjectShow({ project }: Props) {
         );
     };
 
-    const taskLists = project.task_lists ?? mockTaskLists;
+    const taskLists = localTaskLists;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -1155,271 +1887,66 @@ export default function ProjectShow({ project }: Props) {
                                 <span>Create task</span>
                             </button>
 
-                            {/* Task Lists */}
-                            <div>
-                                {taskLists.map((list, listIndex) => (
-                                    <div
-                                        key={list.id}
-                                        style={{
-                                            animation: mounted
-                                                ? `fadeSlideIn 400ms ease-out ${listIndex * 100 + 200}ms both`
-                                                : 'none',
-                                        }}
-                                    >
-                                        {/* List Header */}
-                                        <button
-                                            onClick={() => toggleList(list.id)}
-                                            className="flex w-full items-center gap-2 border-b bg-muted/30 px-4 py-2.5 text-left transition-all duration-200 hover:bg-muted/50"
-                                        >
-                                            <ChevronDown
-                                                className={`size-4 text-muted-foreground transition-transform duration-200 ${
-                                                    expandedLists.includes(
-                                                        list.id,
-                                                    )
-                                                        ? 'rotate-0'
-                                                        : '-rotate-90'
-                                                }`}
-                                            />
-                                            <span className="text-sm font-medium">
-                                                {list.name}
-                                            </span>
-                                            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
-                                                {list.tasks.length}
-                                            </span>
-                                        </button>
-
-                                        {/* Tasks */}
-                                        {expandedLists.includes(list.id) && (
-                                            <div className="animate-in duration-200 fade-in slide-in-from-top-2">
-                                                {list.tasks.map(
-                                                    (task, taskIndex) => (
-                                                        <div
-                                                            key={task.id}
-                                                            className="group grid border-b transition-all duration-150 hover:bg-muted/30"
-                                                            style={{
-                                                                gridTemplateColumns: `${gridCols} 40px`,
-                                                                animation: `fadeSlideIn 300ms ease-out ${taskIndex * 50}ms both`,
-                                                            }}
-                                                        >
-                                                            {/* Task Title - Always visible */}
-                                                            <div className="flex items-center gap-3 px-4 py-3">
-                                                                <span
-                                                                    className={`text-sm ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
-                                                                >
-                                                                    {task.title}
-                                                                </span>
-                                                                {task.subtasks_total &&
-                                                                    task.subtasks_total >
-                                                                        0 && (
-                                                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                            <Check className="size-3" />
-                                                                            {
-                                                                                task.subtasks_completed
-                                                                            }
-                                                                            /
-                                                                            {
-                                                                                task.subtasks_total
-                                                                            }
-                                                                        </span>
-                                                                    )}
-                                                            </div>
-
-                                                            {/* Status */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'status',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div
-                                                                            className="size-3 rounded"
-                                                                            style={{
-                                                                                backgroundColor:
-                                                                                    getStatusColor(
-                                                                                        task.status,
-                                                                                    ),
-                                                                            }}
-                                                                        />
-                                                                        <span className="text-sm">
-                                                                            {getStatusLabel(
-                                                                                task.status,
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Priority */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'priority',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    {task.priority ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div
-                                                                                className="size-3 rounded"
-                                                                                style={{
-                                                                                    backgroundColor:
-                                                                                        getPriorityColor(
-                                                                                            task.priority,
-                                                                                        ),
-                                                                                }}
-                                                                            />
-                                                                            <span className="text-sm capitalize">
-                                                                                {
-                                                                                    task.priority
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            –
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Due Date */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'dueDate',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {task.due_date
-                                                                        ? new Date(
-                                                                              task.due_date,
-                                                                          ).toLocaleDateString(
-                                                                              'en-US',
-                                                                              {
-                                                                                  month: 'short',
-                                                                                  day: 'numeric',
-                                                                              },
-                                                                          )
-                                                                        : '–'}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Assignee */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'assignee',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    {task.assigned_to ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Avatar className="size-6">
-                                                                                <AvatarImage src="" />
-                                                                                <AvatarFallback className="text-xs">
-                                                                                    Me
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                            <span className="text-sm">
-                                                                                Me
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            –
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Created At */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'createdAt',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {new Date().toLocaleDateString(
-                                                                        'en-US',
-                                                                        {
-                                                                            month: 'short',
-                                                                            day: 'numeric',
-                                                                        },
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Completed At */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'completedAt',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {task.completed_at
-                                                                        ? new Date(
-                                                                              task.completed_at,
-                                                                          ).toLocaleDateString(
-                                                                              'en-US',
-                                                                              {
-                                                                                  month: 'short',
-                                                                                  day: 'numeric',
-                                                                              },
-                                                                          )
-                                                                        : '–'}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Creator */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'creator',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Avatar className="size-6">
-                                                                            <AvatarImage src="" />
-                                                                            <AvatarFallback className="text-xs">
-                                                                                Me
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <span className="text-sm">
-                                                                            Me
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Empty cell for settings column alignment */}
-                                                            <div />
-                                                        </div>
-                                                    ),
-                                                )}
-
-                                                {/* Add Task Button */}
-                                                <button
-                                                    onClick={() => {
-                                                        setTaskForm((prev) => ({
-                                                            ...prev,
-                                                            task_list_id:
-                                                                list.id,
-                                                        }));
-                                                        setIsCreateTaskOpen(
-                                                            true,
-                                                        );
-                                                    }}
-                                                    className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-5 hover:text-foreground"
-                                                    style={{
-                                                        animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
-                                                    }}
-                                                >
-                                                    <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                                    <span>Create task</span>
-                                                </button>
-                                            </div>
+                            {/* All Tasks - Flat List */}
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCorners}
+                                onDragEnd={handleTaskDragEnd}
+                            >
+                                <div
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: `${gridCols} 40px`,
+                                    }}
+                                >
+                                    <SortableContext
+                                        items={taskLists.flatMap((list) =>
+                                            list.tasks.map((t) => t.id),
                                         )}
-                                    </div>
-                                ))}
-                            </div>
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        {taskLists.flatMap((list) =>
+                                            list.tasks.map(
+                                                (task, taskIndex) => (
+                                                    <SortableTaskRow
+                                                        key={task.id}
+                                                        task={task}
+                                                        taskIndex={taskIndex}
+                                                        listId={list.id}
+                                                        projectId={project.id}
+                                                        gridCols={gridCols}
+                                                        columns={columns}
+                                                        getStatusColor={
+                                                            getStatusColor
+                                                        }
+                                                        getStatusLabel={
+                                                            getStatusLabel
+                                                        }
+                                                        getPriorityColor={
+                                                            getPriorityColor
+                                                        }
+                                                        handleCompleteTask={
+                                                            handleCompleteTask
+                                                        }
+                                                        handleDuplicateTask={
+                                                            handleDuplicateTask
+                                                        }
+                                                        handleDeleteTask={
+                                                            handleDeleteTask
+                                                        }
+                                                        handleUpdateStatus={
+                                                            handleUpdateStatus
+                                                        }
+                                                        handleOpenTaskDetail={
+                                                            handleOpenTaskDetail
+                                                        }
+                                                    />
+                                                ),
+                                            ),
+                                        )}
+                                    </SortableContext>
+                                </div>
+                            </DndContext>
                         </div>
                     ) : (
                         /* Kanban Board - Clean Design */
@@ -1434,111 +1961,122 @@ export default function ProjectShow({ project }: Props) {
                                     items={kanbanColumns.map((col) => col.id)}
                                     strategy={horizontalListSortingStrategy}
                                 >
-                                    {kanbanColumns.map((column, index) => (
-                                        <DraggableKanbanColumn
-                                            key={column.id}
-                                            column={column}
-                                            hasAnimated={kanbanAnimated}
-                                            index={index}
-                                            onAddTask={() =>
-                                                handleAddTaskToColumn(column.id)
-                                            }
-                                            headerContent={
-                                                <>
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div
-                                                            className="size-2.5 rounded-full"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    column.color,
-                                                            }}
-                                                        />
-                                                        <button
-                                                            className="text-sm font-semibold text-foreground hover:underline"
-                                                            onPointerDown={(
-                                                                e,
-                                                            ) =>
-                                                                e.stopPropagation()
-                                                            }
-                                                            onClick={() =>
-                                                                setSelectedColumnForDetails(
-                                                                    column,
-                                                                )
-                                                            }
-                                                        >
-                                                            {column.name}
-                                                        </button>
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {project.task_lists?.find(
-                                                                (tl) =>
-                                                                    tl.id ===
-                                                                    column.id,
-                                                            )?.tasks.length ||
-                                                                0}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
-                                                        <button
-                                                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                                            onPointerDown={(
-                                                                e,
-                                                            ) =>
-                                                                e.stopPropagation()
-                                                            }
-                                                            onClick={() =>
-                                                                handleAddTaskToColumn(
-                                                                    column.id,
-                                                                )
-                                                            }
-                                                            title="Add task"
-                                                        >
-                                                            <Plus className="size-4" />
-                                                        </button>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger
-                                                                asChild
+                                    {kanbanColumns.map((column, index) => {
+                                        const columnTasks =
+                                            taskLists.find(
+                                                (tl) => tl.id === column.id,
+                                            )?.tasks || [];
+                                        return (
+                                            <DraggableKanbanColumn
+                                                key={column.id}
+                                                column={column}
+                                                hasAnimated={kanbanAnimated}
+                                                index={index}
+                                                onAddTask={() =>
+                                                    handleAddTaskToColumn(
+                                                        column.id,
+                                                    )
+                                                }
+                                                tasks={columnTasks}
+                                                headerContent={
+                                                    <>
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div
+                                                                className="size-2.5 rounded-full"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        column.color,
+                                                                }}
+                                                            />
+                                                            <button
+                                                                className="text-sm font-semibold text-foreground hover:underline"
+                                                                onPointerDown={(
+                                                                    e,
+                                                                ) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                                onClick={() =>
+                                                                    setSelectedColumnForDetails(
+                                                                        column,
+                                                                    )
+                                                                }
                                                             >
-                                                                <button
-                                                                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                                                    onPointerDown={(
-                                                                        e,
-                                                                    ) =>
-                                                                        e.stopPropagation()
-                                                                    }
+                                                                {column.name}
+                                                            </button>
+                                                            <span className="text-sm text-muted-foreground">
+                                                                {project.task_lists?.find(
+                                                                    (tl) =>
+                                                                        tl.id ===
+                                                                        column.id,
+                                                                )?.tasks
+                                                                    .length ||
+                                                                    0}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
+                                                            <button
+                                                                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                                onPointerDown={(
+                                                                    e,
+                                                                ) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                                onClick={() =>
+                                                                    handleAddTaskToColumn(
+                                                                        column.id,
+                                                                    )
+                                                                }
+                                                                title="Add task"
+                                                            >
+                                                                <Plus className="size-4" />
+                                                            </button>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
                                                                 >
-                                                                    <MoreHorizontal className="size-4" />
-                                                                </button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        handleEditColumn(
-                                                                            column,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Pencil className="mr-2 size-4" />
-                                                                    Edit column
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
-                                                                    onClick={() =>
-                                                                        handleDeleteColumn(
-                                                                            column.id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2 className="mr-2 size-4" />
-                                                                    Delete
-                                                                    column
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-                                                </>
-                                            }
-                                        />
-                                    ))}
+                                                                    <button
+                                                                        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                                        onPointerDown={(
+                                                                            e,
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        <MoreHorizontal className="size-4" />
+                                                                    </button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            handleEditColumn(
+                                                                                column,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Pencil className="mr-2 size-4" />
+                                                                        Edit
+                                                                        column
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                                                        onClick={() =>
+                                                                            handleDeleteColumn(
+                                                                                column.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="mr-2 size-4" />
+                                                                        Delete
+                                                                        column
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    </>
+                                                }
+                                            />
+                                        );
+                                    })}
                                 </SortableContext>
 
                                 {/* Add Column Button */}
@@ -2021,19 +2559,8 @@ export default function ProjectShow({ project }: Props) {
                                     type="button"
                                     size="lg"
                                     className="flex-1 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25"
-                                    disabled={!taskForm.title}
-                                    onClick={() => {
-                                        setIsCreateTaskOpen(false);
-                                        setTaskForm({
-                                            title: '',
-                                            description: '',
-                                            priority: 'medium',
-                                            status: 'pending',
-                                            task_list_id:
-                                                mockTaskLists[0]?.id || 1,
-                                            due_date: '',
-                                        });
-                                    }}
+                                    disabled={!taskForm.title.trim()}
+                                    onClick={handleCreateTask}
                                 >
                                     Create task
                                 </Button>
@@ -2213,6 +2740,388 @@ export default function ProjectShow({ project }: Props) {
                     </AnimatePresence>
                 </DrawerContent>
             </Drawer>
+
+            {/* Delete Task Confirmation Dialog */}
+            <AlertDialog
+                open={!!deleteTask}
+                onOpenChange={(open) => !open && setDeleteTask(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete task</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete{' '}
+                            <span className="font-semibold text-foreground">
+                                "{deleteTask?.title}"
+                            </span>
+                            ? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingTask}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDeleteTask}
+                            disabled={isDeletingTask}
+                            className="bg-red-600 font-medium text-white hover:bg-red-700"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Task Detail Sheet */}
+            <Sheet
+                open={!!selectedTask}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedTask(null);
+                        setIsEditingTask(false);
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    className="w-full overflow-y-auto sm:max-w-xl"
+                >
+                    {selectedTask && (
+                        <div className="py-6">
+                            <SheetHeader className="text-left">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        {isEditingTask ? (
+                                            <Input
+                                                value={editTaskForm.title}
+                                                onChange={(e) =>
+                                                    setEditTaskForm((prev) => ({
+                                                        ...prev,
+                                                        title: e.target.value,
+                                                    }))
+                                                }
+                                                className="text-xl font-semibold"
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <SheetTitle className="text-xl">
+                                                {selectedTask.title}
+                                            </SheetTitle>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {isEditingTask ? (
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setIsEditingTask(false);
+                                                        setEditTaskForm({
+                                                            title: selectedTask.title,
+                                                            description:
+                                                                selectedTask.description ||
+                                                                '',
+                                                            priority:
+                                                                selectedTask.priority,
+                                                            status: selectedTask.status,
+                                                            due_date:
+                                                                selectedTask.due_date ||
+                                                                '',
+                                                        });
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={handleUpdateTask}
+                                                    disabled={
+                                                        !editTaskForm.title.trim()
+                                                    }
+                                                >
+                                                    Save
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setIsEditingTask(true)
+                                                }
+                                            >
+                                                <Pencil className="mr-2 size-4" />
+                                                Edit
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </SheetHeader>
+
+                            <div className="mt-8 space-y-6">
+                                {/* Status */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                        Status
+                                    </Label>
+                                    {isEditingTask ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {(
+                                                [
+                                                    'pending',
+                                                    'in_progress',
+                                                    'completed',
+                                                    'cancelled',
+                                                ] as const
+                                            ).map((status) => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() =>
+                                                        setEditTaskForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                status,
+                                                            }),
+                                                        )
+                                                    }
+                                                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                                                        editTaskForm.status ===
+                                                        status
+                                                            ? 'border-primary bg-primary/10'
+                                                            : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div
+                                                        className="size-3 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                getStatusColor(
+                                                                    status,
+                                                                ),
+                                                        }}
+                                                    />
+                                                    {getStatusLabel(status)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className="size-3 rounded"
+                                                style={{
+                                                    backgroundColor:
+                                                        getStatusColor(
+                                                            selectedTask.status,
+                                                        ),
+                                                }}
+                                            />
+                                            <span>
+                                                {getStatusLabel(
+                                                    selectedTask.status,
+                                                )}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Priority */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                        Priority
+                                    </Label>
+                                    {isEditingTask ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {(
+                                                [
+                                                    'low',
+                                                    'medium',
+                                                    'high',
+                                                ] as const
+                                            ).map((priority) => (
+                                                <button
+                                                    key={priority}
+                                                    onClick={() =>
+                                                        setEditTaskForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                priority,
+                                                            }),
+                                                        )
+                                                    }
+                                                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition-colors ${
+                                                        editTaskForm.priority ===
+                                                        priority
+                                                            ? 'border-primary bg-primary/10'
+                                                            : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div
+                                                        className="size-3 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                getPriorityColor(
+                                                                    priority,
+                                                                ),
+                                                        }}
+                                                    />
+                                                    {priority}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className="size-3 rounded"
+                                                style={{
+                                                    backgroundColor:
+                                                        getPriorityColor(
+                                                            selectedTask.priority,
+                                                        ),
+                                                }}
+                                            />
+                                            <span className="capitalize">
+                                                {selectedTask.priority}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Due Date */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                        Due Date
+                                    </Label>
+                                    {isEditingTask ? (
+                                        <Input
+                                            type="date"
+                                            value={editTaskForm.due_date}
+                                            onChange={(e) =>
+                                                setEditTaskForm((prev) => ({
+                                                    ...prev,
+                                                    due_date: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    ) : (
+                                        <p>
+                                            {selectedTask.due_date
+                                                ? new Date(
+                                                      selectedTask.due_date,
+                                                  ).toLocaleDateString(
+                                                      'en-US',
+                                                      {
+                                                          weekday: 'long',
+                                                          year: 'numeric',
+                                                          month: 'long',
+                                                          day: 'numeric',
+                                                      },
+                                                  )
+                                                : 'No due date'}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Description */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                        Description
+                                    </Label>
+                                    {isEditingTask ? (
+                                        <Textarea
+                                            value={editTaskForm.description}
+                                            onChange={(e) =>
+                                                setEditTaskForm((prev) => ({
+                                                    ...prev,
+                                                    description: e.target.value,
+                                                }))
+                                            }
+                                            placeholder="Add a description..."
+                                            className="min-h-[120px] resize-none"
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            {selectedTask.description ||
+                                                'No description'}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Meta Info */}
+                                <div className="space-y-3 border-t pt-6">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                            Created
+                                        </span>
+                                        <span>
+                                            {selectedTask.created_at
+                                                ? new Date(
+                                                      selectedTask.created_at,
+                                                  ).toLocaleDateString(
+                                                      'en-US',
+                                                      {
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                          year: 'numeric',
+                                                          hour: '2-digit',
+                                                          minute: '2-digit',
+                                                      },
+                                                  )
+                                                : '–'}
+                                        </span>
+                                    </div>
+                                    {selectedTask.completed_at && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground">
+                                                Completed
+                                            </span>
+                                            <span>
+                                                {new Date(
+                                                    selectedTask.completed_at,
+                                                ).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 border-t pt-6">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={() => {
+                                            handleDuplicateTask(
+                                                selectedTask.id,
+                                            );
+                                            setSelectedTask(null);
+                                        }}
+                                    >
+                                        <Copy className="mr-2 size-4" />
+                                        Duplicate
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
+                                        onClick={() => {
+                                            setSelectedTask(null);
+                                            handleDeleteTask(selectedTask);
+                                        }}
+                                    >
+                                        <Trash2 className="mr-2 size-4" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
         </AppLayout>
     );
 }

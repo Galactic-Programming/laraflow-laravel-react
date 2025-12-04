@@ -127,5 +127,5 @@ test('creating a new project creates 4 default task lists', function () {
     expect($project->taskLists)->toHaveCount(4);
 
     $columnNames = $project->taskLists->pluck('name')->toArray();
-    expect($columnNames)->toContain('To Do', 'In Progress', 'Review', 'Done');
+    expect($columnNames)->toContain('Pending', 'In Progress', 'Completed', 'Cancelled');
 });
