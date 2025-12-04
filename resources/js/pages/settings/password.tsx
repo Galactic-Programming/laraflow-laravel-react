@@ -28,7 +28,7 @@ export default function Password() {
     ];
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('nav.password', 'Password settings')} />
 
             <SettingsLayout>

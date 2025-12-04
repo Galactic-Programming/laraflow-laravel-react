@@ -132,9 +132,21 @@ return [
         'regenerate_codes' => 'Tạo mã mới',
         'recovery_codes_warning' => 'Mỗi mã chỉ dùng được một lần. Nếu cần thêm mã, nhấn',
         // Theme
+        'theme' => 'Giao diện',
         'light' => 'Sáng',
         'dark' => 'Tối',
         'system' => 'Theo hệ thống',
+        // Background Effect
+        'background_effect' => 'Hiệu ứng nền',
+        'background_none' => 'Không có',
+        'background_beams' => 'Tia sáng',
+        'background_floating_lines' => 'Đường bay',
+        'background_light_pillar' => 'Cột sáng',
+        'background_hint' => 'Hiệu ứng nền được áp dụng cho trang Dashboard và Projects.',
+        'background_dark_mode_only' => 'Hiệu ứng chỉ hiển thị ở chế độ tối để có trải nghiệm tốt nhất.',
+        'performance_low' => 'Ảnh hưởng thấp',
+        'performance_medium' => 'Ảnh hưởng trung bình',
+        'performance_high' => 'Ảnh hưởng cao',
         // 2FA Setup Modal
         '2fa_enabled_title' => 'Bảo mật 2 lớp đã bật!',
         '2fa_enabled_desc' => 'Quét mã QR bên dưới hoặc nhập mã thủ công vào ứng dụng xác thực.',

@@ -20,7 +20,7 @@ export default function Appearance() {
     ];
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('nav.appearance', 'Appearance settings')} />
 
             <SettingsLayout>

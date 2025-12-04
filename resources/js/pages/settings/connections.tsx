@@ -125,7 +125,7 @@ export default function Connections({ connections, status }: ConnectionsProps) {
     if (errors?.provider) errorMessages.push(errors.provider);
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('settings.connections', 'Social Connections')} />
             <SettingsLayout>
                 <SettingsCard

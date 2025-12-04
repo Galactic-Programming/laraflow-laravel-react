@@ -44,7 +44,7 @@ export default function TwoFactor({
     ];
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('nav.two_factor', 'Two-Factor Authentication')} />
             <SettingsLayout>
                 <SettingsCard

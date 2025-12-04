@@ -124,7 +124,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
     const canResume = isCancelled && subscription?.ends_at_timestamp && subscription.ends_at_timestamp > Date.now() / 1000;
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('settings.billing', 'Billing')} />
 
             <SettingsLayout>

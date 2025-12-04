@@ -35,7 +35,7 @@ export default function Profile({
     ];
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
             <Head title={t('settings.profile', 'Profile settings')} />
 
             <SettingsLayout>

@@ -132,9 +132,21 @@ return [
         'regenerate_codes' => 'Regenerate Codes',
         'recovery_codes_warning' => 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click',
         // Theme
+        'theme' => 'Theme',
         'light' => 'Light',
         'dark' => 'Dark',
         'system' => 'System',
+        // Background Effect
+        'background_effect' => 'Background Effect',
+        'background_none' => 'None',
+        'background_beams' => 'Beams',
+        'background_floating_lines' => 'Floating Lines',
+        'background_light_pillar' => 'Light Pillar',
+        'background_hint' => 'Background effects are applied to dashboard and project pages.',
+        'background_dark_mode_only' => 'Effects are only visible in dark mode for best visual experience.',
+        'performance_low' => 'Low impact',
+        'performance_medium' => 'Medium impact',
+        'performance_high' => 'High impact',
         // 2FA Setup Modal
         '2fa_enabled_title' => 'Two-Factor Authentication Enabled',
         '2fa_enabled_desc' => 'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
