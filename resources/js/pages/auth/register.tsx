@@ -127,22 +127,25 @@ export default function Register() {
                             </div>
 
                             {/* Privacy Policy Agreement */}
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id="terms"
-                                    name="terms"
-                                    tabIndex={5}
-                                />
-                                <Label htmlFor="terms" className="text-sm font-normal">
-                                    <span className="text-muted-foreground">{t('auth.agree_terms', 'I agree to the')}</span>{' '}
-                                    <TextLink href="/terms">
-                                        {t('auth.terms', 'Terms')}
-                                    </TextLink>
-                                    <span className="text-muted-foreground"> & </span>
-                                    <TextLink href="/privacy">
-                                        {t('auth.privacy_policy', 'Privacy Policy')}
-                                    </TextLink>
-                                </Label>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="terms"
+                                        name="terms"
+                                        tabIndex={5}
+                                    />
+                                    <Label htmlFor="terms" className="text-sm font-normal">
+                                        <span className="text-muted-foreground">{t('auth.agree_terms', 'I agree to the')}</span>{' '}
+                                        <TextLink href="/terms">
+                                            {t('auth.terms', 'Terms')}
+                                        </TextLink>
+                                        <span className="text-muted-foreground"> & </span>
+                                        <TextLink href="/privacy">
+                                            {t('auth.privacy_policy', 'Privacy Policy')}
+                                        </TextLink>
+                                    </Label>
+                                </div>
+                                <InputError message={errors.terms} />
                             </div>
 
                             <Button

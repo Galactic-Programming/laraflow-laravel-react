@@ -174,8 +174,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'terms' => [
+            'required' => 'Bạn phải đồng ý với Điều khoản và Chính sách bảo mật để đăng ký.',
+            'accepted' => 'Bạn phải đồng ý với Điều khoản và Chính sách bảo mật để đăng ký.',
         ],
     ],
 

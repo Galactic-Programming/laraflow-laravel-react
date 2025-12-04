@@ -179,8 +179,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'terms' => [
+            'required' => 'You must accept the Terms and Privacy Policy to register.',
+            'accepted' => 'You must accept the Terms and Privacy Policy to register.',
         ],
     ],
 
