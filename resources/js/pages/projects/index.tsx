@@ -459,18 +459,20 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
-                                                onClick={() =>
-                                                    openEditSheet(project)
-                                                }
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditSheet(project);
+                                                }}
                                             >
                                                 <Pencil className="mr-2 size-4" />
                                                 {t('projects.edit_project', 'Edit project')}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
-                                                onClick={() =>
-                                                    setDeleteProject(project)
-                                                }
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteProject(project);
+                                                }}
                                             >
                                                 <Trash2 className="mr-2 size-4" />
                                                 {t('projects.delete_project', 'Delete project')}
