@@ -13,9 +13,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Seed plans first (required for subscriptions)
-        $this->call([
-            PlanSeeder::class,
-        ]);
+        // $this->call([
+        //     PlanSeeder::class,
+        // ]);
 
         // Create test user
         $testUser = User::firstOrCreate(
@@ -28,9 +28,9 @@ class DatabaseSeeder extends Seeder
         );
 
         // Seed projects with task lists and tasks for test user
-        $this->call([
-            ProjectSeeder::class,
-            SubscriptionSeeder::class,
-        ]);
+        // $this->call([
+        //     ProjectSeeder::class,
+        //     SubscriptionSeeder::class,
+        // ]);
     }
 }
