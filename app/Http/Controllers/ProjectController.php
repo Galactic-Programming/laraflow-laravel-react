@@ -39,7 +39,19 @@ class ProjectController extends Controller
             'visibility' => ['required', 'in:private,public'],
         ]);
 
-        auth()->user()->projects()->create($validated);
+        $project = auth()->user()->projects()->create($validated);
+
+        // Create default task lists (kanban columns)
+        $defaultColumns = [
+            ['name' => 'To Do', 'color' => '#6b7280', 'position' => 0],
+            ['name' => 'In Progress', 'color' => '#3b82f6', 'position' => 1],
+            ['name' => 'Review', 'color' => '#f59e0b', 'position' => 2],
+            ['name' => 'Done', 'color' => '#10b981', 'position' => 3],
+        ];
+
+        foreach ($defaultColumns as $column) {
+            $project->taskLists()->create($column);
+        }
 
         return redirect()->route('projects.index');
     }
