@@ -5,6 +5,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskListController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -55,6 +56,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('projects/{project}/task-lists/reorder', [TaskListController::class, 'reorder'])->name('task-lists.reorder');
     Route::put('projects/{project}/task-lists/{task_list}', [TaskListController::class, 'update'])->name('task-lists.update');
     Route::delete('projects/{project}/task-lists/{task_list}', [TaskListController::class, 'destroy'])->name('task-lists.destroy');
+
+    // Tasks
+    Route::post('projects/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::post('projects/{project}/tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
+    Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::patch('projects/{project}/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
+    Route::patch('projects/{project}/tasks/{task}/move', [TaskController::class, 'move'])->name('tasks.move');
+    Route::patch('projects/{project}/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::post('projects/{project}/tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('tasks.duplicate');
+    Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
 // Unified Social OAuth routes - works for both login (guest) and linking (auth)
