@@ -1,5 +1,19 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,9 +31,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
 import {
+    closestCenter,
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import {
+    arrayMove,
+    horizontalListSortingStrategy,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    ArrowDown,
     ArrowLeft,
+    ArrowUp,
     BookOpen,
     Briefcase,
     Calendar,
@@ -28,6 +62,7 @@ import {
     ChevronDown,
     Code,
     Database,
+    EyeOff,
     FileText,
     Folder,
     Globe,
@@ -38,6 +73,7 @@ import {
     MessageSquare,
     MoreHorizontal,
     Package,
+    Pencil,
     PenTool,
     Plus,
     Rocket,
@@ -47,10 +83,227 @@ import {
     Smartphone,
     Table,
     Target,
+    Trash2,
     Users,
     type LucideIcon,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+
+// Sort configuration
+type SortDirection = 'asc' | 'desc' | null;
+interface SortConfig {
+    columnId: string;
+    direction: SortDirection;
+}
+
+// Draggable Column Header Component
+function DraggableColumnHeader({
+    column,
+    children,
+    isFirst,
+    sortConfig,
+    onSort,
+    onHide,
+}: {
+    column: ColumnConfig;
+    children: React.ReactNode;
+    isFirst?: boolean;
+    sortConfig?: SortConfig;
+    onSort?: (columnId: string, direction: SortDirection) => void;
+    onHide?: (columnId: string) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: column.id, disabled: column.required });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined,
+        opacity: isDragging ? 0.8 : 1,
+    };
+
+    const isSorted = sortConfig?.columnId === column.id;
+    const currentDirection = isSorted ? sortConfig.direction : null;
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group/col flex items-center gap-2 py-3 font-medium ${isFirst ? 'px-4' : 'px-3'} ${isDragging ? 'rounded bg-muted/50 shadow-lg' : ''} ${!column.required ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            {...(!column.required ? { ...attributes, ...listeners } : {})}
+        >
+            <div className="flex flex-1 items-center gap-2">
+                {children}
+                {isSorted && (
+                    <span className="text-primary">
+                        {currentDirection === 'asc' ? (
+                            <ArrowUp className="size-3.5" />
+                        ) : (
+                            <ArrowDown className="size-3.5" />
+                        )}
+                    </span>
+                )}
+            </div>
+            {!column.required && onSort && onHide && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className="flex size-6 items-center justify-center rounded opacity-0 transition-opacity group-hover/col:opacity-100 hover:bg-muted"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <ChevronDown className="size-4 text-muted-foreground" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        {column.id === 'dueDate' ? (
+                            <>
+                                <DropdownMenuItem
+                                    onClick={() => onSort(column.id, 'desc')}
+                                    className={
+                                        currentDirection === 'desc'
+                                            ? 'bg-accent'
+                                            : ''
+                                    }
+                                >
+                                    <ArrowDown className="mr-2 size-4" />
+                                    Latest to earliest
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => onSort(column.id, 'asc')}
+                                    className={
+                                        currentDirection === 'asc'
+                                            ? 'bg-accent'
+                                            : ''
+                                    }
+                                >
+                                    <ArrowUp className="mr-2 size-4" />
+                                    Earliest to latest
+                                </DropdownMenuItem>
+                            </>
+                        ) : (
+                            <>
+                                <DropdownMenuItem
+                                    onClick={() => onSort(column.id, 'asc')}
+                                    className={
+                                        currentDirection === 'asc'
+                                            ? 'bg-accent'
+                                            : ''
+                                    }
+                                >
+                                    <ArrowUp className="mr-2 size-4" />
+                                    Sort ascending
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => onSort(column.id, 'desc')}
+                                    className={
+                                        currentDirection === 'desc'
+                                            ? 'bg-accent'
+                                            : ''
+                                    }
+                                >
+                                    <ArrowDown className="mr-2 size-4" />
+                                    Sort descending
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                        <DropdownMenuItem onClick={() => onHide(column.id)}>
+                            <EyeOff className="mr-2 size-4" />
+                            Hide column
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+        </div>
+    );
+}
+
+// Draggable Kanban Column Component
+function DraggableKanbanColumn({
+    column,
+    headerContent,
+    hasAnimated,
+    index,
+    onAddTask,
+}: {
+    column: KanbanColumn;
+    headerContent: React.ReactNode;
+    hasAnimated: boolean;
+    index: number;
+    onAddTask: () => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: column.id,
+        transition: {
+            duration: 250,
+            easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+        },
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition:
+            transition || 'transform 250ms cubic-bezier(0.25, 1, 0.5, 1)',
+        zIndex: isDragging ? 50 : undefined,
+        opacity: isDragging ? 0.95 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                ...style,
+                animation: !hasAnimated
+                    ? `fadeSlideIn 400ms ease-out ${index * 80}ms both`
+                    : 'none',
+            }}
+            className={`group/column flex w-80 shrink-0 flex-col transition-shadow duration-200 ${isDragging ? 'scale-[1.02] rounded-xl bg-background shadow-2xl ring-2 ring-primary/30' : ''}`}
+        >
+            {/* Column Header - Draggable */}
+            <div
+                className="mb-3 flex cursor-grab items-center justify-between rounded-lg px-1 py-1 transition-colors hover:bg-muted/50 active:cursor-grabbing"
+                {...attributes}
+                {...listeners}
+            >
+                {headerContent}
+            </div>
+
+            {/* Cards Container */}
+            <div className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
+                {/* Add task button - shows on hover in center */}
+                <button
+                    onClick={onAddTask}
+                    className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50"
+                >
+                    <Plus className="size-4" />
+                    <span>Add task</span>
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// Kanban column interface (matches database schema)
+interface KanbanColumn {
+    id: number;
+    name: string;
+    description?: string;
+    color: string;
+    position: number;
+}
 
 // Column configuration
 interface ColumnConfig {
@@ -251,15 +504,74 @@ const getPriorityColor = (priority: string) => {
 };
 
 export default function ProjectShow({ project }: Props) {
-    const [viewMode, setViewMode] = useState<ViewMode>('table');
-    const [previousView, setPreviousView] = useState<ViewMode>('table');
+    // Get initial view mode from URL
+    const getInitialViewMode = (): ViewMode => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const view = params.get('view');
+            if (view === 'kanban' || view === 'table') {
+                return view;
+            }
+        }
+        return 'table';
+    };
+
+    // Get initial columns from URL
+    const getInitialColumns = (): ColumnConfig[] => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const cols = params.get('cols');
+            if (cols) {
+                const visibleIds = cols.split(',');
+                return defaultColumns.map((col) => ({
+                    ...col,
+                    visible: col.required || visibleIds.includes(col.id),
+                }));
+            }
+        }
+        return defaultColumns;
+    };
+
+    const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+    const [previousView, setPreviousView] =
+        useState<ViewMode>(getInitialViewMode);
     const [isViewTransitioning, setIsViewTransitioning] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [kanbanAnimated, setKanbanAnimated] = useState(false);
     const [expandedLists, setExpandedLists] = useState<number[]>(
         mockTaskLists.map((l) => l.id),
     );
-    const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+    const [columns, setColumns] = useState<ColumnConfig[]>(getInitialColumns);
+    const [sortConfig, setSortConfig] = useState<SortConfig>({
+        columnId: '',
+        direction: null,
+    });
+    // Initialize kanban columns from database (project.task_lists)
+    const [kanbanColumns, setKanbanColumns] = useState<KanbanColumn[]>(
+        () =>
+            project.task_lists
+                ?.map((tl) => ({
+                    id: tl.id,
+                    name: tl.name,
+                    description: tl.description,
+                    color: tl.color,
+                    position: tl.position,
+                }))
+                .sort((a, b) => a.position - b.position) || [],
+    );
     const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+    const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
+    const [newColumnName, setNewColumnName] = useState('');
+    const [newColumnDescription, setNewColumnDescription] = useState('');
+    const [newColumnColor, setNewColumnColor] = useState('#64748b');
+    const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(
+        null,
+    );
+    const [selectedColumnForTask, setSelectedColumnForTask] = useState<
+        number | null
+    >(null);
+    const [selectedColumnForDetails, setSelectedColumnForDetails] =
+        useState<KanbanColumn | null>(null);
     const [taskForm, setTaskForm] = useState({
         title: '',
         description: '',
@@ -290,10 +602,217 @@ export default function ProjectShow({ project }: Props) {
         );
     };
 
+    const handleSort = (columnId: string, direction: SortDirection) => {
+        // Toggle off if clicking same sort
+        if (
+            sortConfig.columnId === columnId &&
+            sortConfig.direction === direction
+        ) {
+            setSortConfig({ columnId: '', direction: null });
+        } else {
+            setSortConfig({ columnId, direction });
+        }
+    };
+
+    const handleHideColumn = (columnId: string) => {
+        toggleColumn(columnId);
+    };
+
+    // Drag and drop sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+    );
+
+    const handleColumnDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setColumns((items) => {
+                const oldIndex = items.findIndex(
+                    (item) => item.id === active.id,
+                );
+                const newIndex = items.findIndex((item) => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
+
+    const handleKanbanColumnDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setKanbanColumns((items) => {
+                const oldIndex = items.findIndex(
+                    (item) => item.id === active.id,
+                );
+                const newIndex = items.findIndex((item) => item.id === over.id);
+                const newItems = arrayMove(items, oldIndex, newIndex);
+
+                // Update positions in database
+                const reorderedItems = newItems.map((item, index) => ({
+                    id: item.id,
+                    position: index,
+                }));
+                router.post(
+                    `/projects/${project.id}/task-lists/reorder`,
+                    { task_lists: reorderedItems },
+                    { preserveScroll: true },
+                );
+
+                return newItems;
+            });
+        }
+    };
+
+    const handleAddColumn = () => {
+        if (!newColumnName.trim()) return;
+
+        router.post(
+            `/projects/${project.id}/task-lists`,
+            {
+                name: newColumnName.trim(),
+                description: newColumnDescription.trim() || null,
+                color: newColumnColor,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setNewColumnName('');
+                    setNewColumnDescription('');
+                    setNewColumnColor('#64748b');
+                    setIsAddColumnOpen(false);
+                },
+            },
+        );
+    };
+
+    const handleDeleteColumn = (columnId: number) => {
+        router.delete(`/projects/${project.id}/task-lists/${columnId}`, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleEditColumn = (column: KanbanColumn) => {
+        setEditingColumn(column);
+        setNewColumnName(column.name);
+        setNewColumnDescription(column.description || '');
+        setNewColumnColor(column.color);
+    };
+
+    const handleSaveEditColumn = () => {
+        if (!editingColumn || !newColumnName.trim()) return;
+
+        router.put(
+            `/projects/${project.id}/task-lists/${editingColumn.id}`,
+            {
+                name: newColumnName.trim(),
+                description: newColumnDescription.trim() || null,
+                color: newColumnColor,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingColumn(null);
+                    setNewColumnName('');
+                    setNewColumnDescription('');
+                    setNewColumnColor('#64748b');
+                },
+            },
+        );
+    };
+
+    const handleAddTaskToColumn = (columnId: number) => {
+        setSelectedColumnForTask(columnId);
+        setIsCreateTaskOpen(true);
+    };
+
+    const columnColors = [
+        '#64748b', // slate
+        '#3b82f6', // blue
+        '#22c55e', // green
+        '#f59e0b', // amber
+        '#ef4444', // red
+        '#8b5cf6', // violet
+        '#ec4899', // pink
+        '#06b6d4', // cyan
+    ];
+
     useEffect(() => {
         const timer = setTimeout(() => setMounted(true), 50);
         return () => clearTimeout(timer);
     }, []);
+
+    // Sync kanban columns when project.task_lists changes from server
+    useEffect(() => {
+        const newColumns =
+            project.task_lists
+                ?.map((tl) => ({
+                    id: tl.id,
+                    name: tl.name,
+                    description: tl.description,
+                    color: tl.color,
+                    position: tl.position,
+                }))
+                .sort((a, b) => a.position - b.position) || [];
+        setKanbanColumns(newColumns);
+    }, [project.task_lists]);
+
+    // Sync view mode with URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const currentView = params.get('view');
+
+        if (currentView !== viewMode) {
+            params.set('view', viewMode);
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, [viewMode]);
+
+    // Sync visible columns with URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const visibleIds = columns
+            .filter((col) => col.visible && !col.required)
+            .map((col) => col.id);
+
+        // Check if columns match default visibility
+        const defaultVisibleIds = defaultColumns
+            .filter((col) => col.visible && !col.required)
+            .map((col) => col.id);
+
+        const isDefault =
+            visibleIds.length === defaultVisibleIds.length &&
+            visibleIds.every((id) => defaultVisibleIds.includes(id));
+
+        if (isDefault) {
+            // Remove cols param if it matches default
+            params.delete('cols');
+        } else {
+            // Save visible column ids to URL
+            params.set('cols', visibleIds.join(','));
+        }
+
+        const newUrl = params.toString()
+            ? `${window.location.pathname}?${params.toString()}`
+            : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+    }, [columns]);
+
+    // Mark kanban animation as complete after initial animation
+    useEffect(() => {
+        if (viewMode === 'kanban' && mounted && !kanbanAnimated) {
+            const timer = setTimeout(() => setKanbanAnimated(true), 800);
+            return () => clearTimeout(timer);
+        }
+    }, [viewMode, mounted, kanbanAnimated]);
 
     // Add keyframes animation
     useEffect(() => {
@@ -412,24 +931,69 @@ export default function ProjectShow({ project }: Props) {
                                         }, 250);
                                     }
                                 }}
+                                className="relative rounded-lg bg-muted p-1"
                             >
+                                {/* Animated background indicator */}
+                                <div
+                                    className="absolute inset-y-1 rounded-md bg-background shadow-sm transition-all duration-300 ease-out"
+                                    style={{
+                                        width: 'calc(50% - 2px)',
+                                        left:
+                                            viewMode === 'table'
+                                                ? '4px'
+                                                : 'calc(50% + 2px)',
+                                        transform: `scale(${isViewTransitioning ? 0.95 : 1})`,
+                                    }}
+                                />
                                 <ToggleGroupItem
                                     value="table"
                                     aria-label="Table view"
-                                    className="gap-2 px-3"
+                                    className={`relative z-10 gap-2 px-4 py-2 transition-all duration-300 data-[state=on]:bg-transparent data-[state=on]:shadow-none ${
+                                        viewMode === 'table'
+                                            ? 'text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
                                 >
-                                    <Table className="size-4" />
-                                    <span className="hidden sm:inline">
+                                    <Table
+                                        className={`size-4 transition-transform duration-300 ${
+                                            viewMode === 'table'
+                                                ? 'scale-110'
+                                                : 'scale-100'
+                                        }`}
+                                    />
+                                    <span
+                                        className={`hidden transition-all duration-300 sm:inline ${
+                                            viewMode === 'table'
+                                                ? 'font-medium'
+                                                : 'font-normal'
+                                        }`}
+                                    >
                                         Table
                                     </span>
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="kanban"
                                     aria-label="Kanban view"
-                                    className="gap-2 px-3"
+                                    className={`relative z-10 gap-2 px-4 py-2 transition-all duration-300 data-[state=on]:bg-transparent data-[state=on]:shadow-none ${
+                                        viewMode === 'kanban'
+                                            ? 'text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
                                 >
-                                    <Kanban className="size-4" />
-                                    <span className="hidden sm:inline">
+                                    <Kanban
+                                        className={`size-4 transition-transform duration-300 ${
+                                            viewMode === 'kanban'
+                                                ? 'scale-110'
+                                                : 'scale-100'
+                                        }`}
+                                    />
+                                    <span
+                                        className={`hidden transition-all duration-300 sm:inline ${
+                                            viewMode === 'kanban'
+                                                ? 'font-medium'
+                                                : 'font-normal'
+                                        }`}
+                                    >
                                         Board
                                     </span>
                                 </ToggleGroupItem>
@@ -461,96 +1025,126 @@ export default function ProjectShow({ project }: Props) {
                     {viewMode === 'table' ? (
                         <div className="min-w-[600px]">
                             {/* Table Header */}
-                            <div
-                                className="sticky top-0 z-10 grid border-b bg-background text-sm text-muted-foreground"
-                                style={{
-                                    gridTemplateColumns: `${gridCols} 40px`,
-                                }}
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleColumnDragEnd}
                             >
-                                {visibleColumns.map((col) => (
-                                    <div
-                                        key={col.id}
-                                        className={`flex items-center gap-2 py-3 font-medium ${col.id === 'task' ? 'px-4' : 'px-3'}`}
+                                <div
+                                    className="sticky top-0 z-10 grid border-b bg-background text-sm text-muted-foreground"
+                                    style={{
+                                        gridTemplateColumns: `${gridCols} 40px`,
+                                    }}
+                                >
+                                    <SortableContext
+                                        items={visibleColumns.map(
+                                            (col) => col.id,
+                                        )}
+                                        strategy={horizontalListSortingStrategy}
                                     >
-                                        {col.id === 'task' && (
-                                            <button
-                                                onClick={() => {
-                                                    if (
-                                                        expandedLists.length > 0
-                                                    ) {
-                                                        setExpandedLists([]);
-                                                    } else {
-                                                        setExpandedLists(
-                                                            taskLists.map(
-                                                                (l) => l.id,
-                                                            ),
-                                                        );
-                                                    }
-                                                }}
-                                                className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                        {visibleColumns.map((col, index) => (
+                                            <DraggableColumnHeader
+                                                key={col.id}
+                                                column={col}
+                                                isFirst={col.id === 'task'}
+                                                sortConfig={sortConfig}
+                                                onSort={handleSort}
+                                                onHide={handleHideColumn}
                                             >
-                                                <ChevronDown
-                                                    className={`size-4 transition-transform duration-200 ${
-                                                        expandedLists.length > 0
-                                                            ? 'rotate-0'
-                                                            : '-rotate-90'
-                                                    }`}
-                                                />
-                                            </button>
-                                        )}
-                                        {col.label}
-                                        {col.id === 'task' && (
-                                            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs">
-                                                {taskLists.reduce(
-                                                    (acc, list) =>
-                                                        acc + list.tasks.length,
-                                                    0,
-                                                )}
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
-                                <div className="flex items-center py-3 pr-4">
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <button className="flex size-8 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-                                                <Settings className="size-[18px]" />
-                                            </button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                            align="end"
-                                            className="w-48 p-2"
-                                        >
-                                            <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
-                                                Toggle columns
-                                            </div>
-                                            {columns.map((column) => (
-                                                <button
-                                                    key={column.id}
-                                                    onClick={() =>
-                                                        toggleColumn(column.id)
-                                                    }
-                                                    disabled={column.required}
-                                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <div
-                                                        className={`flex size-4 items-center justify-center rounded border ${
-                                                            column.visible
-                                                                ? 'border-primary bg-primary text-primary-foreground'
-                                                                : 'border-muted-foreground/30'
-                                                        }`}
+                                                {col.id === 'task' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (
+                                                                expandedLists.length >
+                                                                0
+                                                            ) {
+                                                                setExpandedLists(
+                                                                    [],
+                                                                );
+                                                            } else {
+                                                                setExpandedLists(
+                                                                    taskLists.map(
+                                                                        (l) =>
+                                                                            l.id,
+                                                                    ),
+                                                                );
+                                                            }
+                                                        }}
+                                                        className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                                     >
-                                                        {column.visible && (
-                                                            <Check className="size-3" />
+                                                        <ChevronDown
+                                                            className={`size-4 transition-transform duration-200 ${
+                                                                expandedLists.length >
+                                                                0
+                                                                    ? 'rotate-0'
+                                                                    : '-rotate-90'
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                )}
+                                                {col.label}
+                                                {col.id === 'task' && (
+                                                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs">
+                                                        {taskLists.reduce(
+                                                            (acc, list) =>
+                                                                acc +
+                                                                list.tasks
+                                                                    .length,
+                                                            0,
                                                         )}
-                                                    </div>
-                                                    <span>{column.label}</span>
+                                                    </span>
+                                                )}
+                                            </DraggableColumnHeader>
+                                        ))}
+                                    </SortableContext>
+                                    <div className="flex items-center py-3 pr-4">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button className="flex size-8 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+                                                    <Settings className="size-[18px]" />
                                                 </button>
-                                            ))}
-                                        </PopoverContent>
-                                    </Popover>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                align="end"
+                                                className="w-48 p-2"
+                                            >
+                                                <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
+                                                    Toggle columns
+                                                </div>
+                                                {columns.map((column) => (
+                                                    <button
+                                                        key={column.id}
+                                                        onClick={() =>
+                                                            toggleColumn(
+                                                                column.id,
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            column.required
+                                                        }
+                                                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        <div
+                                                            className={`flex size-4 items-center justify-center rounded border ${
+                                                                column.visible
+                                                                    ? 'border-primary bg-primary text-primary-foreground'
+                                                                    : 'border-muted-foreground/30'
+                                                            }`}
+                                                        >
+                                                            {column.visible && (
+                                                                <Check className="size-3" />
+                                                            )}
+                                                        </div>
+                                                        <span>
+                                                            {column.label}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                 </div>
-                            </div>
+                            </DndContext>
 
                             {/* Quick Add Task Row */}
                             <button
@@ -829,102 +1423,348 @@ export default function ProjectShow({ project }: Props) {
                         </div>
                     ) : (
                         /* Kanban Board - Clean Design */
-                        <div className="flex h-full gap-5 overflow-x-auto p-6">
-                            {[
-                                {
-                                    id: 'todo',
-                                    name: 'To Do',
-                                    color: '#64748b',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'progress',
-                                    name: 'In Progress',
-                                    color: '#3b82f6',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'review',
-                                    name: 'Review',
-                                    color: '#f59e0b',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'done',
-                                    name: 'Done',
-                                    color: '#22c55e',
-                                    count: 0,
-                                },
-                            ].map((column, index) => (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            modifiers={[restrictToHorizontalAxis]}
+                            onDragEnd={handleKanbanColumnDragEnd}
+                        >
+                            <div className="flex h-full gap-5 overflow-x-auto p-6">
+                                <SortableContext
+                                    items={kanbanColumns.map((col) => col.id)}
+                                    strategy={horizontalListSortingStrategy}
+                                >
+                                    {kanbanColumns.map((column, index) => (
+                                        <DraggableKanbanColumn
+                                            key={column.id}
+                                            column={column}
+                                            hasAnimated={kanbanAnimated}
+                                            index={index}
+                                            onAddTask={() =>
+                                                handleAddTaskToColumn(column.id)
+                                            }
+                                            headerContent={
+                                                <>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div
+                                                            className="size-2.5 rounded-full"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    column.color,
+                                                            }}
+                                                        />
+                                                        <button
+                                                            className="text-sm font-semibold text-foreground hover:underline"
+                                                            onPointerDown={(
+                                                                e,
+                                                            ) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                            onClick={() =>
+                                                                setSelectedColumnForDetails(
+                                                                    column,
+                                                                )
+                                                            }
+                                                        >
+                                                            {column.name}
+                                                        </button>
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {project.task_lists?.find(
+                                                                (tl) =>
+                                                                    tl.id ===
+                                                                    column.id,
+                                                            )?.tasks.length ||
+                                                                0}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
+                                                        <button
+                                                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                            onPointerDown={(
+                                                                e,
+                                                            ) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                            onClick={() =>
+                                                                handleAddTaskToColumn(
+                                                                    column.id,
+                                                                )
+                                                            }
+                                                            title="Add task"
+                                                        >
+                                                            <Plus className="size-4" />
+                                                        </button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
+                                                                asChild
+                                                            >
+                                                                <button
+                                                                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                                    onPointerDown={(
+                                                                        e,
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                >
+                                                                    <MoreHorizontal className="size-4" />
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        handleEditColumn(
+                                                                            column,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Pencil className="mr-2 size-4" />
+                                                                    Edit column
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                                                    onClick={() =>
+                                                                        handleDeleteColumn(
+                                                                            column.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 className="mr-2 size-4" />
+                                                                    Delete
+                                                                    column
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </>
+                                            }
+                                        />
+                                    ))}
+                                </SortableContext>
+
+                                {/* Add Column Button */}
                                 <div
-                                    key={column.id}
-                                    className="group/column flex w-80 shrink-0 flex-col"
+                                    className="flex w-80 shrink-0 flex-col"
                                     style={{
-                                        animation: mounted
-                                            ? `fadeSlideIn 400ms ease-out ${index * 80}ms both`
+                                        animation: !kanbanAnimated
+                                            ? `fadeSlideIn 400ms ease-out ${kanbanColumns.length * 80}ms both`
                                             : 'none',
                                     }}
                                 >
-                                    {/* Column Header */}
-                                    <div className="mb-3 flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <div
-                                                className="size-2.5 rounded-full"
-                                                style={{
-                                                    backgroundColor:
-                                                        column.color,
-                                                }}
-                                            />
-                                            <h3 className="text-sm font-semibold text-foreground">
-                                                {column.name}
-                                            </h3>
-                                            <span className="text-sm text-muted-foreground">
-                                                {column.count}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
-                                            <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                                                <Plus className="size-4" />
-                                            </button>
-                                            <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                                                <MoreHorizontal className="size-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Cards Container */}
-                                    <div className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
-                                        {/* Add task button - shows on hover in center */}
-                                        <button className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50">
-                                            <Plus className="size-4" />
-                                            <span>Add task</span>
-                                        </button>
-                                    </div>
+                                    <div className="mb-3 h-7" />
+                                    <button
+                                        onClick={() => setIsAddColumnOpen(true)}
+                                        className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground"
+                                    >
+                                        <Plus className="size-4" />
+                                        Add column
+                                    </button>
                                 </div>
-                            ))}
-
-                            {/* Add Column */}
-                            <div
-                                className="flex w-80 shrink-0 flex-col"
-                                style={{
-                                    animation: mounted
-                                        ? 'fadeSlideIn 400ms ease-out 320ms both'
-                                        : 'none',
-                                }}
-                            >
-                                <div className="mb-3 h-7" />
-                                <button className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground">
-                                    <Plus className="size-4" />
-                                    Add column
-                                </button>
                             </div>
-                        </div>
+                        </DndContext>
                     )}
                 </div>
             </div>
 
+            {/* Add Column Dialog */}
+            <Dialog
+                open={isAddColumnOpen}
+                onOpenChange={(open) => {
+                    setIsAddColumnOpen(open);
+                    if (!open) {
+                        setNewColumnName('');
+                        setNewColumnDescription('');
+                        setNewColumnColor('#64748b');
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>New column</DialogTitle>
+                        <DialogDescription>
+                            Add a new column to your board.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="column-name">Name</Label>
+                            <Input
+                                id="column-name"
+                                placeholder="e.g. Backlog, Testing..."
+                                value={newColumnName}
+                                onChange={(e) =>
+                                    setNewColumnName(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleAddColumn();
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="column-description">
+                                Description
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                    (optional)
+                                </span>
+                            </Label>
+                            <Textarea
+                                id="column-description"
+                                placeholder="What is this column for?"
+                                value={newColumnDescription}
+                                onChange={(e) =>
+                                    setNewColumnDescription(e.target.value)
+                                }
+                                className="min-h-[80px] resize-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Color</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {columnColors.map((color) => (
+                                    <button
+                                        key={color}
+                                        type="button"
+                                        onClick={() => setNewColumnColor(color)}
+                                        className={`size-8 rounded-full transition-all hover:scale-110 ${
+                                            newColumnColor === color
+                                                ? 'ring-2 ring-primary ring-offset-2'
+                                                : ''
+                                        }`}
+                                        style={{ backgroundColor: color }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                    setIsAddColumnOpen(false);
+                                    setNewColumnName('');
+                                    setNewColumnDescription('');
+                                    setNewColumnColor('#64748b');
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                onClick={handleAddColumn}
+                                disabled={!newColumnName.trim()}
+                            >
+                                Add column
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Column Dialog */}
+            <Dialog
+                open={!!editingColumn}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditingColumn(null);
+                        setNewColumnName('');
+                        setNewColumnDescription('');
+                        setNewColumnColor('#64748b');
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit column</DialogTitle>
+                        <DialogDescription>
+                            Update column details.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-column-name">Name</Label>
+                            <Input
+                                id="edit-column-name"
+                                placeholder="Column name"
+                                value={newColumnName}
+                                onChange={(e) =>
+                                    setNewColumnName(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleSaveEditColumn();
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-column-description">
+                                Description
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                    (optional)
+                                </span>
+                            </Label>
+                            <Textarea
+                                id="edit-column-description"
+                                placeholder="What is this column for?"
+                                value={newColumnDescription}
+                                onChange={(e) =>
+                                    setNewColumnDescription(e.target.value)
+                                }
+                                className="min-h-[80px] resize-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Color</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {columnColors.map((color) => (
+                                    <button
+                                        key={color}
+                                        type="button"
+                                        onClick={() => setNewColumnColor(color)}
+                                        className={`size-8 rounded-full transition-all hover:scale-110 ${
+                                            newColumnColor === color
+                                                ? 'ring-2 ring-primary ring-offset-2'
+                                                : ''
+                                        }`}
+                                        style={{ backgroundColor: color }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => {
+                                    setEditingColumn(null);
+                                    setNewColumnName('');
+                                    setNewColumnDescription('');
+                                    setNewColumnColor('#64748b');
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                onClick={handleSaveEditColumn}
+                                disabled={!newColumnName.trim()}
+                            >
+                                Save changes
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* Create Task Sheet */}
-            <Sheet open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+            <Sheet
+                open={isCreateTaskOpen}
+                onOpenChange={(open) => {
+                    setIsCreateTaskOpen(open);
+                    if (!open) setSelectedColumnForTask(null);
+                }}
+            >
                 <SheetContent
                     side="right"
                     className="w-full overflow-y-auto sm:max-w-2xl"
@@ -935,7 +1775,22 @@ export default function ProjectShow({ project }: Props) {
                                 Create new task
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Add a new task to {project.name}.
+                                Add a new task to {project.name}
+                                {selectedColumnForTask && (
+                                    <span className="font-medium text-foreground">
+                                        {' '}
+                                        in "
+                                        {
+                                            kanbanColumns.find(
+                                                (c) =>
+                                                    c.id ===
+                                                    selectedColumnForTask,
+                                            )?.name
+                                        }
+                                        "
+                                    </span>
+                                )}
+                                .
                             </p>
                         </SheetHeader>
 
@@ -1187,6 +2042,177 @@ export default function ProjectShow({ project }: Props) {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* Column Details Drawer */}
+            <Drawer
+                open={!!selectedColumnForDetails}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedColumnForDetails(null);
+                }}
+            >
+                <DrawerContent className="h-[35vh]">
+                    <AnimatePresence>
+                        {selectedColumnForDetails && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                className="mx-auto flex h-full w-full max-w-3xl flex-col px-8 py-6"
+                            >
+                                {/* Header */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.5, delay: 0.1 }}
+                                    className="flex items-start justify-between"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 300,
+                                                damping: 20,
+                                                delay: 0.2,
+                                            }}
+                                            className="flex size-12 items-center justify-center rounded-xl text-xl font-bold text-white shadow-lg transition-transform duration-300 hover:scale-110"
+                                            style={{
+                                                backgroundColor:
+                                                    selectedColumnForDetails?.color,
+                                            }}
+                                        >
+                                            {selectedColumnForDetails
+                                                ? project.task_lists?.find(
+                                                      (tl) =>
+                                                          tl.id ===
+                                                          selectedColumnForDetails.id,
+                                                  )?.tasks.length || 0
+                                                : 0}
+                                        </motion.div>
+                                        <div>
+                                            <h2 className="text-xl font-semibold">
+                                                {selectedColumnForDetails?.name}
+                                            </h2>
+                                            <p className="text-sm text-muted-foreground">
+                                                {selectedColumnForDetails?.description ||
+                                                    'No description provided'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <motion.code
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="rounded-md bg-muted px-2 py-1 font-mono text-xs transition-colors hover:bg-muted/80"
+                                    >
+                                        {selectedColumnForDetails?.color}
+                                    </motion.code>
+                                </motion.div>
+
+                                {/* Progress Section */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5, delay: 0.2 }}
+                                    className="mt-6 flex-1"
+                                >
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <span className="text-sm font-medium">
+                                            Task Progress
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {selectedColumnForDetails
+                                                ? project.task_lists?.find(
+                                                      (tl) =>
+                                                          tl.id ===
+                                                          selectedColumnForDetails.id,
+                                                  )?.tasks.length || 0
+                                                : 0}{' '}
+                                            tasks total
+                                        </span>
+                                    </div>
+
+                                    {/* Single stacked progress bar with smooth animation */}
+                                    <div className="h-4 overflow-hidden rounded-full bg-muted">
+                                        <div className="flex h-full">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: '60%' }}
+                                                transition={{
+                                                    duration: 0.8,
+                                                    delay: 0.4,
+                                                    ease: 'easeOut',
+                                                }}
+                                                className="h-full bg-green-500"
+                                            />
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: '25%' }}
+                                                transition={{
+                                                    duration: 0.8,
+                                                    delay: 0.5,
+                                                    ease: 'easeOut',
+                                                }}
+                                                className="h-full bg-amber-500"
+                                            />
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: '15%' }}
+                                                transition={{
+                                                    duration: 0.8,
+                                                    delay: 0.6,
+                                                    ease: 'easeOut',
+                                                }}
+                                                className="h-full bg-slate-400"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Legend */}
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            duration: 0.4,
+                                            delay: 0.7,
+                                        }}
+                                        className="mt-4 flex items-center justify-center gap-8"
+                                    >
+                                        <div className="group flex cursor-default items-center gap-2 transition-transform hover:scale-105">
+                                            <div className="size-3 rounded-full bg-green-500 transition-transform group-hover:scale-125" />
+                                            <span className="text-sm">
+                                                Completed
+                                            </span>
+                                            <span className="font-semibold text-green-600">
+                                                60%
+                                            </span>
+                                        </div>
+                                        <div className="group flex cursor-default items-center gap-2 transition-transform hover:scale-105">
+                                            <div className="size-3 rounded-full bg-amber-500 transition-transform group-hover:scale-125" />
+                                            <span className="text-sm">
+                                                In Progress
+                                            </span>
+                                            <span className="font-semibold text-amber-600">
+                                                25%
+                                            </span>
+                                        </div>
+                                        <div className="group flex cursor-default items-center gap-2 transition-transform hover:scale-105">
+                                            <div className="size-3 rounded-full bg-slate-400 transition-transform group-hover:scale-125" />
+                                            <span className="text-sm">
+                                                Pending
+                                            </span>
+                                            <span className="font-semibold text-slate-600">
+                                                15%
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </DrawerContent>
+            </Drawer>
         </AppLayout>
     );
 }
