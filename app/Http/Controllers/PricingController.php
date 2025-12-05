@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SubscriptionStatus;
 use App\Models\Plan;
 use App\Models\Subscription;
 use Illuminate\Http\RedirectResponse;
@@ -20,37 +21,32 @@ class PricingController extends Controller
         $plans = Plan::where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(fn(Plan $plan) => [
+            ->map(fn (Plan $plan) => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
                 'description' => $plan->description,
                 'price' => $plan->price,
-                'billing_interval' => $plan->billing_interval,
+                'billing_interval' => $plan->billing_interval->value,
                 'features' => $plan->features,
                 'stripe_price_id' => $plan->stripe_price_id,
                 'is_free' => $plan->isFree(),
+                'is_featured' => $plan->is_featured ?? false,
             ]);
 
         // Get current user's subscription status (includes cancelled but not expired)
         $currentPlan = null;
         $isSubscribed = false;
         $subscription = null;
+        $canPurchase = true;
 
         if ($request->user()) {
             $currentSubscription = $request->user()->currentSubscription;
             if ($currentSubscription && $currentSubscription->hasAccess()) {
                 $currentPlan = $currentSubscription->plan?->slug;
                 $isSubscribed = true;
-                $subscription = [
-                    'id' => $currentSubscription->id,
-                    'status' => $currentSubscription->status,
-                    'plan_slug' => $currentSubscription->plan?->slug,
-                    'billing_interval' => $currentSubscription->plan?->billing_interval,
-                    'ends_at' => $currentSubscription->ends_at?->format('M d, Y'),
-                    'ends_at_timestamp' => $currentSubscription->ends_at?->timestamp,
-                    'is_cancelled' => $currentSubscription->status === 'cancelled',
-                ];
+                $canPurchase = $currentSubscription->canPurchaseNew();
+                $subscription = $this->formatSubscriptionData($currentSubscription);
             }
         }
 
@@ -58,10 +54,9 @@ class PricingController extends Controller
             'plans' => $plans,
             'currentPlan' => $currentPlan,
             'isSubscribed' => $isSubscribed,
+            'canPurchase' => $canPurchase,
             'subscription' => $subscription,
             'stripePaymentLinks' => [
-                // These will be your Stripe Payment Links from the dashboard
-                // You'll replace these with actual links after creating them in Stripe
                 'professional_monthly' => config('services.stripe.payment_links.professional_monthly'),
                 'professional_yearly' => config('services.stripe.payment_links.professional_yearly'),
             ],
@@ -82,27 +77,19 @@ class PricingController extends Controller
             ->get();
 
         return Inertia::render('settings/billing', [
-            'subscription' => $subscription ? [
-                'id' => $subscription->id,
-                'plan' => $subscription->plan?->name,
-                'plan_slug' => $subscription->plan?->slug,
-                'billing_interval' => $subscription->plan?->billing_interval,
-                'price' => $subscription->plan?->price,
-                'status' => $subscription->status,
-                'starts_at' => $subscription->starts_at?->format('M d, Y'),
-                'ends_at' => $subscription->ends_at?->format('M d, Y'),
-                'ends_at_timestamp' => $subscription->ends_at?->timestamp,
-                'cancelled_at' => $subscription->cancelled_at?->format('M d, Y'),
-            ] : null,
-            'payments' => $payments->map(fn($payment) => [
+            'subscription' => $subscription ? $this->formatSubscriptionData($subscription) : null,
+            'payments' => $payments->map(fn ($payment) => [
                 'id' => $payment->id,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
-                'status' => $payment->status,
+                'status' => $payment->status->value,
+                'status_label' => $payment->getStatusLabel(),
+                'type' => $payment->type->value,
+                'type_label' => $payment->getTypeLabel(),
                 'plan' => $payment->plan?->name,
                 'paid_at' => $payment->paid_at?->format('M d, Y'),
+                'invoice_number' => $payment->invoice_number,
             ]),
-            // Only return portal URL if it's properly configured (not a placeholder)
             'customerPortalUrl' => $this->getValidCustomerPortalUrl(),
             'paymentSuccess' => $request->has('success'),
             'stripePaymentLinks' => [
@@ -113,13 +100,52 @@ class PricingController extends Controller
     }
 
     /**
+     * Format subscription data for frontend.
+     */
+    private function formatSubscriptionData(Subscription $subscription): array
+    {
+        $remainingTime = $subscription->getRemainingTime();
+
+        return [
+            'id' => $subscription->id,
+            'plan' => $subscription->plan?->name,
+            'plan_slug' => $subscription->plan?->slug,
+            'billing_interval' => $subscription->plan?->billing_interval->value,
+            'price' => $subscription->plan?->price,
+            'status' => $subscription->status->value,
+            'status_label' => $subscription->getStatusLabel(),
+            'status_badge_variant' => $subscription->getStatusBadgeVariant(),
+            // Timestamps for countdown
+            'starts_at' => $subscription->starts_at?->format('M d, Y'),
+            'starts_at_timestamp' => $subscription->starts_at?->timestamp,
+            'ends_at' => $subscription->ends_at?->format('M d, Y'),
+            'ends_at_timestamp' => $subscription->ends_at?->timestamp,
+            'cancelled_at' => $subscription->cancelled_at?->format('M d, Y'),
+            // Countdown data
+            'remaining_time' => $remainingTime,
+            'days_until_expiry' => $subscription->daysUntilExpiry(),
+            'is_expiring_soon' => $subscription->isExpiringSoon(),
+            'progress_percentage' => $subscription->getProgressPercentage(),
+            'remaining_percentage' => $subscription->getRemainingPercentage(),
+            'total_duration_days' => $subscription->getTotalDurationDays(),
+            // Auto-renewal
+            'auto_renew' => $subscription->auto_renew,
+            'can_purchase_new' => $subscription->canPurchaseNew(),
+            // Status checks
+            'is_active' => $subscription->isActive(),
+            'is_cancelled' => $subscription->status === SubscriptionStatus::Cancelled,
+            'is_cancelled_but_active' => $subscription->isCancelledButActive(),
+            'has_access' => $subscription->hasAccess(),
+        ];
+    }
+
+    /**
      * Get the Stripe Customer Portal URL if properly configured.
      */
     private function getValidCustomerPortalUrl(): ?string
     {
         $url = config('services.stripe.customer_portal_url');
 
-        // Return null if not configured or is a placeholder
         if (empty($url) || str_contains($url, 'test_xxx') || str_contains($url, 'placeholder')) {
             return null;
         }
@@ -135,32 +161,21 @@ class PricingController extends Controller
         $user = $request->user();
         $subscription = $user->activeSubscription;
 
-        if (!$subscription) {
+        if (! $subscription) {
             return back()->with('error', 'No active subscription found.');
         }
 
-        // For Stripe Payment Links, we need to cancel via Stripe API
-        // For now, we'll just mark it as cancelled locally
-        // User will still have access until ends_at date
         $subscription->update([
-            'status' => 'cancelled',
+            'status' => SubscriptionStatus::Cancelled,
             'cancelled_at' => now(),
         ]);
-
-        // If using Stripe API to cancel:
-        // try {
-        //     $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
-        //     $stripe->subscriptions->cancel($subscription->stripe_subscription_id);
-        // } catch (\Exception $e) {
-        //     Log::error('Failed to cancel Stripe subscription', ['error' => $e->getMessage()]);
-        // }
 
         Log::info('Subscription cancelled', [
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
         ]);
 
-        return back()->with('success', 'Your subscription has been cancelled. You will have access until ' . $subscription->ends_at?->format('M d, Y') . '.');
+        return back()->with('success', 'Your subscription has been cancelled. You will have access until '.$subscription->ends_at?->format('M d, Y').'.');
     }
 
     /**
@@ -170,17 +185,17 @@ class PricingController extends Controller
     {
         $user = $request->user();
         $subscription = Subscription::where('user_id', $user->id)
-            ->where('status', 'cancelled')
+            ->where('status', SubscriptionStatus::Cancelled)
             ->whereNotNull('ends_at')
             ->where('ends_at', '>', now())
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return back()->with('error', 'No cancelled subscription found to resume.');
         }
 
         $subscription->update([
-            'status' => 'active',
+            'status' => SubscriptionStatus::Active,
             'cancelled_at' => null,
         ]);
 
@@ -193,13 +208,49 @@ class PricingController extends Controller
     }
 
     /**
+     * Toggle auto-renewal for subscription.
+     */
+    public function toggleAutoRenew(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $subscription = $user->currentSubscription;
+
+        if (! $subscription) {
+            return back()->with('error', 'No active subscription found.');
+        }
+
+        $newValue = $subscription->toggleAutoRenew();
+
+        Log::info('Auto-renew toggled', [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription->id,
+            'auto_renew' => $newValue,
+        ]);
+
+        $message = $newValue
+            ? 'Auto-renewal has been enabled. Your subscription will automatically renew.'
+            : 'Auto-renewal has been disabled. Your subscription will not automatically renew.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Handle redirect from Stripe after successful payment.
-     * This is a public route that redirects to billing page.
+     * This route is public because user session might be lost after Stripe redirect.
+     * We redirect to billing page with success flag - if not authenticated,
+     * they'll be redirected to login first, then back to billing after login.
      */
     public function paymentSuccess(Request $request): RedirectResponse
     {
-        // Simply redirect to billing page with success flag
-        // User will need to login if not authenticated
-        return redirect()->route('billing.show', ['success' => true]);
+        // If user is authenticated, go directly to billing
+        if ($request->user()) {
+            return redirect()->route('billing.show', ['success' => true]);
+        }
+
+        // If not authenticated, redirect to login with intended URL
+        // After login, user will be redirected to billing page with success message
+        return redirect()->guest(route('login'))
+            ->with('status', 'Payment successful! Please log in to view your subscription.')
+            ->with('intended', route('billing.show', ['success' => true]));
     }
 }

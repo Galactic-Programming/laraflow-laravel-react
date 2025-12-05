@@ -1,7 +1,17 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangleIcon, CalendarIcon, CheckCircleIcon, CreditCardIcon, ExternalLinkIcon, ReceiptIcon, XCircleIcon } from 'lucide-react';
+import {
+    AlertTriangleIcon,
+    CheckCircleIcon,
+    CreditCardIcon,
+    ExternalLinkIcon,
+    InfoIcon,
+    ReceiptIcon,
+    RefreshCwIcon,
+    XCircleIcon,
+} from 'lucide-react';
 
 import { SettingsCard } from '@/components/settings';
+import { SubscriptionCountdown } from '@/components/subscription-countdown';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +26,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -29,10 +41,35 @@ interface Subscription {
     billing_interval: string | null;
     price: number | null;
     status: string;
+    status_label: string;
+    status_badge_variant: 'default' | 'secondary' | 'destructive' | 'outline';
     starts_at: string | null;
+    starts_at_timestamp: number | null;
     ends_at: string | null;
     ends_at_timestamp: number | null;
     cancelled_at: string | null;
+    // Countdown data
+    remaining_time: {
+        days: number;
+        hours: number;
+        minutes: number;
+        seconds: number;
+        total_seconds: number;
+        is_expired: boolean;
+    } | null;
+    days_until_expiry: number;
+    is_expiring_soon: boolean;
+    progress_percentage: number;
+    remaining_percentage: number;
+    total_duration_days: number;
+    // Auto-renewal
+    auto_renew: boolean;
+    can_purchase_new: boolean;
+    // Status checks
+    is_active: boolean;
+    is_cancelled: boolean;
+    is_cancelled_but_active: boolean;
+    has_access: boolean;
 }
 
 interface Payment {
@@ -40,8 +77,12 @@ interface Payment {
     amount: number;
     currency: string;
     status: string;
+    status_label: string;
+    type: string;
+    type_label: string;
     plan: string | null;
     paid_at: string | null;
+    invoice_number: string | null;
 }
 
 interface Props {
@@ -66,7 +107,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
         },
     ];
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (status: string, variant?: 'default' | 'secondary' | 'destructive' | 'outline', label?: string) => {
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
             active: 'default',
             cancelled: 'secondary',
@@ -88,8 +129,8 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
         };
 
         return (
-            <Badge variant={variants[status] || 'outline'}>
-                {labels[status] || status}
+            <Badge variant={variant || variants[status] || 'outline'}>
+                {label || labels[status] || status}
             </Badge>
         );
     };
@@ -102,6 +143,12 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
 
     const handleResumeSubscription = () => {
         router.post('/settings/billing/resume', {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleToggleAutoRenew = () => {
+        router.post('/settings/billing/auto-renew', {}, {
             preserveScroll: true,
         });
     };
@@ -120,8 +167,10 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
         }
     };
 
-    const isCancelled = subscription?.status === 'cancelled';
-    const canResume = isCancelled && subscription?.ends_at_timestamp && subscription.ends_at_timestamp > Date.now() / 1000;
+    const isCancelled = subscription?.is_cancelled;
+    const canResume = subscription?.is_cancelled_but_active;
+    const hasAccess = subscription?.has_access;
+    const canPurchaseNew = subscription?.can_purchase_new ?? true;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs} showBackground={false}>
@@ -144,7 +193,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                     description={t('billing.subscription_desc', 'Manage your subscription plan')}
                 >
                     <div className="space-y-4">
-                        {subscription ? (
+                        {subscription && hasAccess ? (
                             <Card>
                                 <CardHeader className="pb-3">
                                     <div className="flex items-center justify-between">
@@ -156,7 +205,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                                 </span>
                                             )}
                                         </CardTitle>
-                                        {getStatusBadge(subscription.status)}
+                                        {getStatusBadge(subscription.status, subscription.status_badge_variant, subscription.status_label)}
                                     </div>
                                     {subscription.price !== null && (
                                         <div className="text-2xl font-bold">
@@ -168,24 +217,18 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                     )}
                                 </CardHeader>
                                 <CardContent className="space-y-4">
+                                    {/* Countdown Timer */}
+                                    {subscription.starts_at_timestamp && subscription.ends_at_timestamp && (
+                                        <SubscriptionCountdown
+                                            startsAt={subscription.starts_at_timestamp}
+                                            endsAt={subscription.ends_at_timestamp}
+                                            startsAtFormatted={subscription.starts_at}
+                                            endsAtFormatted={subscription.ends_at}
+                                        />
+                                    )}
+
                                     {/* Subscription Dates */}
                                     <div className="grid gap-2 text-sm">
-                                        {subscription.starts_at && (
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <CalendarIcon className="h-4 w-4" />
-                                                <span>{t('billing.started', 'Started')}: {subscription.starts_at}</span>
-                                            </div>
-                                        )}
-                                        {subscription.ends_at && (
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <CalendarIcon className="h-4 w-4" />
-                                                <span>
-                                                    {isCancelled
-                                                        ? t('billing.access_until', 'Access until')
-                                                        : t('billing.renews_on', 'Renews on')}: {subscription.ends_at}
-                                                </span>
-                                            </div>
-                                        )}
                                         {subscription.cancelled_at && (
                                             <div className="flex items-center gap-2 text-amber-600">
                                                 <AlertTriangleIcon className="h-4 w-4" />
@@ -193,6 +236,39 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Auto-Renew Toggle */}
+                                    {subscription.is_active && !isCancelled && (
+                                        <div className="flex items-center justify-between rounded-lg border p-3">
+                                            <div className="flex items-center gap-2">
+                                                <RefreshCwIcon className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-sm font-medium">
+                                                        {t('billing.auto_renew', 'Auto-renewal')}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {subscription.auto_renew
+                                                            ? t('billing.auto_renew_enabled_desc', 'Your subscription will automatically renew')
+                                                            : t('billing.auto_renew_disabled_desc', 'Your subscription will expire at the end of period')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                checked={subscription.auto_renew}
+                                                onCheckedChange={handleToggleAutoRenew}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Cannot Purchase Warning */}
+                                    {!canPurchaseNew && (
+                                        <Alert>
+                                            <InfoIcon className="h-4 w-4" />
+                                            <AlertDescription>
+                                                {t('billing.cannot_purchase_new', 'You cannot purchase a new subscription while your current one is active. Wait until it expires or contact support.')}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
 
                                     {/* Action Buttons */}
                                     <div className="flex flex-wrap gap-2 pt-2">
@@ -206,15 +282,24 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                             </Button>
                                         )}
 
-                                        {/* Switch Plan (Monthly ↔ Yearly) */}
-                                        {subscription.status === 'active' && subscription.billing_interval === 'month' && stripePaymentLinks.professional_yearly && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleUpgrade(stripePaymentLinks.professional_yearly)}
-                                            >
-                                                {t('billing.switch_yearly', 'Switch to Yearly (Save 17%)')}
-                                            </Button>
+                                        {/* Switch Plan (Monthly ↔ Yearly) - Only if can purchase new */}
+                                        {subscription.is_active && !isCancelled && subscription.billing_interval === 'month' && stripePaymentLinks.professional_yearly && canPurchaseNew && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleUpgrade(stripePaymentLinks.professional_yearly)}
+                                                        >
+                                                            {t('billing.switch_yearly', 'Switch to Yearly (Save 17%)')}
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t('billing.switch_yearly_tooltip', 'Upgrade to yearly billing and save 17%')}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         )}
 
                                         {/* Resume or Cancel */}
@@ -226,7 +311,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                             >
                                                 {t('billing.resume', 'Resume Subscription')}
                                             </Button>
-                                        ) : subscription.status === 'active' ? (
+                                        ) : subscription.is_active ? (
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">

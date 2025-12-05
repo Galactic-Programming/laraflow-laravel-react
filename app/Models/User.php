@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SubscriptionStatus;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -85,9 +86,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Subscription::class)
             ->where(function ($query) {
-                $query->where('status', 'active')
+                // Active subscription OR cancelled but not yet expired
+                $query->where('status', SubscriptionStatus::Active->value)
                     ->orWhere(function ($q) {
-                        $q->where('status', 'cancelled')
+                        $q->where('status', SubscriptionStatus::Cancelled->value)
                             ->where('ends_at', '>', now());
                     });
             })

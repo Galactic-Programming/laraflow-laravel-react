@@ -12,12 +12,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed plans first (required for subscriptions)
-        // $this->call([
-        //     PlanSeeder::class,
-        // ]);
-
-        // Create test user
+        // Create test user first
         $testUser = User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
@@ -27,10 +22,18 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Seed projects with task lists and tasks for test user
-        // $this->call([
-        //     ProjectSeeder::class,
-        //     SubscriptionSeeder::class,
-        // ]);
+        // Seed in order of dependencies
+        $this->call([
+            // Plans must be seeded first (required for subscriptions)
+            PlanSeeder::class,
+
+            // Projects and related data
+            ProjectSeeder::class,
+            TaskListSeeder::class,
+            TaskSeeder::class,
+
+            // Subscriptions and payments
+            SubscriptionSeeder::class,
+        ]);
     }
 }

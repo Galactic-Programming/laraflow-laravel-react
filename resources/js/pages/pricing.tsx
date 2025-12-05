@@ -27,16 +27,27 @@ interface Plan {
 interface Subscription {
     id: number;
     status: string;
+    status_label: string;
     plan_slug: string | null;
     billing_interval: string | null;
+    starts_at: string | null;
+    starts_at_timestamp: number | null;
     ends_at: string | null;
     ends_at_timestamp: number | null;
     is_cancelled: boolean;
+    is_cancelled_but_active: boolean;
+    has_access: boolean;
+    can_purchase_new: boolean;
+    auto_renew: boolean;
+    days_until_expiry: number;
+    is_expiring_soon: boolean;
 }
 
 interface Props {
     plans: Plan[];
     currentPlan: string | null;
+    isSubscribed: boolean;
+    canPurchase: boolean;
     subscription: Subscription | null;
     stripePaymentLinks: {
         professional_monthly: string | null;
@@ -44,7 +55,7 @@ interface Props {
     };
 }
 
-export default function Pricing({ plans, currentPlan, subscription, stripePaymentLinks }: Props) {
+export default function Pricing({ plans, currentPlan, isSubscribed, canPurchase, subscription, stripePaymentLinks }: Props) {
     const { auth } = usePage<SharedData>().props;
     const { t } = useTranslations();
     const [isAnnual, setIsAnnual] = useState(false);
@@ -53,26 +64,26 @@ export default function Pricing({ plans, currentPlan, subscription, stripePaymen
     const monthlyPlan = plans.find((p) => p.slug === 'professional-monthly');
     const yearlyPlan = plans.find((p) => p.slug === 'professional-yearly');
 
-    // Check if user has an active subscription that hasn't expired
-    // This prevents duplicate purchases
-    const hasActiveSubscription = subscription !== null && subscription.ends_at_timestamp !== null;
+    // Use backend's canPurchase logic (calculated in PricingController)
+    // User cannot purchase if they have an active subscription that hasn't expired
     const subscriptionEndsAt = subscription?.ends_at;
+    const isCancelledButActive = subscription?.is_cancelled_but_active ?? false;
 
     // Determine if subscription button should be disabled
     const shouldDisableSubscribe = (): boolean => {
         if (!auth.user) return false; // Guest can click to go to login
-        if (!hasActiveSubscription) return false; // No active sub, can subscribe
+        if (!isSubscribed) return false; // Not subscribed, can subscribe
+        if (canPurchase) return false; // Backend says can purchase
 
-        // If user has active subscription, disable all subscribe buttons
-        // They need to wait until current period ends
+        // If user has active subscription and cannot purchase new, disable
         return true;
     };
 
     // Get the message to show when subscription is disabled
     const getSubscribeDisabledMessage = (): string | null => {
-        if (!hasActiveSubscription) return null;
+        if (!isSubscribed || canPurchase) return null;
 
-        if (subscription?.is_cancelled) {
+        if (isCancelledButActive) {
             return t('pricing.wait_until_expired', 'Your current subscription is active until {date}. You can subscribe to a new plan after that.').replace('{date}', subscriptionEndsAt || '');
         }
 
@@ -243,7 +254,7 @@ export default function Pricing({ plans, currentPlan, subscription, stripePaymen
                                 >
                                     {currentPlan?.startsWith('professional')
                                         ? t('pricing.current', 'Current')
-                                        : hasActiveSubscription
+                                        : isSubscribed && !canPurchase
                                             ? t('pricing.subscribed', 'Subscribed')
                                             : t('pricing.subscribe', 'Subscribe')}
                                 </Button>
@@ -254,7 +265,7 @@ export default function Pricing({ plans, currentPlan, subscription, stripePaymen
                                     </p>
                                 )}
 
-                                {hasActiveSubscription && auth.user && (
+                                {isSubscribed && !canPurchase && auth.user && (
                                     <p className="text-center text-sm text-amber-600 dark:text-amber-400">
                                         {getSubscribeDisabledMessage()}
                                     </p>

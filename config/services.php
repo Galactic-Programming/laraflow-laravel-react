@@ -55,6 +55,10 @@ return [
             'professional_monthly' => env('STRIPE_PAYMENT_LINK_PROFESSIONAL_MONTHLY'),
             'professional_yearly' => env('STRIPE_PAYMENT_LINK_PROFESSIONAL_YEARLY'),
         ],
+        'prices' => [
+            'professional_monthly' => env('STRIPE_PRICE_PROFESSIONAL_MONTHLY'),
+            'professional_yearly' => env('STRIPE_PRICE_PROFESSIONAL_YEARLY'),
+        ],
         'customer_portal_url' => env('STRIPE_CUSTOMER_PORTAL_URL'),
     ],
 ];

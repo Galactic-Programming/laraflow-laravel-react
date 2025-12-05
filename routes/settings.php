@@ -49,4 +49,6 @@ Route::middleware('auth')->group(function () {
         ->name('billing.cancel');
     Route::post('settings/billing/resume', [PricingController::class, 'resumeSubscription'])
         ->name('billing.resume');
+    Route::post('settings/billing/auto-renew', [PricingController::class, 'toggleAutoRenew'])
+        ->name('billing.toggle-auto-renew');
 });

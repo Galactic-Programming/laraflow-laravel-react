@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BillingInterval;
+use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
+use App\Enums\SubscriptionStatus;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -9,6 +13,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Stripe\Exception\SignatureVerificationException;
+use Stripe\Webhook;
 
 class StripeWebhookController extends Controller
 {
@@ -17,19 +23,43 @@ class StripeWebhookController extends Controller
      */
     public function handle(Request $request): Response
     {
-        $payload = $request->all();
-        $event = $payload['type'] ?? null;
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+        $secret = config('services.stripe.webhook_secret');
 
-        Log::info('Stripe webhook received', ['event' => $event]);
+        // Verify webhook signature if secret is configured
+        if ($secret) {
+            try {
+                $event = Webhook::constructEvent($payload, $sigHeader, $secret);
+                $eventType = $event->type;
+                $eventData = $event->data->object->toArray();
+            } catch (SignatureVerificationException $e) {
+                Log::warning('Invalid Stripe webhook signature', ['error' => $e->getMessage()]);
 
-        match ($event) {
-            'checkout.session.completed' => $this->handleCheckoutCompleted($payload['data']['object']),
-            'customer.subscription.created' => $this->handleSubscriptionCreated($payload['data']['object']),
-            'customer.subscription.updated' => $this->handleSubscriptionUpdated($payload['data']['object']),
-            'customer.subscription.deleted' => $this->handleSubscriptionDeleted($payload['data']['object']),
-            'invoice.paid' => $this->handleInvoicePaid($payload['data']['object']),
-            'invoice.payment_failed' => $this->handleInvoicePaymentFailed($payload['data']['object']),
-            default => Log::info('Unhandled Stripe event', ['event' => $event]),
+                return response('Invalid signature', 400);
+            } catch (\Exception $e) {
+                Log::error('Stripe webhook error', ['error' => $e->getMessage()]);
+
+                return response('Webhook error', 400);
+            }
+        } else {
+            // Fallback for local development without signature verification
+            $data = json_decode($payload, true);
+            $eventType = $data['type'] ?? null;
+            $eventData = $data['data']['object'] ?? [];
+            Log::warning('Stripe webhook received without signature verification (development mode)');
+        }
+
+        Log::info('Stripe webhook received', ['event' => $eventType]);
+
+        match ($eventType) {
+            'checkout.session.completed' => $this->handleCheckoutCompleted($eventData),
+            'customer.subscription.created' => $this->handleSubscriptionCreated($eventData),
+            'customer.subscription.updated' => $this->handleSubscriptionUpdated($eventData),
+            'customer.subscription.deleted' => $this->handleSubscriptionDeleted($eventData),
+            'invoice.paid' => $this->handleInvoicePaid($eventData),
+            'invoice.payment_failed' => $this->handleInvoicePaymentFailed($eventData),
+            default => Log::info('Unhandled Stripe event', ['event' => $eventType]),
         };
 
         return response('Webhook handled', 200);
@@ -92,12 +122,12 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        // Determine the plan based on amount paid
+        // Determine the plan (try Price ID first, then amount-based fallback)
         $amountTotal = ($session['amount_total'] ?? 0) / 100; // Convert from cents
-        $plan = $this->determinePlanFromAmount($amountTotal);
+        $plan = $this->determinePlan($session);
 
         if (! $plan) {
-            Log::error('Could not determine plan from amount', [
+            Log::error('Could not determine plan from session', [
                 'user_id' => $user->id,
                 'amount' => $amountTotal,
             ]);
@@ -111,16 +141,16 @@ class StripeWebhookController extends Controller
 
         // Cancel any existing subscription for this user (shouldn't have active ones at this point)
         Subscription::where('user_id', $user->id)
-            ->whereIn('status', ['active', 'cancelled'])
+            ->whereIn('status', [SubscriptionStatus::Active->value, SubscriptionStatus::Cancelled->value])
             ->update([
-                'status' => 'expired',
+                'status' => SubscriptionStatus::Expired,
             ]);
 
         // Create new subscription
         $subscription = Subscription::create([
             'user_id' => $user->id,
             'plan_id' => $plan->id,
-            'status' => 'active',
+            'status' => SubscriptionStatus::Active,
             'stripe_subscription_id' => $stripeSubscriptionId,
             'stripe_customer_id' => $session['customer'] ?? null,
             'starts_at' => $startsAt,
@@ -135,9 +165,13 @@ class StripeWebhookController extends Controller
                 'plan_id' => $plan->id,
                 'amount' => $amountTotal,
                 'currency' => strtoupper($session['currency'] ?? 'USD'),
-                'status' => 'completed',
+                'status' => PaymentStatus::Completed,
+                'type' => PaymentType::Initial,
                 'payment_method' => 'stripe',
                 'stripe_payment_intent_id' => $session['payment_intent'] ?? null,
+                'invoice_number' => Payment::generateInvoiceNumber(),
+                'billing_period_start' => $startsAt,
+                'billing_period_end' => $endsAt,
                 'paid_at' => now(),
             ]);
 
@@ -159,7 +193,36 @@ class StripeWebhookController extends Controller
     }
 
     /**
-     * Determine the plan based on the payment amount.
+     * Determine the plan from checkout session.
+     * First tries to match by Stripe Price ID, then falls back to amount-based detection.
+     */
+    private function determinePlan(array $session): ?Plan
+    {
+        // Try to get price ID from line items
+        $lineItems = $session['line_items']['data'] ?? [];
+
+        foreach ($lineItems as $item) {
+            $priceId = $item['price']['id'] ?? null;
+            if ($priceId) {
+                $plan = Plan::where('stripe_price_id', $priceId)
+                    ->where('is_active', true)
+                    ->first();
+                if ($plan) {
+                    Log::info('Plan determined by Stripe Price ID', ['price_id' => $priceId, 'plan' => $plan->slug]);
+
+                    return $plan;
+                }
+            }
+        }
+
+        // Fallback to amount-based detection
+        $amountTotal = ($session['amount_total'] ?? 0) / 100;
+
+        return $this->determinePlanFromAmount($amountTotal);
+    }
+
+    /**
+     * Determine the plan based on the payment amount (fallback method).
      */
     private function determinePlanFromAmount(float $amount): ?Plan
     {
@@ -190,10 +253,8 @@ class StripeWebhookController extends Controller
         }
 
         return match ($plan->billing_interval) {
-            'year' => $startsAt->copy()->addYear(),
-            'month' => $startsAt->copy()->addMonth(),
-            'week' => $startsAt->copy()->addWeek(),
-            'day' => $startsAt->copy()->addDay(),
+            BillingInterval::Year => $startsAt->copy()->addYear(),
+            BillingInterval::Month => $startsAt->copy()->addMonth(),
             default => $startsAt->copy()->addMonth(),
         };
     }
@@ -247,11 +308,11 @@ class StripeWebhookController extends Controller
 
         // Map Stripe status to local status
         $status = match ($stripeSubscription['status']) {
-            'active', 'trialing' => 'active',
-            'canceled' => 'cancelled',
-            'past_due' => 'past_due',
-            'unpaid' => 'expired',
-            default => $stripeSubscription['status'],
+            'active', 'trialing' => SubscriptionStatus::Active,
+            'canceled' => SubscriptionStatus::Cancelled,
+            'past_due' => SubscriptionStatus::PastDue,
+            'unpaid' => SubscriptionStatus::Expired,
+            default => SubscriptionStatus::tryFrom($stripeSubscription['status']) ?? SubscriptionStatus::Expired,
         };
 
         $subscription->update([
@@ -282,7 +343,7 @@ class StripeWebhookController extends Controller
         }
 
         $subscription->update([
-            'status' => 'expired',
+            'status' => SubscriptionStatus::Expired,
             'cancelled_at' => now(),
         ]);
 
@@ -311,16 +372,31 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Check if this is a renewal payment (payment already exists for this subscription)
+        $isRenewal = Payment::where('subscription_id', $subscription->id)->exists();
+
+        // Calculate billing period from invoice timestamps
+        $billingPeriodStart = isset($invoice['period_start'])
+            ? now()->setTimestamp($invoice['period_start'])
+            : $subscription->starts_at;
+        $billingPeriodEnd = isset($invoice['period_end'])
+            ? now()->setTimestamp($invoice['period_end'])
+            : $subscription->ends_at;
+
         Payment::create([
             'user_id' => $subscription->user_id,
             'subscription_id' => $subscription->id,
             'plan_id' => $subscription->plan_id,
             'amount' => ($invoice['amount_paid'] ?? 0) / 100, // Convert from cents
             'currency' => strtoupper($invoice['currency'] ?? 'USD'),
-            'status' => 'completed',
+            'status' => PaymentStatus::Completed,
+            'type' => $isRenewal ? PaymentType::Renewal : PaymentType::Initial,
             'payment_method' => 'stripe',
             'stripe_payment_intent_id' => $invoice['payment_intent'] ?? null,
             'stripe_invoice_id' => $invoice['id'],
+            'invoice_number' => Payment::generateInvoiceNumber(),
+            'billing_period_start' => $billingPeriodStart,
+            'billing_period_end' => $billingPeriodEnd,
             'paid_at' => now(),
         ]);
 
@@ -347,7 +423,18 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        $subscription->update(['status' => 'past_due']);
+        $subscription->update(['status' => SubscriptionStatus::PastDue]);
+
+        // Activate grace period (3 days to update payment method)
+        $subscription->setGracePeriod(3);
+
+        // Calculate billing period from invoice timestamps
+        $billingPeriodStart = isset($invoice['period_start'])
+            ? now()->setTimestamp($invoice['period_start'])
+            : $subscription->starts_at;
+        $billingPeriodEnd = isset($invoice['period_end'])
+            ? now()->setTimestamp($invoice['period_end'])
+            : $subscription->ends_at;
 
         Payment::create([
             'user_id' => $subscription->user_id,
@@ -355,11 +442,19 @@ class StripeWebhookController extends Controller
             'plan_id' => $subscription->plan_id,
             'amount' => ($invoice['amount_due'] ?? 0) / 100,
             'currency' => strtoupper($invoice['currency'] ?? 'USD'),
-            'status' => 'failed',
+            'status' => PaymentStatus::Failed,
+            'type' => PaymentType::Renewal,
             'payment_method' => 'stripe',
             'stripe_invoice_id' => $invoice['id'],
+            'invoice_number' => Payment::generateInvoiceNumber(),
+            'billing_period_start' => $billingPeriodStart,
+            'billing_period_end' => $billingPeriodEnd,
+            'failure_message' => $invoice['last_finalization_error']['message'] ?? 'Payment failed',
         ]);
 
-        Log::warning('Payment failed', ['subscription_id' => $subscription->id]);
+        Log::warning('Payment failed, grace period activated', [
+            'subscription_id' => $subscription->id,
+            'grace_period_ends_at' => $subscription->grace_period_ends_at,
+        ]);
     }
 }

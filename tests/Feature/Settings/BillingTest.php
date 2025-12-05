@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BillingInterval;
+use App\Enums\SubscriptionStatus;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
@@ -11,7 +13,7 @@ beforeEach(function () {
         'slug' => 'starter',
         'description' => 'Free plan',
         'price' => 0,
-        'billing_interval' => 'month',
+        'billing_interval' => BillingInterval::Month,
         'features' => ['Basic features'],
         'is_active' => true,
         'sort_order' => 1,
@@ -22,7 +24,7 @@ beforeEach(function () {
         'slug' => 'professional-monthly',
         'description' => 'Monthly plan',
         'price' => 9.99,
-        'billing_interval' => 'month',
+        'billing_interval' => BillingInterval::Month,
         'features' => ['All features'],
         'is_active' => true,
         'sort_order' => 2,
@@ -33,7 +35,7 @@ beforeEach(function () {
         'slug' => 'professional-yearly',
         'description' => 'Yearly plan',
         'price' => 99.00,
-        'billing_interval' => 'year',
+        'billing_interval' => BillingInterval::Year,
         'features' => ['All features'],
         'is_active' => true,
         'sort_order' => 3,
@@ -45,7 +47,7 @@ it('shows pricing page to guests', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(
-        fn($page) => $page
+        fn ($page) => $page
             ->component('pricing')
             ->has('plans', 3)
             ->where('currentPlan', null)
@@ -60,7 +62,7 @@ it('shows pricing page with current plan for authenticated users', function () {
     Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'active',
+        'status' => SubscriptionStatus::Active,
         'starts_at' => now(),
         'ends_at' => now()->addMonth(),
     ]);
@@ -69,7 +71,7 @@ it('shows pricing page with current plan for authenticated users', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(
-        fn($page) => $page
+        fn ($page) => $page
             ->component('pricing')
             ->where('currentPlan', 'professional-monthly')
             ->where('isSubscribed', true)
@@ -83,7 +85,7 @@ it('shows billing page for authenticated users', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(
-        fn($page) => $page
+        fn ($page) => $page
             ->component('settings/billing')
             ->where('subscription', null)
             ->has('payments', 0)
@@ -97,7 +99,7 @@ it('shows subscription details on billing page', function () {
     Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'active',
+        'status' => SubscriptionStatus::Active,
         'starts_at' => now(),
         'ends_at' => now()->addMonth(),
     ]);
@@ -106,11 +108,11 @@ it('shows subscription details on billing page', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(
-        fn($page) => $page
+        fn ($page) => $page
             ->component('settings/billing')
             ->has('subscription')
             ->where('subscription.plan', 'Professional')
-            ->where('subscription.status', 'active')
+            ->where('subscription.status', SubscriptionStatus::Active->value)
     );
 });
 
@@ -121,7 +123,7 @@ it('can cancel subscription', function () {
     $subscription = Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'active',
+        'status' => SubscriptionStatus::Active,
         'starts_at' => now(),
         'ends_at' => now()->addMonth(),
     ]);
@@ -131,7 +133,7 @@ it('can cancel subscription', function () {
     $response->assertRedirect();
 
     $subscription->refresh();
-    expect($subscription->status)->toBe('cancelled');
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
     expect($subscription->cancelled_at)->not->toBeNull();
 });
 
@@ -142,7 +144,7 @@ it('can resume cancelled subscription', function () {
     $subscription = Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'cancelled',
+        'status' => SubscriptionStatus::Cancelled,
         'starts_at' => now(),
         'ends_at' => now()->addMonth(),
         'cancelled_at' => now(),
@@ -153,7 +155,7 @@ it('can resume cancelled subscription', function () {
     $response->assertRedirect();
 
     $subscription->refresh();
-    expect($subscription->status)->toBe('active');
+    expect($subscription->status)->toBe(SubscriptionStatus::Active);
     expect($subscription->cancelled_at)->toBeNull();
 });
 
@@ -164,7 +166,7 @@ it('cannot resume expired subscription', function () {
     Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'cancelled',
+        'status' => SubscriptionStatus::Cancelled,
         'starts_at' => now()->subMonth(),
         'ends_at' => now()->subDay(), // Already expired
         'cancelled_at' => now()->subWeek(),
@@ -183,7 +185,7 @@ it('sets correct ends_at for monthly subscription', function () {
     $expectedEndsAt = $startsAt->copy()->addMonth();
     $daysDiff = abs($startsAt->diffInDays($expectedEndsAt));
 
-    expect($plan->billing_interval)->toBe('month');
+    expect($plan->billing_interval)->toBe(BillingInterval::Month);
     expect($daysDiff)->toBeGreaterThanOrEqual(28);
     expect($daysDiff)->toBeLessThanOrEqual(31);
 });
@@ -195,7 +197,7 @@ it('sets correct ends_at for yearly subscription', function () {
     $expectedEndsAt = $startsAt->copy()->addYear();
     $daysDiff = abs($startsAt->diffInDays($expectedEndsAt));
 
-    expect($plan->billing_interval)->toBe('year');
+    expect($plan->billing_interval)->toBe(BillingInterval::Year);
     expect($daysDiff)->toBeGreaterThanOrEqual(365);
     expect($daysDiff)->toBeLessThanOrEqual(366);
 });
@@ -207,7 +209,7 @@ it('cancelled subscription still has access until ends_at', function () {
     $subscription = Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'cancelled',
+        'status' => SubscriptionStatus::Cancelled,
         'starts_at' => now()->subWeek(),
         'ends_at' => now()->addWeeks(3), // Still has 3 weeks left
         'cancelled_at' => now(),
@@ -230,7 +232,7 @@ it('cancelled subscription loses access after ends_at', function () {
     $subscription = Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'cancelled',
+        'status' => SubscriptionStatus::Cancelled,
         'starts_at' => now()->subMonth(),
         'ends_at' => now()->subDay(), // Already expired
         'cancelled_at' => now()->subWeek(),
@@ -252,7 +254,7 @@ it('shows cancelled subscription on billing page with access info', function () 
     Subscription::create([
         'user_id' => $user->id,
         'plan_id' => $plan->id,
-        'status' => 'cancelled',
+        'status' => SubscriptionStatus::Cancelled,
         'starts_at' => now()->subWeek(),
         'ends_at' => now()->addWeeks(3),
         'cancelled_at' => now(),
@@ -262,10 +264,10 @@ it('shows cancelled subscription on billing page with access info', function () 
 
     $response->assertStatus(200);
     $response->assertInertia(
-        fn($page) => $page
+        fn ($page) => $page
             ->component('settings/billing')
             ->has('subscription')
-            ->where('subscription.status', 'cancelled')
+            ->where('subscription.status', SubscriptionStatus::Cancelled->value)
             ->where('subscription.plan', 'Professional')
     );
 });
