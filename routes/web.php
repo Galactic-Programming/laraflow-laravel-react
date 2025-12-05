@@ -5,6 +5,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\TaskListController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -48,6 +49,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::patch('projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+    // Task Lists (Kanban columns)
+    Route::post('projects/{project}/task-lists', [TaskListController::class, 'store'])->name('task-lists.store');
+    Route::put('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'update'])->name('task-lists.update');
+    Route::delete('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'destroy'])->name('task-lists.destroy');
 });
 
 // Unified Social OAuth routes - works for both login (guest) and linking (auth)
@@ -59,4 +65,4 @@ Route::get('auth/{provider}/callback', [SocialController::class, 'callback'])
     ->whereIn('provider', ['google', 'github'])
     ->name('social.callback');
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

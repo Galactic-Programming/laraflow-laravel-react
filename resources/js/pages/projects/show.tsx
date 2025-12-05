@@ -1,5 +1,32 @@
+import {
+    destroy as destroyTaskList,
+    store as storeTaskList,
+    update as updateTaskList,
+} from '@/actions/App/Http/Controllers/TaskListController';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+    Drawer,
+    DrawerContent,
+    DrawerDescription,
+    DrawerTitle,
+} from '@/components/ui/drawer';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,7 +44,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import {
+    closestCenter,
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpen,
@@ -37,17 +81,23 @@ import {
     Lightbulb,
     MessageSquare,
     MoreHorizontal,
+    MoreVertical,
     Package,
+    Palette,
+    Pencil,
     PenTool,
     Plus,
     Rocket,
+    Search,
     Server,
     Settings,
     ShoppingCart,
     Smartphone,
     Table,
     Target,
+    Trash2,
     Users,
+    X,
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -57,11 +107,11 @@ interface ColumnConfig {
     id: string;
     label: string;
     visible: boolean;
-    required?: boolean; // Task column is always required
+    required?: boolean; // Task List column is always required
 }
 
 const defaultColumns: ColumnConfig[] = [
-    { id: 'task', label: 'Task', visible: true, required: true },
+    { id: 'task', label: 'Task List', visible: true, required: true },
     { id: 'status', label: 'Status', visible: true },
     { id: 'priority', label: 'Priority', visible: true },
     { id: 'dueDate', label: 'Due date', visible: true },
@@ -250,16 +300,151 @@ const getPriorityColor = (priority: string) => {
     }
 };
 
+// Sortable Task List Row Component
+interface SortableTaskListRowProps {
+    list: TaskList;
+    isExpanded: boolean;
+    onToggle: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+}
+
+function SortableTaskListRow({
+    list,
+    isExpanded,
+    onToggle,
+    onEdit,
+    onDelete,
+}: SortableTaskListRowProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: list.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1 : 0,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className={`group/row cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-lg' : ''}`}
+        >
+            <div className="flex w-full items-center border-b bg-muted/30 px-4 py-2.5 transition-all duration-200 hover:bg-muted/50">
+                {/* Expand/Collapse Button - only the icon area */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggle();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="mr-2 flex items-center"
+                >
+                    <ChevronDown
+                        className={`size-4 text-muted-foreground transition-transform duration-200 ${
+                            isExpanded ? 'rotate-0' : '-rotate-90'
+                        }`}
+                    />
+                </button>
+                {/* Task list name and count - draggable area */}
+                <span className="text-sm font-medium">{list.name}</span>
+                <span className="ml-2 flex size-5 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
+                    {list.tasks.length}
+                </span>
+                {/* Spacer */}
+                <div className="flex-1" />
+                {/* Dropdown Menu - appears on hover */}
+                <div
+                    className="opacity-0 transition-opacity group-hover/row:opacity-100"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                                <MoreVertical className="size-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={onEdit}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit task list
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                onClick={onDelete}
+                            >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete task list
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ProjectShow({ project }: Props) {
-    const [viewMode, setViewMode] = useState<ViewMode>('table');
-    const [previousView, setPreviousView] = useState<ViewMode>('table');
+    // Get taskLists first before using in state
+    const taskLists = project.task_lists ?? mockTaskLists;
+
+    // Get initial view from URL query parameter
+    const { url } = usePage();
+    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const initialView = (urlParams.get('view') as ViewMode) || 'table';
+
+    const [viewMode, setViewMode] = useState<ViewMode>(
+        initialView === 'kanban' ? 'kanban' : 'table',
+    );
+    const [previousView, setPreviousView] = useState<ViewMode>(
+        initialView === 'kanban' ? 'kanban' : 'table',
+    );
     const [isViewTransitioning, setIsViewTransitioning] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [expandedLists, setExpandedLists] = useState<number[]>(
         mockTaskLists.map((l) => l.id),
     );
-    const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+
+    // Load columns config from localStorage
+    const getInitialColumns = (): ColumnConfig[] => {
+        if (typeof window === 'undefined') return defaultColumns;
+        const saved = localStorage.getItem(`project-${project.id}-columns`);
+        if (saved) {
+            try {
+                const savedColumns = JSON.parse(saved) as ColumnConfig[];
+                // Merge with default columns to handle new columns added later
+                return defaultColumns.map((defaultCol) => {
+                    const savedCol = savedColumns.find(
+                        (s) => s.id === defaultCol.id,
+                    );
+                    return savedCol
+                        ? { ...defaultCol, visible: savedCol.visible }
+                        : defaultCol;
+                });
+            } catch {
+                return defaultColumns;
+            }
+        }
+        return defaultColumns;
+    };
+
+    const [columns, setColumns] = useState<ColumnConfig[]>(getInitialColumns);
     const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+    const [isCreateColumnOpen, setIsCreateColumnOpen] = useState(false);
     const [taskForm, setTaskForm] = useState({
         title: '',
         description: '',
@@ -272,7 +457,150 @@ export default function ProjectShow({ project }: Props) {
         task_list_id: mockTaskLists[0]?.id || 1,
         due_date: '',
     });
+    const [columnForm, setColumnForm] = useState({
+        name: '',
+        description: '',
+        color: '#3b82f6',
+    });
+    const [isCreatingColumn, setIsCreatingColumn] = useState(false);
+    const [isEditColumnOpen, setIsEditColumnOpen] = useState(false);
+    const [editingColumnId, setEditingColumnId] = useState<number | null>(null);
+    const [deleteColumnId, setDeleteColumnId] = useState<number | null>(null);
+    const [selectedColumnId, setSelectedColumnId] = useState<number | null>(
+        null,
+    );
+    const [orderedTaskLists, setOrderedTaskLists] =
+        useState<TaskList[]>(taskLists);
     const ProjectIcon = getProjectIcon(project.icon);
+
+    // DnD sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+    );
+
+    // Handle drag end
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = orderedTaskLists.findIndex(
+                (item) => item.id === active.id,
+            );
+            const newIndex = orderedTaskLists.findIndex(
+                (item) => item.id === over.id,
+            );
+
+            // Immediately update UI (optimistic update)
+            const newOrder = arrayMove(orderedTaskLists, oldIndex, newIndex);
+            setOrderedTaskLists(newOrder);
+
+            // Send single batch update to backend in background
+            // Only update the moved item's position
+            const movedItem = newOrder[newIndex];
+            router.put(
+                updateTaskList.url({
+                    project: project.id,
+                    taskList: movedItem.id,
+                }),
+                { position: newIndex },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    only: [], // Don't reload any props
+                },
+            );
+        }
+    };
+
+    // Sync orderedTaskLists with taskLists when it changes
+    useEffect(() => {
+        setOrderedTaskLists(taskLists);
+    }, [taskLists]);
+
+    // Smart search helper - removes Vietnamese diacritics and normalizes text
+    const normalizeText = (text: string): string => {
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    };
+
+    // Fuzzy match - checks if search terms appear in text (in order, but not necessarily consecutive)
+    const fuzzyMatch = (text: string, search: string): boolean => {
+        const normalizedText = normalizeText(text);
+        const normalizedSearch = normalizeText(search);
+
+        // First try exact match
+        if (normalizedText.includes(normalizedSearch)) {
+            return true;
+        }
+
+        // Then try fuzzy match (characters in order)
+        let searchIndex = 0;
+        for (
+            let i = 0;
+            i < normalizedText.length && searchIndex < normalizedSearch.length;
+            i++
+        ) {
+            if (normalizedText[i] === normalizedSearch[searchIndex]) {
+                searchIndex++;
+            }
+        }
+        return searchIndex === normalizedSearch.length;
+    };
+
+    // Smart search - searches multiple fields
+    const matchesSearch = (task: Task, query: string): boolean => {
+        if (!query) return true;
+
+        const searchTerms = query.trim().split(/\s+/);
+
+        return searchTerms.every((term) => {
+            // Search in title
+            if (fuzzyMatch(task.title, term)) return true;
+
+            // Search in status (e.g., "progress" matches "in_progress")
+            if (fuzzyMatch(task.status.replace('_', ' '), term)) return true;
+
+            // Search in priority
+            if (fuzzyMatch(task.priority, term)) return true;
+
+            return false;
+        });
+    };
+
+    // Filter task lists based on search query (searches both task list names and task titles)
+    const filteredTaskLists = orderedTaskLists
+        .map((list) => {
+            const listNameMatches = searchQuery
+                ? fuzzyMatch(list.name, searchQuery)
+                : false;
+
+            return {
+                ...list,
+                // If list name matches, show all tasks; otherwise filter tasks
+                tasks: listNameMatches
+                    ? list.tasks
+                    : list.tasks.filter((task) =>
+                          matchesSearch(task, searchQuery),
+                      ),
+                _listNameMatches: listNameMatches,
+            };
+        })
+        .filter(
+            (list) =>
+                // Show list if: no search query, list name matches, or has matching tasks
+                !searchQuery || list._listNameMatches || list.tasks.length > 0,
+        );
 
     const visibleColumns = columns.filter((col) => col.visible);
     const gridCols = `2fr ${visibleColumns
@@ -281,13 +609,19 @@ export default function ProjectShow({ project }: Props) {
         .join(' ')}`;
 
     const toggleColumn = (columnId: string) => {
-        setColumns((prev) =>
-            prev.map((col) =>
+        setColumns((prev) => {
+            const newColumns = prev.map((col) =>
                 col.id === columnId && !col.required
                     ? { ...col, visible: !col.visible }
                     : col,
-            ),
-        );
+            );
+            // Save to localStorage
+            localStorage.setItem(
+                `project-${project.id}-columns`,
+                JSON.stringify(newColumns),
+            );
+            return newColumns;
+        });
     };
 
     useEffect(() => {
@@ -350,8 +684,6 @@ export default function ProjectShow({ project }: Props) {
         );
     };
 
-    const taskLists = project.task_lists ?? mockTaskLists;
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={project.name} />
@@ -389,7 +721,7 @@ export default function ProjectShow({ project }: Props) {
                             </div>
                         </div>
 
-                        {/* View Toggle */}
+                        {/* Search and View Toggle */}
                         <div
                             className={`flex items-center gap-2 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                             style={{
@@ -397,6 +729,29 @@ export default function ProjectShow({ project }: Props) {
                                 transitionDelay: '300ms',
                             }}
                         >
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) =>
+                                        setSearchQuery(e.target.value)
+                                    }
+                                    className="h-9 w-52 pr-8 pl-8 text-sm"
+                                    title="Smart search: supports Vietnamese, fuzzy match, search by title/status/priority"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="size-4" />
+                                    </button>
+                                )}
+                            </div>
+
                             <ToggleGroup
                                 type="single"
                                 value={viewMode}
@@ -406,6 +761,19 @@ export default function ProjectShow({ project }: Props) {
                                         setIsViewTransitioning(true);
                                         setTimeout(() => {
                                             setViewMode(value as ViewMode);
+                                            // Update URL with new view mode
+                                            const newUrl = new URL(
+                                                window.location.href,
+                                            );
+                                            newUrl.searchParams.set(
+                                                'view',
+                                                value,
+                                            );
+                                            window.history.replaceState(
+                                                {},
+                                                '',
+                                                newUrl.toString(),
+                                            );
                                             setTimeout(() => {
                                                 setIsViewTransitioning(false);
                                             }, 50);
@@ -501,11 +869,7 @@ export default function ProjectShow({ project }: Props) {
                                         {col.label}
                                         {col.id === 'task' && (
                                             <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs">
-                                                {taskLists.reduce(
-                                                    (acc, list) =>
-                                                        acc + list.tasks.length,
-                                                    0,
-                                                )}
+                                                {taskLists.length}
                                             </span>
                                         )}
                                     </div>
@@ -552,312 +916,347 @@ export default function ProjectShow({ project }: Props) {
                                 </div>
                             </div>
 
-                            {/* Quick Add Task Row */}
+                            {/* Quick Add Task List Row */}
                             <button
-                                onClick={() => setIsCreateTaskOpen(true)}
+                                onClick={() => setIsCreateColumnOpen(true)}
                                 className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:text-foreground"
                             >
                                 <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                <span>Create task</span>
+                                <span>Create task list</span>
                             </button>
 
                             {/* Task Lists */}
-                            <div>
-                                {taskLists.map((list, listIndex) => (
-                                    <div
-                                        key={list.id}
-                                        style={{
-                                            animation: mounted
-                                                ? `fadeSlideIn 400ms ease-out ${listIndex * 100 + 200}ms both`
-                                                : 'none',
-                                        }}
-                                    >
-                                        {/* List Header */}
-                                        <button
-                                            onClick={() => toggleList(list.id)}
-                                            className="flex w-full items-center gap-2 border-b bg-muted/30 px-4 py-2.5 text-left transition-all duration-200 hover:bg-muted/50"
-                                        >
-                                            <ChevronDown
-                                                className={`size-4 text-muted-foreground transition-transform duration-200 ${
-                                                    expandedLists.includes(
-                                                        list.id,
-                                                    )
-                                                        ? 'rotate-0'
-                                                        : '-rotate-90'
-                                                }`}
-                                            />
-                                            <span className="text-sm font-medium">
-                                                {list.name}
-                                            </span>
-                                            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
-                                                {list.tasks.length}
-                                            </span>
-                                        </button>
-
-                                        {/* Tasks */}
-                                        {expandedLists.includes(list.id) && (
-                                            <div className="animate-in duration-200 fade-in slide-in-from-top-2">
-                                                {list.tasks.map(
-                                                    (task, taskIndex) => (
-                                                        <div
-                                                            key={task.id}
-                                                            className="group grid border-b transition-all duration-150 hover:bg-muted/30"
-                                                            style={{
-                                                                gridTemplateColumns: `${gridCols} 40px`,
-                                                                animation: `fadeSlideIn 300ms ease-out ${taskIndex * 50}ms both`,
-                                                            }}
-                                                        >
-                                                            {/* Task Title - Always visible */}
-                                                            <div className="flex items-center gap-3 px-4 py-3">
-                                                                <span
-                                                                    className={`text-sm ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
-                                                                >
-                                                                    {task.title}
-                                                                </span>
-                                                                {task.subtasks_total &&
-                                                                    task.subtasks_total >
-                                                                        0 && (
-                                                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                            <Check className="size-3" />
-                                                                            {
-                                                                                task.subtasks_completed
-                                                                            }
-                                                                            /
-                                                                            {
-                                                                                task.subtasks_total
-                                                                            }
-                                                                        </span>
-                                                                    )}
-                                                            </div>
-
-                                                            {/* Status */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'status',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div
-                                                                            className="size-3 rounded"
-                                                                            style={{
-                                                                                backgroundColor:
-                                                                                    getStatusColor(
-                                                                                        task.status,
-                                                                                    ),
-                                                                            }}
-                                                                        />
-                                                                        <span className="text-sm">
-                                                                            {getStatusLabel(
-                                                                                task.status,
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Priority */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'priority',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    {task.priority ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div
-                                                                                className="size-3 rounded"
-                                                                                style={{
-                                                                                    backgroundColor:
-                                                                                        getPriorityColor(
-                                                                                            task.priority,
-                                                                                        ),
-                                                                                }}
-                                                                            />
-                                                                            <span className="text-sm capitalize">
-                                                                                {
-                                                                                    task.priority
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            –
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Due Date */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'dueDate',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {task.due_date
-                                                                        ? new Date(
-                                                                              task.due_date,
-                                                                          ).toLocaleDateString(
-                                                                              'en-US',
-                                                                              {
-                                                                                  month: 'short',
-                                                                                  day: 'numeric',
-                                                                              },
-                                                                          )
-                                                                        : '–'}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Assignee */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'assignee',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    {task.assigned_to ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Avatar className="size-6">
-                                                                                <AvatarImage src="" />
-                                                                                <AvatarFallback className="text-xs">
-                                                                                    Me
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                            <span className="text-sm">
-                                                                                Me
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            –
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Created At */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'createdAt',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {new Date().toLocaleDateString(
-                                                                        'en-US',
-                                                                        {
-                                                                            month: 'short',
-                                                                            day: 'numeric',
-                                                                        },
-                                                                    )}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Completed At */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'completedAt',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                    {task.completed_at
-                                                                        ? new Date(
-                                                                              task.completed_at,
-                                                                          ).toLocaleDateString(
-                                                                              'en-US',
-                                                                              {
-                                                                                  month: 'short',
-                                                                                  day: 'numeric',
-                                                                              },
-                                                                          )
-                                                                        : '–'}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Creator */}
-                                                            {columns.find(
-                                                                (c) =>
-                                                                    c.id ===
-                                                                    'creator',
-                                                            )?.visible && (
-                                                                <div className="flex items-center px-3 py-3">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Avatar className="size-6">
-                                                                            <AvatarImage src="" />
-                                                                            <AvatarFallback className="text-xs">
-                                                                                Me
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <span className="text-sm">
-                                                                            Me
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Empty cell for settings column alignment */}
-                                                            <div />
-                                                        </div>
-                                                    ),
-                                                )}
-
-                                                {/* Add Task Button */}
-                                                <button
-                                                    onClick={() => {
-                                                        setTaskForm((prev) => ({
-                                                            ...prev,
-                                                            task_list_id:
-                                                                list.id,
-                                                        }));
-                                                        setIsCreateTaskOpen(
-                                                            true,
-                                                        );
-                                                    }}
-                                                    className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-5 hover:text-foreground"
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={filteredTaskLists.map((l) => l.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div>
+                                        {filteredTaskLists.map(
+                                            (list, listIndex) => (
+                                                <div
+                                                    key={list.id}
                                                     style={{
-                                                        animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
+                                                        animation: mounted
+                                                            ? `fadeSlideIn 400ms ease-out ${listIndex * 100 + 200}ms both`
+                                                            : 'none',
                                                     }}
                                                 >
-                                                    <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                                    <span>Create task</span>
-                                                </button>
-                                            </div>
+                                                    {/* List Header - Sortable */}
+                                                    <SortableTaskListRow
+                                                        list={list}
+                                                        isExpanded={expandedLists.includes(
+                                                            list.id,
+                                                        )}
+                                                        onToggle={() =>
+                                                            toggleList(list.id)
+                                                        }
+                                                        onEdit={() => {
+                                                            setColumnForm({
+                                                                name: list.name,
+                                                                description:
+                                                                    list.description ||
+                                                                    '',
+                                                                color: list.color,
+                                                            });
+                                                            setEditingColumnId(
+                                                                list.id,
+                                                            );
+                                                            setIsEditColumnOpen(
+                                                                true,
+                                                            );
+                                                        }}
+                                                        onDelete={() =>
+                                                            setDeleteColumnId(
+                                                                list.id,
+                                                            )
+                                                        }
+                                                    />
+
+                                                    {/* Tasks */}
+                                                    {expandedLists.includes(
+                                                        list.id,
+                                                    ) && (
+                                                        <div className="animate-in duration-200 fade-in slide-in-from-top-2">
+                                                            {list.tasks.map(
+                                                                (
+                                                                    task,
+                                                                    taskIndex,
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            task.id
+                                                                        }
+                                                                        className="group grid border-b transition-all duration-150 hover:bg-muted/30"
+                                                                        style={{
+                                                                            gridTemplateColumns: `${gridCols} 40px`,
+                                                                            animation: `fadeSlideIn 300ms ease-out ${taskIndex * 50}ms both`,
+                                                                        }}
+                                                                    >
+                                                                        {/* Task Title - Always visible */}
+                                                                        <div className="flex items-center gap-3 px-4 py-3">
+                                                                            <span
+                                                                                className={`text-sm ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
+                                                                            >
+                                                                                {
+                                                                                    task.title
+                                                                                }
+                                                                            </span>
+                                                                            {task.subtasks_total &&
+                                                                                task.subtasks_total >
+                                                                                    0 && (
+                                                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                                        <Check className="size-3" />
+                                                                                        {
+                                                                                            task.subtasks_completed
+                                                                                        }
+
+                                                                                        /
+                                                                                        {
+                                                                                            task.subtasks_total
+                                                                                        }
+                                                                                    </span>
+                                                                                )}
+                                                                        </div>
+
+                                                                        {/* Status */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'status',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div
+                                                                                        className="size-3 rounded"
+                                                                                        style={{
+                                                                                            backgroundColor:
+                                                                                                getStatusColor(
+                                                                                                    task.status,
+                                                                                                ),
+                                                                                        }}
+                                                                                    />
+                                                                                    <span className="text-sm">
+                                                                                        {getStatusLabel(
+                                                                                            task.status,
+                                                                                        )}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Priority */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'priority',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3">
+                                                                                {task.priority ? (
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div
+                                                                                            className="size-3 rounded"
+                                                                                            style={{
+                                                                                                backgroundColor:
+                                                                                                    getPriorityColor(
+                                                                                                        task.priority,
+                                                                                                    ),
+                                                                                            }}
+                                                                                        />
+                                                                                        <span className="text-sm capitalize">
+                                                                                            {
+                                                                                                task.priority
+                                                                                            }
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="text-sm text-muted-foreground">
+                                                                                        –
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Due Date */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'dueDate',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                                                {task.due_date
+                                                                                    ? new Date(
+                                                                                          task.due_date,
+                                                                                      ).toLocaleDateString(
+                                                                                          'en-US',
+                                                                                          {
+                                                                                              month: 'short',
+                                                                                              day: 'numeric',
+                                                                                          },
+                                                                                      )
+                                                                                    : '–'}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Assignee */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'assignee',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3">
+                                                                                {task.assigned_to ? (
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <Avatar className="size-6">
+                                                                                            <AvatarImage src="" />
+                                                                                            <AvatarFallback className="text-xs">
+                                                                                                Me
+                                                                                            </AvatarFallback>
+                                                                                        </Avatar>
+                                                                                        <span className="text-sm">
+                                                                                            Me
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="text-sm text-muted-foreground">
+                                                                                        –
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Created At */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'createdAt',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                                                {new Date().toLocaleDateString(
+                                                                                    'en-US',
+                                                                                    {
+                                                                                        month: 'short',
+                                                                                        day: 'numeric',
+                                                                                    },
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Completed At */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'completedAt',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                                                {task.completed_at
+                                                                                    ? new Date(
+                                                                                          task.completed_at,
+                                                                                      ).toLocaleDateString(
+                                                                                          'en-US',
+                                                                                          {
+                                                                                              month: 'short',
+                                                                                              day: 'numeric',
+                                                                                          },
+                                                                                      )
+                                                                                    : '–'}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Creator */}
+                                                                        {columns.find(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.id ===
+                                                                                'creator',
+                                                                        )
+                                                                            ?.visible && (
+                                                                            <div className="flex items-center px-3 py-3">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Avatar className="size-6">
+                                                                                        <AvatarImage src="" />
+                                                                                        <AvatarFallback className="text-xs">
+                                                                                            Me
+                                                                                        </AvatarFallback>
+                                                                                    </Avatar>
+                                                                                    <span className="text-sm">
+                                                                                        Me
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Empty cell for settings column alignment */}
+                                                                        <div />
+                                                                    </div>
+                                                                ),
+                                                            )}
+
+                                                            {/* Add Task Button */}
+                                                            <button
+                                                                onClick={() => {
+                                                                    setTaskForm(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            task_list_id:
+                                                                                list.id,
+                                                                        }),
+                                                                    );
+                                                                    setIsCreateTaskOpen(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                                className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-5 hover:text-foreground"
+                                                                style={{
+                                                                    animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
+                                                                }}
+                                                            >
+                                                                <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
+                                                                <span>
+                                                                    Create task
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ),
                                         )}
                                     </div>
-                                ))}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         </div>
                     ) : (
                         /* Kanban Board - Clean Design */
-                        <div className="flex h-full gap-5 overflow-x-auto p-6">
-                            {[
-                                {
-                                    id: 'todo',
-                                    name: 'To Do',
-                                    color: '#64748b',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'progress',
-                                    name: 'In Progress',
-                                    color: '#3b82f6',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'review',
-                                    name: 'Review',
-                                    color: '#f59e0b',
-                                    count: 0,
-                                },
-                                {
-                                    id: 'done',
-                                    name: 'Done',
-                                    color: '#22c55e',
-                                    count: 0,
-                                },
-                            ].map((column, index) => (
+                        <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 flex h-full gap-5 overflow-x-auto scroll-smooth p-6 pb-4">
+                            {/* Existing Columns from TaskLists */}
+                            {filteredTaskLists.map((list, index) => (
                                 <div
-                                    key={column.id}
+                                    key={list.id}
                                     className="group/column flex w-80 shrink-0 flex-col"
                                     style={{
                                         animation: mounted
@@ -867,35 +1266,101 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {/* Column Header */}
                                     <div className="mb-3 flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
+                                        <button
+                                            onClick={() => {
+                                                setColumnForm({
+                                                    name: list.name,
+                                                    description:
+                                                        list.description || '',
+                                                    color: list.color,
+                                                });
+                                                setEditingColumnId(list.id);
+                                                setIsEditColumnOpen(true);
+                                            }}
+                                            className="-ml-2 flex items-center gap-2.5 rounded-md px-2 py-1 transition-colors hover:bg-muted"
+                                        >
                                             <div
                                                 className="size-2.5 rounded-full"
                                                 style={{
-                                                    backgroundColor:
-                                                        column.color,
+                                                    backgroundColor: list.color,
                                                 }}
                                             />
                                             <h3 className="text-sm font-semibold text-foreground">
-                                                {column.name}
+                                                {list.name}
                                             </h3>
                                             <span className="text-sm text-muted-foreground">
-                                                {column.count}
+                                                {list.tasks.length}
                                             </span>
-                                        </div>
+                                        </button>
                                         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
-                                            <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                            <button
+                                                onClick={() => {
+                                                    setTaskForm((prev) => ({
+                                                        ...prev,
+                                                        task_list_id: list.id,
+                                                    }));
+                                                    setIsCreateTaskOpen(true);
+                                                }}
+                                                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                            >
                                                 <Plus className="size-4" />
                                             </button>
-                                            <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                                                <MoreHorizontal className="size-4" />
-                                            </button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                                        <MoreHorizontal className="size-4" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onClick={() => {
+                                                            setColumnForm({
+                                                                name: list.name,
+                                                                description:
+                                                                    list.description ||
+                                                                    '',
+                                                                color: list.color,
+                                                            });
+                                                            setEditingColumnId(
+                                                                list.id,
+                                                            );
+                                                            setIsEditColumnOpen(
+                                                                true,
+                                                            );
+                                                        }}
+                                                    >
+                                                        <Pencil className="mr-2 size-4" />
+                                                        Edit column
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                                        onClick={() =>
+                                                            setDeleteColumnId(
+                                                                list.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="mr-2 size-4" />
+                                                        Delete column
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </div>
 
                                     {/* Cards Container */}
                                     <div className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
                                         {/* Add task button - shows on hover in center */}
-                                        <button className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50">
+                                        <button
+                                            onClick={() => {
+                                                setTaskForm((prev) => ({
+                                                    ...prev,
+                                                    task_list_id: list.id,
+                                                }));
+                                                setIsCreateTaskOpen(true);
+                                            }}
+                                            className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50"
+                                        >
                                             <Plus className="size-4" />
                                             <span>Add task</span>
                                         </button>
@@ -908,12 +1373,15 @@ export default function ProjectShow({ project }: Props) {
                                 className="flex w-80 shrink-0 flex-col"
                                 style={{
                                     animation: mounted
-                                        ? 'fadeSlideIn 400ms ease-out 320ms both'
+                                        ? `fadeSlideIn 400ms ease-out ${filteredTaskLists.length * 80}ms both`
                                         : 'none',
                                 }}
                             >
                                 <div className="mb-3 h-7" />
-                                <button className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground">
+                                <button
+                                    onClick={() => setIsCreateColumnOpen(true)}
+                                    className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground"
+                                >
                                     <Plus className="size-4" />
                                     Add column
                                 </button>
@@ -1187,6 +1655,725 @@ export default function ProjectShow({ project }: Props) {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* Create Column Sheet */}
+            <Sheet
+                open={isCreateColumnOpen}
+                onOpenChange={setIsCreateColumnOpen}
+            >
+                <SheetContent
+                    side="right"
+                    className="w-full overflow-y-auto sm:max-w-2xl"
+                >
+                    <div className="mx-auto max-w-lg py-6">
+                        <SheetHeader className="text-left">
+                            <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
+                                Create new column
+                            </SheetTitle>
+                            <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                Add a new column to your Kanban board.
+                            </p>
+                        </SheetHeader>
+
+                        <form className="mt-10 space-y-8">
+                            {/* Column Name */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '100ms' }}
+                            >
+                                <Label
+                                    htmlFor="column-name"
+                                    className="text-base"
+                                >
+                                    Column name
+                                </Label>
+                                <Input
+                                    id="column-name"
+                                    value={columnForm.name}
+                                    onChange={(e) =>
+                                        setColumnForm((prev) => ({
+                                            ...prev,
+                                            name: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="e.g., To Do, In Progress, Done"
+                                    className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '150ms' }}
+                            >
+                                <Label
+                                    htmlFor="column-description"
+                                    className="text-base"
+                                >
+                                    Description
+                                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </Label>
+                                <Textarea
+                                    id="column-description"
+                                    value={columnForm.description}
+                                    onChange={(e) =>
+                                        setColumnForm((prev) => ({
+                                            ...prev,
+                                            description: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Describe what tasks belong in this column"
+                                    className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Color Picker */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '250ms' }}
+                            >
+                                <Label className="text-base">
+                                    Column color
+                                </Label>
+                                <div className="flex items-center gap-3">
+                                    {[
+                                        '#3b82f6', // blue
+                                        '#ef4444', // red
+                                        '#22c55e', // green
+                                        '#f59e0b', // amber
+                                        '#8b5cf6', // violet
+                                        '#ec4899', // pink
+                                        '#06b6d4', // cyan
+                                        '#64748b', // slate
+                                    ].map((color, index) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() =>
+                                                setColumnForm((prev) => ({
+                                                    ...prev,
+                                                    color,
+                                                }))
+                                            }
+                                            className={`size-10 animate-in rounded-full transition-all duration-200 fill-mode-both zoom-in-50 fade-in hover:scale-110 hover:shadow-lg ${
+                                                columnForm.color === color
+                                                    ? 'scale-110 ring-2 ring-foreground ring-offset-4'
+                                                    : ''
+                                            }`}
+                                            style={{
+                                                backgroundColor: color,
+                                                animationDelay: `${250 + index * 50}ms`,
+                                            }}
+                                        />
+                                    ))}
+                                    {/* Custom color picker */}
+                                    <div className="relative">
+                                        <input
+                                            type="color"
+                                            value={columnForm.color}
+                                            onChange={(e) =>
+                                                setColumnForm((prev) => ({
+                                                    ...prev,
+                                                    color: e.target.value,
+                                                }))
+                                            }
+                                            className="absolute inset-0 size-10 cursor-pointer opacity-0"
+                                        />
+                                        <div
+                                            className={`flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/50 transition-all duration-200 hover:scale-110 hover:border-foreground ${
+                                                ![
+                                                    '#3b82f6',
+                                                    '#ef4444',
+                                                    '#22c55e',
+                                                    '#f59e0b',
+                                                    '#8b5cf6',
+                                                    '#ec4899',
+                                                    '#06b6d4',
+                                                    '#64748b',
+                                                ].includes(columnForm.color)
+                                                    ? 'ring-2 ring-foreground ring-offset-4'
+                                                    : ''
+                                            }`}
+                                            style={{
+                                                backgroundColor: ![
+                                                    '#3b82f6',
+                                                    '#ef4444',
+                                                    '#22c55e',
+                                                    '#f59e0b',
+                                                    '#8b5cf6',
+                                                    '#ec4899',
+                                                    '#06b6d4',
+                                                    '#64748b',
+                                                ].includes(columnForm.color)
+                                                    ? columnForm.color
+                                                    : 'transparent',
+                                            }}
+                                        >
+                                            {[
+                                                '#3b82f6',
+                                                '#ef4444',
+                                                '#22c55e',
+                                                '#f59e0b',
+                                                '#8b5cf6',
+                                                '#ec4899',
+                                                '#06b6d4',
+                                                '#64748b',
+                                            ].includes(columnForm.color) && (
+                                                <Palette className="size-4 text-muted-foreground" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div
+                                className="flex animate-in gap-4 pt-6 duration-500 fill-mode-both fade-in slide-in-from-bottom-4"
+                                style={{ animationDelay: '400ms' }}
+                            >
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-md"
+                                    onClick={() => setIsCreateColumnOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25"
+                                    disabled={
+                                        !columnForm.name || isCreatingColumn
+                                    }
+                                    onClick={() => {
+                                        setIsCreatingColumn(true);
+
+                                        // Optimistic update - add to beginning immediately
+                                        const tempId = Date.now();
+                                        const newTaskList: TaskList = {
+                                            id: tempId,
+                                            project_id: project.id,
+                                            name: columnForm.name,
+                                            description:
+                                                columnForm.description ||
+                                                undefined,
+                                            color: columnForm.color,
+                                            position: 0,
+                                            tasks: [],
+                                        };
+                                        setOrderedTaskLists((prev) => [
+                                            newTaskList,
+                                            ...prev,
+                                        ]);
+                                        setExpandedLists((prev) => [
+                                            tempId,
+                                            ...prev,
+                                        ]);
+
+                                        // Close form immediately
+                                        setIsCreateColumnOpen(false);
+                                        const formData = { ...columnForm };
+                                        setColumnForm({
+                                            name: '',
+                                            description: '',
+                                            color: '#3b82f6',
+                                        });
+
+                                        router.post(
+                                            storeTaskList.url(project.id),
+                                            {
+                                                name: formData.name,
+                                                description:
+                                                    formData.description ||
+                                                    null,
+                                                color: formData.color,
+                                                position: 0,
+                                            },
+                                            {
+                                                preserveScroll: true,
+                                                preserveState: true,
+                                                only: [], // Don't reload any props to keep optimistic update
+                                                onFinish: () => {
+                                                    setIsCreatingColumn(false);
+                                                },
+                                            },
+                                        );
+                                    }}
+                                >
+                                    {isCreatingColumn
+                                        ? 'Creating...'
+                                        : 'Create column'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* Edit Column Sheet */}
+            <Sheet
+                open={isEditColumnOpen}
+                onOpenChange={(open) => {
+                    setIsEditColumnOpen(open);
+                    if (!open) {
+                        setEditingColumnId(null);
+                        setColumnForm({
+                            name: '',
+                            description: '',
+                            color: '#3b82f6',
+                        });
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    className="w-full overflow-y-auto sm:max-w-2xl"
+                >
+                    <div className="mx-auto max-w-lg py-6">
+                        <SheetHeader className="text-left">
+                            <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
+                                Edit column
+                            </SheetTitle>
+                            <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                Update column details on your Kanban board.
+                            </p>
+                        </SheetHeader>
+
+                        <form className="mt-10 space-y-8">
+                            {/* Column Name */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '100ms' }}
+                            >
+                                <Label
+                                    htmlFor="edit-column-name"
+                                    className="text-base"
+                                >
+                                    Column name
+                                </Label>
+                                <Input
+                                    id="edit-column-name"
+                                    value={columnForm.name}
+                                    onChange={(e) =>
+                                        setColumnForm((prev) => ({
+                                            ...prev,
+                                            name: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="e.g., To Do, In Progress, Done"
+                                    className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '150ms' }}
+                            >
+                                <Label
+                                    htmlFor="edit-column-description"
+                                    className="text-base"
+                                >
+                                    Description
+                                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </Label>
+                                <Textarea
+                                    id="edit-column-description"
+                                    value={columnForm.description}
+                                    onChange={(e) =>
+                                        setColumnForm((prev) => ({
+                                            ...prev,
+                                            description: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Describe what tasks belong in this column"
+                                    className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Color Picker */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '250ms' }}
+                            >
+                                <Label className="text-base">
+                                    Column color
+                                </Label>
+                                <div className="flex items-center gap-3">
+                                    {[
+                                        '#3b82f6', // blue
+                                        '#ef4444', // red
+                                        '#22c55e', // green
+                                        '#f59e0b', // amber
+                                        '#8b5cf6', // violet
+                                        '#ec4899', // pink
+                                        '#06b6d4', // cyan
+                                        '#64748b', // slate
+                                    ].map((color, index) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() =>
+                                                setColumnForm((prev) => ({
+                                                    ...prev,
+                                                    color,
+                                                }))
+                                            }
+                                            className={`size-10 animate-in rounded-full transition-all duration-200 fill-mode-both zoom-in-50 fade-in hover:scale-110 hover:shadow-lg ${
+                                                columnForm.color === color
+                                                    ? 'scale-110 ring-2 ring-foreground ring-offset-4'
+                                                    : ''
+                                            }`}
+                                            style={{
+                                                backgroundColor: color,
+                                                animationDelay: `${250 + index * 50}ms`,
+                                            }}
+                                        />
+                                    ))}
+                                    {/* Custom color picker */}
+                                    <div className="relative">
+                                        <input
+                                            type="color"
+                                            value={columnForm.color}
+                                            onChange={(e) =>
+                                                setColumnForm((prev) => ({
+                                                    ...prev,
+                                                    color: e.target.value,
+                                                }))
+                                            }
+                                            className="absolute inset-0 size-10 cursor-pointer opacity-0"
+                                        />
+                                        <div
+                                            className={`flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/50 transition-all duration-200 hover:scale-110 hover:border-foreground ${
+                                                ![
+                                                    '#3b82f6',
+                                                    '#ef4444',
+                                                    '#22c55e',
+                                                    '#f59e0b',
+                                                    '#8b5cf6',
+                                                    '#ec4899',
+                                                    '#06b6d4',
+                                                    '#64748b',
+                                                ].includes(columnForm.color)
+                                                    ? 'ring-2 ring-foreground ring-offset-4'
+                                                    : ''
+                                            }`}
+                                            style={{
+                                                backgroundColor: ![
+                                                    '#3b82f6',
+                                                    '#ef4444',
+                                                    '#22c55e',
+                                                    '#f59e0b',
+                                                    '#8b5cf6',
+                                                    '#ec4899',
+                                                    '#06b6d4',
+                                                    '#64748b',
+                                                ].includes(columnForm.color)
+                                                    ? columnForm.color
+                                                    : 'transparent',
+                                            }}
+                                        >
+                                            {[
+                                                '#3b82f6',
+                                                '#ef4444',
+                                                '#22c55e',
+                                                '#f59e0b',
+                                                '#8b5cf6',
+                                                '#ec4899',
+                                                '#06b6d4',
+                                                '#64748b',
+                                            ].includes(columnForm.color) && (
+                                                <Palette className="size-4 text-muted-foreground" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div
+                                className="flex animate-in gap-4 pt-6 duration-500 fill-mode-both fade-in slide-in-from-bottom-4"
+                                style={{ animationDelay: '350ms' }}
+                            >
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-md"
+                                    onClick={() => setIsEditColumnOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25"
+                                    disabled={
+                                        !columnForm.name.trim() ||
+                                        isCreatingColumn
+                                    }
+                                    onClick={() => {
+                                        if (
+                                            !columnForm.name.trim() ||
+                                            !editingColumnId
+                                        )
+                                            return;
+
+                                        setIsCreatingColumn(true);
+                                        router.put(
+                                            updateTaskList.url({
+                                                project: project.id,
+                                                taskList: editingColumnId,
+                                            }),
+                                            {
+                                                name: columnForm.name.trim(),
+                                                description:
+                                                    columnForm.description.trim() ||
+                                                    null,
+                                                color: columnForm.color,
+                                            },
+                                            {
+                                                onSuccess: () => {
+                                                    setIsEditColumnOpen(false);
+                                                    setEditingColumnId(null);
+                                                    setColumnForm({
+                                                        name: '',
+                                                        description: '',
+                                                        color: '#3b82f6',
+                                                    });
+                                                },
+                                                onFinish: () => {
+                                                    setIsCreatingColumn(false);
+                                                },
+                                            },
+                                        );
+                                    }}
+                                >
+                                    {isCreatingColumn
+                                        ? 'Saving...'
+                                        : 'Save changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* Delete Column Confirmation */}
+            <AlertDialog
+                open={deleteColumnId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteColumnId(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete column?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete this column and all
+                            tasks within it. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => {
+                                if (!deleteColumnId) return;
+
+                                router.delete(
+                                    destroyTaskList.url({
+                                        project: project.id,
+                                        taskList: deleteColumnId,
+                                    }),
+                                    {
+                                        onSuccess: () => {
+                                            setDeleteColumnId(null);
+                                        },
+                                    },
+                                );
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Column Detail Drawer */}
+            <Drawer
+                open={selectedColumnId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedColumnId(null);
+                }}
+            >
+                <DrawerContent className="h-[35vh]">
+                    {(() => {
+                        const selectedColumn = taskLists.find(
+                            (l) => l.id === selectedColumnId,
+                        );
+                        if (!selectedColumn) return null;
+
+                        // Calculate task stats by status
+                        const statusCounts = selectedColumn.tasks.reduce(
+                            (acc, task) => {
+                                acc[task.status] = (acc[task.status] || 0) + 1;
+                                return acc;
+                            },
+                            {} as Record<string, number>,
+                        );
+
+                        const totalTasks = selectedColumn.tasks.length;
+                        const completedTasks = statusCounts['completed'] || 0;
+                        const inProgressTasks =
+                            statusCounts['in_progress'] || 0;
+                        const pendingTasks = statusCounts['pending'] || 0;
+                        const cancelledTasks = statusCounts['cancelled'] || 0;
+
+                        const stats = [
+                            {
+                                label: 'Pending',
+                                count: pendingTasks,
+                                color: '#a855f7',
+                            },
+                            {
+                                label: 'In Progress',
+                                count: inProgressTasks,
+                                color: '#3b82f6',
+                            },
+                            {
+                                label: 'Completed',
+                                count: completedTasks,
+                                color: '#22c55e',
+                            },
+                            {
+                                label: 'Cancelled',
+                                count: cancelledTasks,
+                                color: '#ef4444',
+                            },
+                        ].filter((s) => s.count > 0);
+
+                        return (
+                            <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-6 pt-2 pb-8">
+                                {/* Header */}
+                                <div className="mb-8 flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className="size-3 rounded-full"
+                                                style={{
+                                                    backgroundColor:
+                                                        selectedColumn.color,
+                                                }}
+                                            />
+                                            <DrawerTitle className="text-xl font-semibold">
+                                                {selectedColumn.name}
+                                            </DrawerTitle>
+                                        </div>
+                                        {selectedColumn.description && (
+                                            <DrawerDescription className="pl-6 text-sm text-muted-foreground">
+                                                {selectedColumn.description}
+                                            </DrawerDescription>
+                                        )}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-3xl font-bold tabular-nums">
+                                            {totalTasks}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            total tasks
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Segmented Progress Bar */}
+                                {totalTasks > 0 && (
+                                    <div className="mb-6">
+                                        <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+                                            {stats.map((stat, index) => (
+                                                <div
+                                                    key={stat.label}
+                                                    className="transition-all duration-500"
+                                                    style={{
+                                                        width: `${(stat.count / totalTasks) * 100}%`,
+                                                        backgroundColor:
+                                                            stat.color,
+                                                        marginLeft:
+                                                            index > 0
+                                                                ? '2px'
+                                                                : 0,
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Stats Grid */}
+                                <div className="grid grid-cols-4 gap-6">
+                                    {[
+                                        {
+                                            label: 'Pending',
+                                            count: pendingTasks,
+                                            color: '#a855f7',
+                                        },
+                                        {
+                                            label: 'In Progress',
+                                            count: inProgressTasks,
+                                            color: '#3b82f6',
+                                        },
+                                        {
+                                            label: 'Completed',
+                                            count: completedTasks,
+                                            color: '#22c55e',
+                                        },
+                                        {
+                                            label: 'Cancelled',
+                                            count: cancelledTasks,
+                                            color: '#ef4444',
+                                        },
+                                    ].map((stat) => (
+                                        <div key={stat.label} className="group">
+                                            <div className="flex items-baseline gap-2">
+                                                <span
+                                                    className="text-2xl font-semibold tabular-nums"
+                                                    style={{
+                                                        color:
+                                                            stat.count > 0
+                                                                ? stat.color
+                                                                : undefined,
+                                                    }}
+                                                >
+                                                    {stat.count}
+                                                </span>
+                                                {totalTasks > 0 && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {Math.round(
+                                                            (stat.count /
+                                                                totalTasks) *
+                                                                100,
+                                                        )}
+                                                        %
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="mt-0.5 text-sm text-muted-foreground">
+                                                {stat.label}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </DrawerContent>
+            </Drawer>
         </AppLayout>
     );
 }

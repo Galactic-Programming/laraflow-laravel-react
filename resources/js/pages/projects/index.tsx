@@ -141,8 +141,11 @@ const isLightColor = (color: string): boolean => {
     return luminance > 0.6;
 };
 
-export default function ProjectsIndex({ projects = [] }: Props) {
+export default function ProjectsIndex({
+    projects: initialProjects = [],
+}: Props) {
     const { t } = useTranslations();
+    const [projects, setProjects] = useState<Project[]>(initialProjects);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('recent');
     const [filterBy, setFilterBy] = useState('all');
@@ -152,6 +155,11 @@ export default function ProjectsIndex({ projects = [] }: Props) {
     const [deleteProject, setDeleteProject] = useState<Project | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [editProject, setEditProject] = useState<Project | null>(null);
+
+    // Sync with server data when it changes
+    useEffect(() => {
+        setProjects(initialProjects);
+    }, [initialProjects]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: t('projects.title', 'Projects'), href: '/projects' },
@@ -285,7 +293,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             <p
                                 className={`text-sm text-muted-foreground transition-all delay-200 duration-500 ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'}`}
                             >
-                                {t('projects.subtitle', 'Manage and organize your work')}
+                                {t(
+                                    'projects.subtitle',
+                                    'Manage and organize your work',
+                                )}
                             </p>
                         </div>
                     </div>
@@ -306,13 +317,22 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="recent">
-                                        {t('projects.recent_activity', 'Recent activity')}
+                                        {t(
+                                            'projects.recent_activity',
+                                            'Recent activity',
+                                        )}
                                     </SelectItem>
                                     <SelectItem value="name">
-                                        {t('projects.alphabetically', 'Alphabetically')}
+                                        {t(
+                                            'projects.alphabetically',
+                                            'Alphabetically',
+                                        )}
                                     </SelectItem>
                                     <SelectItem value="created">
-                                        {t('projects.date_created', 'Date created')}
+                                        {t(
+                                            'projects.date_created',
+                                            'Date created',
+                                        )}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -331,7 +351,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
-                                        {t('projects.all_projects', 'All projects')}
+                                        {t(
+                                            'projects.all_projects',
+                                            'All projects',
+                                        )}
                                     </SelectItem>
                                     <SelectItem value="active">
                                         {t('projects.active', 'Active')}
@@ -358,7 +381,9 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">{t('projects.all', 'All')}</SelectItem>
+                                    <SelectItem value="all">
+                                        {t('projects.all', 'All')}
+                                    </SelectItem>
                                     <SelectItem value="private">
                                         {t('projects.private', 'Private')}
                                     </SelectItem>
@@ -378,7 +403,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
                             <Input
                                 type="text"
-                                placeholder={t('projects.search_placeholder', 'Search projects...')}
+                                placeholder={t(
+                                    'projects.search_placeholder',
+                                    'Search projects...',
+                                )}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="h-9 w-[200px] pl-9 transition-all duration-200 focus:w-[240px] focus:shadow-md"
@@ -459,21 +487,29 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
-                                                onClick={() =>
-                                                    openEditSheet(project)
-                                                }
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditSheet(project);
+                                                }}
                                             >
                                                 <Pencil className="mr-2 size-4" />
-                                                {t('projects.edit_project', 'Edit project')}
+                                                {t(
+                                                    'projects.edit_project',
+                                                    'Edit project',
+                                                )}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
-                                                onClick={() =>
-                                                    setDeleteProject(project)
-                                                }
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteProject(project);
+                                                }}
                                             >
                                                 <Trash2 className="mr-2 size-4" />
-                                                {t('projects.delete_project', 'Delete project')}
+                                                {t(
+                                                    'projects.delete_project',
+                                                    'Delete project',
+                                                )}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -508,11 +544,24 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                     project.status as StatusType
                                                 }
                                                 onStatusChange={(newStatus) => {
+                                                    // Optimistic update - update UI immediately
+                                                    setProjects((prev) =>
+                                                        prev.map((p) =>
+                                                            p.id === project.id
+                                                                ? {
+                                                                      ...p,
+                                                                      status: newStatus,
+                                                                  }
+                                                                : p,
+                                                        ),
+                                                    );
+                                                    // Send to server in background
                                                     router.patch(
                                                         `/projects/${project.id}/status`,
                                                         { status: newStatus },
                                                         {
                                                             preserveScroll: true,
+                                                            preserveState: true,
                                                         },
                                                     );
                                                 }}
@@ -558,7 +607,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             {t('projects.no_projects', 'No projects yet')}
                         </h3>
                         <p className="mb-6 max-w-sm text-center text-muted-foreground">
-                            {t('projects.no_projects_desc', 'Create your first project to start organizing your tasks and collaborate with your team.')}
+                            {t(
+                                'projects.no_projects_desc',
+                                'Create your first project to start organizing your tasks and collaborate with your team.',
+                            )}
                         </p>
                         <Button
                             onClick={() => setIsCreateOpen(true)}
@@ -566,7 +618,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                             className="gap-2 shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30"
                         >
                             <Plus className="size-4" />
-                            {t('projects.create_first', 'Create your first project')}
+                            {t(
+                                'projects.create_first',
+                                'Create your first project',
+                            )}
                         </Button>
                     </div>
                 )}
@@ -577,7 +632,13 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
                             <Search className="size-6 text-muted-foreground" />
                         </div>
-                        <p>{t('projects.no_results', 'No projects found matching')} "{searchQuery}"</p>
+                        <p>
+                            {t(
+                                'projects.no_results',
+                                'No projects found matching',
+                            )}{' '}
+                            "{searchQuery}"
+                        </p>
                     </div>
                 )}
             </div>
@@ -591,10 +652,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                {t('projects.create_title', 'Create new project')}
+                                {t(
+                                    'projects.create_title',
+                                    'Create new project',
+                                )}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                {t('projects.create_desc', 'Fill in the details below to create your project.')}
+                                {t(
+                                    'projects.create_desc',
+                                    'Fill in the details below to create your project.',
+                                )}
                             </p>
                         </SheetHeader>
 
@@ -616,7 +683,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setData('name', e.target.value)
                                     }
-                                    placeholder={t('projects.project_name_placeholder', 'Enter project name')}
+                                    placeholder={t(
+                                        'projects.project_name_placeholder',
+                                        'Enter project name',
+                                    )}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                                 {errors.name && (
@@ -637,7 +707,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 >
                                     {t('projects.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('projects.description_optional', '(optional)')}
+                                        {t(
+                                            'projects.description_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -646,7 +719,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setData('description', e.target.value)
                                     }
-                                    placeholder={t('projects.description_placeholder', "What's this project about?")}
+                                    placeholder={t(
+                                        'projects.description_placeholder',
+                                        "What's this project about?",
+                                    )}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -657,7 +733,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '300ms' }}
                             >
                                 <Label className="text-base">
-                                    {t('projects.project_color', 'Project color')}
+                                    {t(
+                                        'projects.project_color',
+                                        'Project color',
+                                    )}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {projectColors.map((color, index) => (
@@ -750,7 +829,12 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">{t('projects.visibility_label', 'Visibility')}</Label>
+                                <Label className="text-base">
+                                    {t(
+                                        'projects.visibility_label',
+                                        'Visibility',
+                                    )}
+                                </Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <button
                                         type="button"
@@ -779,10 +863,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                         : 'text-foreground'
                                                 }`}
                                             >
-                                                {t('projects.private_label', 'Private')}
+                                                {t(
+                                                    'projects.private_label',
+                                                    'Private',
+                                                )}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {t('projects.private_desc', 'Only you can access')}
+                                                {t(
+                                                    'projects.private_desc',
+                                                    'Only you can access',
+                                                )}
                                             </p>
                                         </div>
                                     </button>
@@ -812,10 +902,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                                         : 'text-foreground'
                                                 }`}
                                             >
-                                                {t('projects.public_label', 'Public')}
+                                                {t(
+                                                    'projects.public_label',
+                                                    'Public',
+                                                )}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {t('projects.public_desc', 'Anyone can view')}
+                                                {t(
+                                                    'projects.public_desc',
+                                                    'Anyone can view',
+                                                )}
                                             </p>
                                         </div>
                                     </button>
@@ -868,7 +964,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 {t('projects.edit_title', 'Edit project')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                {t('projects.edit_desc', 'Update your project details below.')}
+                                {t(
+                                    'projects.edit_desc',
+                                    'Update your project details below.',
+                                )}
                             </p>
                         </SheetHeader>
 
@@ -893,7 +992,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                     onChange={(e) =>
                                         setEditData('name', e.target.value)
                                     }
-                                    placeholder={t('projects.project_name_placeholder', 'Enter project name')}
+                                    placeholder={t(
+                                        'projects.project_name_placeholder',
+                                        'Enter project name',
+                                    )}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                                 {editErrors.name && (
@@ -914,7 +1016,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 >
                                     {t('projects.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('projects.description_optional', '(optional)')}
+                                        {t(
+                                            'projects.description_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -926,7 +1031,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                             e.target.value,
                                         )
                                     }
-                                    placeholder={t('projects.description_placeholder', "What's this project about?")}
+                                    placeholder={t(
+                                        'projects.description_placeholder',
+                                        "What's this project about?",
+                                    )}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -937,7 +1045,10 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 style={{ animationDelay: '300ms' }}
                             >
                                 <Label className="text-base">
-                                    {t('projects.project_color', 'Project color')}
+                                    {t(
+                                        'projects.project_color',
+                                        'Project color',
+                                    )}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {projectColors.map((color, index) => (
@@ -1033,7 +1144,12 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">{t('projects.visibility_label', 'Visibility')}</Label>
+                                <Label className="text-base">
+                                    {t(
+                                        'projects.visibility_label',
+                                        'Visibility',
+                                    )}
+                                </Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <button
                                         type="button"
@@ -1056,10 +1172,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         />
                                         <div className="text-center">
                                             <p className="font-medium text-foreground">
-                                                {t('projects.private_label', 'Private')}
+                                                {t(
+                                                    'projects.private_label',
+                                                    'Private',
+                                                )}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {t('projects.private_desc', 'Only you can access')}
+                                                {t(
+                                                    'projects.private_desc',
+                                                    'Only you can access',
+                                                )}
                                             </p>
                                         </div>
                                     </button>
@@ -1083,10 +1205,16 @@ export default function ProjectsIndex({ projects = [] }: Props) {
                                         />
                                         <div className="text-center">
                                             <p className="font-medium text-foreground">
-                                                {t('projects.public_label', 'Public')}
+                                                {t(
+                                                    'projects.public_label',
+                                                    'Public',
+                                                )}
                                             </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {t('projects.public_desc', 'Anyone can view')}
+                                                {t(
+                                                    'projects.public_desc',
+                                                    'Anyone can view',
+                                                )}
                                             </p>
                                         </div>
                                     </button>
@@ -1131,13 +1259,21 @@ export default function ProjectsIndex({ projects = [] }: Props) {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('projects.delete_title', 'Delete project')}</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {t('projects.delete_title', 'Delete project')}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            {t('projects.delete_confirm', 'Are you sure you want to delete')}{' '}
+                            {t(
+                                'projects.delete_confirm',
+                                'Are you sure you want to delete',
+                            )}{' '}
                             <span className="font-semibold text-foreground">
                                 "{deleteProject?.name}"
                             </span>
-                            {t('projects.delete_warning', '? This action cannot be undone and all associated data will be permanently removed.')}
+                            {t(
+                                'projects.delete_warning',
+                                '? This action cannot be undone and all associated data will be permanently removed.',
+                            )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

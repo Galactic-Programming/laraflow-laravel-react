@@ -312,7 +312,10 @@ const SelectableStatusBadge = React.forwardRef<
                     return (
                         <DropdownMenuItem
                             key={statusOption}
-                            onClick={() => handleStatusSelect(statusOption)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusSelect(statusOption);
+                            }}
                             className={cn(
                                 'gap-2',
                                 status === statusOption && 'bg-accent',
