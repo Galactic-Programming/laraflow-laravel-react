@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Appearance = 'light' | 'dark' | 'system';
+export type Appearance = 'light' | 'dark';
 
-const prefersDark = () => {
+export const prefersDark = () => {
     if (typeof window === 'undefined') {
         return false;
     }
@@ -20,38 +20,35 @@ const setCookie = (name: string, value: string, days = 365) => {
 };
 
 const applyTheme = (appearance: Appearance) => {
-    const isDark =
-        appearance === 'dark' || (appearance === 'system' && prefersDark());
+    const isDark = appearance === 'dark';
 
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 };
 
-const mediaQuery = () => {
-    if (typeof window === 'undefined') {
-        return null;
+// Helper to migrate old 'system' value to actual theme
+const migrateAppearance = (saved: string | null): Appearance => {
+    if (saved === 'light' || saved === 'dark') {
+        return saved;
     }
-
-    return window.matchMedia('(prefers-color-scheme: dark)');
-};
-
-const handleSystemThemeChange = () => {
-    const currentAppearance = localStorage.getItem('appearance') as Appearance;
-    applyTheme(currentAppearance || 'system');
+    // If 'system' or null, use system preference to determine initial theme
+    return prefersDark() ? 'dark' : 'light';
 };
 
 export function initializeTheme() {
-    const savedAppearance =
-        (localStorage.getItem('appearance') as Appearance) || 'system';
+    const savedAppearance = localStorage.getItem('appearance');
+    const appearance = migrateAppearance(savedAppearance);
 
-    applyTheme(savedAppearance);
+    applyTheme(appearance);
 
-    // Add the event listener for system theme changes...
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    // Migrate 'system' to actual theme in storage
+    if (savedAppearance === 'system' || savedAppearance === null) {
+        localStorage.setItem('appearance', appearance);
+    }
 }
 
 export function useAppearance() {
-    const [appearance, setAppearance] = useState<Appearance>('system');
+    const [appearance, setAppearance] = useState<Appearance>('light');
 
     const updateAppearance = useCallback((mode: Appearance) => {
         setAppearance(mode);
@@ -66,18 +63,11 @@ export function useAppearance() {
     }, []);
 
     useEffect(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
+        const savedAppearance = localStorage.getItem('appearance');
+        const migrated = migrateAppearance(savedAppearance);
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        updateAppearance(savedAppearance || 'system');
-
-        return () =>
-            mediaQuery()?.removeEventListener(
-                'change',
-                handleSystemThemeChange,
-            );
+        updateAppearance(migrated);
     }, [updateAppearance]);
 
     return { appearance, updateAppearance } as const;
