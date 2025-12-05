@@ -38,5 +38,7 @@ class TaskListSeeder extends Seeder
                 ]));
             }
         }
+
+        $this->command->info('Task lists seeded successfully!');
     }
 }

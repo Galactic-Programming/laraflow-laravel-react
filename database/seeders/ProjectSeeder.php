@@ -80,5 +80,7 @@ class ProjectSeeder extends Seeder
         Project::factory()
             ->count(10)
             ->create();
+
+        $this->command->info('Projects seeded successfully!');
     }
 }

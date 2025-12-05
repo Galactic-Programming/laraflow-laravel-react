@@ -90,5 +90,7 @@ class TaskSeeder extends Seeder
                     ]);
             }
         }
+
+        $this->command->info('Tasks seeded successfully!');
     }
 }

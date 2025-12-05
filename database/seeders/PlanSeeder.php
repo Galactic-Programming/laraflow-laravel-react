@@ -81,5 +81,7 @@ class PlanSeeder extends Seeder
                 'sort_order' => 3,
             ]
         );
+
+        $this->command->info('Plans seeded successfully!');
     }
 }
