@@ -1,3 +1,4 @@
+import { store as storeTask } from '@/actions/App/Http/Controllers/TaskController';
 import {
     destroy as destroyTaskList,
     store as storeTaskList,
@@ -283,7 +284,7 @@ const getStatusLabel = (status: string) => {
         case 'cancelled':
             return 'Cancelled';
         default:
-            return 'New task';
+            return 'Pending';
     }
 };
 
@@ -1636,7 +1637,7 @@ export default function ProjectShow({ project }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25"
                                     disabled={!taskForm.title}
                                     onClick={() => {
-                                        setIsCreateTaskOpen(false);
+                                        const formData = { ...taskForm };
                                         setTaskForm({
                                             title: '',
                                             description: '',
@@ -1646,6 +1647,33 @@ export default function ProjectShow({ project }: Props) {
                                                 mockTaskLists[0]?.id || 1,
                                             due_date: '',
                                         });
+                                        setIsCreateTaskOpen(false);
+
+                                        router.post(
+                                            storeTask.url({
+                                                project: project.id,
+                                                taskList: formData.task_list_id,
+                                            }),
+                                            {
+                                                title: formData.title,
+                                                description:
+                                                    formData.description ||
+                                                    null,
+                                                priority: formData.priority,
+                                                status: formData.status,
+                                                due_date:
+                                                    formData.due_date || null,
+                                            },
+                                            {
+                                                preserveScroll: true,
+                                                preserveState: true,
+                                                only: [], // Don't reload any props to keep optimistic update
+                                                onSuccess: () => {
+                                                    // Optionally refresh the page or update state
+                                                    router.reload();
+                                                },
+                                            },
+                                        );
                                     }}
                                 >
                                     Create task

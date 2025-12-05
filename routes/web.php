@@ -5,6 +5,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskListController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -50,10 +51,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
-    // Task Lists (Kanban columns)
     Route::post('projects/{project}/task-lists', [TaskListController::class, 'store'])->name('task-lists.store');
     Route::put('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'update'])->name('task-lists.update');
     Route::delete('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'destroy'])->name('task-lists.destroy');
+
+    Route::post('projects/{project}/task-lists/{taskList}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::put('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
 // Unified Social OAuth routes - works for both login (guest) and linking (auth)
