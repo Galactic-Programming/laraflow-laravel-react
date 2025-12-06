@@ -111,6 +111,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from '@/hooks/use-translations';
 
 // Column configuration
 interface ColumnConfig {
@@ -326,6 +327,7 @@ function SortableTaskListRow({
     onEdit,
     onDelete,
 }: SortableTaskListRowProps) {
+    const { t } = useTranslations();
     const {
         attributes,
         listeners,
@@ -390,14 +392,14 @@ function SortableTaskListRow({
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={onEdit}>
                                 <Pencil className="mr-2 size-4" />
-                                Edit task list
+                                {t('task_lists.edit', 'Edit task list')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
                                 onClick={onDelete}
                             >
                                 <Trash2 className="mr-2 size-4" />
-                                Delete task list
+                                {t('task_lists.delete', 'Delete task list')}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -416,6 +418,7 @@ interface SortableTableTaskRowProps {
     getStatusColor: (status: string) => string;
     getStatusLabel: (status: string) => string;
     getPriorityColor: (priority: string) => string;
+    getPriorityLabel: (priority: string) => string;
 }
 
 function SortableTableTaskRow({
@@ -426,7 +429,9 @@ function SortableTableTaskRow({
     getStatusColor,
     getStatusLabel,
     getPriorityColor,
+    getPriorityLabel,
 }: SortableTableTaskRowProps) {
+    const { t } = useTranslations();
     const {
         attributes,
         listeners,
@@ -500,7 +505,7 @@ function SortableTableTaskRow({
                                 className="size-3 rounded"
                                 style={{ backgroundColor: getPriorityColor(task.priority) }}
                             />
-                            <span className="text-sm capitalize">{task.priority}</span>
+                            <span className="text-sm">{getPriorityLabel(task.priority)}</span>
                         </div>
                     ) : (
                         <span className="text-sm text-muted-foreground">–</span>
@@ -527,9 +532,9 @@ function SortableTableTaskRow({
                         <div className="flex items-center gap-2">
                             <Avatar className="size-6">
                                 <AvatarImage src="" />
-                                <AvatarFallback className="text-xs">Me</AvatarFallback>
+                                <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">Me</span>
+                            <span className="text-sm">{t('common.me', 'Me')}</span>
                         </div>
                     ) : (
                         <span className="text-sm text-muted-foreground">–</span>
@@ -565,9 +570,9 @@ function SortableTableTaskRow({
                     <div className="flex items-center gap-2">
                         <Avatar className="size-6">
                             <AvatarImage src="" />
-                            <AvatarFallback className="text-xs">Me</AvatarFallback>
+                            <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
                         </Avatar>
-                        <span className="text-sm">Me</span>
+                        <span className="text-sm">{t('common.me', 'Me')}</span>
                     </div>
                 </div>
             )}
@@ -585,6 +590,7 @@ interface SortableTaskCardProps {
 }
 
 function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps) {
+    const { t } = useTranslations();
     const {
         attributes,
         listeners,
@@ -599,6 +605,38 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
             task,
         },
     });
+
+    // Helper to get translated status label
+    const getTranslatedStatusLabel = (status: string): string => {
+        const statusKeyMap: Record<string, string> = {
+            completed: 'tasks.status_completed',
+            in_progress: 'tasks.status_in_progress',
+            cancelled: 'tasks.status_cancelled',
+            pending: 'tasks.status_pending',
+        };
+        const fallbackMap: Record<string, string> = {
+            completed: 'Completed',
+            in_progress: 'In Progress',
+            cancelled: 'Cancelled',
+            pending: 'Pending',
+        };
+        return t(statusKeyMap[status] || 'tasks.status_pending', fallbackMap[status] || 'Pending');
+    };
+
+    // Helper to get translated priority label
+    const getTranslatedPriorityLabel = (priority: string): string => {
+        const priorityKeyMap: Record<string, string> = {
+            low: 'tasks.priority_low',
+            medium: 'tasks.priority_medium',
+            high: 'tasks.priority_high',
+        };
+        const fallbackMap: Record<string, string> = {
+            low: 'Low',
+            medium: 'Medium',
+            high: 'High',
+        };
+        return t(priorityKeyMap[priority] || 'tasks.priority_medium', fallbackMap[priority] || 'Medium');
+    };
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -622,16 +660,16 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
                             color: getStatusColor(task.status),
                         }}
                     >
-                        {getStatusLabel(task.status)}
+                        {getTranslatedStatusLabel(task.status)}
                     </span>
                     <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                         style={{
                             backgroundColor: `${getPriorityColor(task.priority)}15`,
                             color: getPriorityColor(task.priority),
                         }}
                     >
-                        {task.priority}
+                        {getTranslatedPriorityLabel(task.priority)}
                     </span>
                     {task.due_date && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -674,16 +712,16 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
                         color: getStatusColor(task.status),
                     }}
                 >
-                    {getStatusLabel(task.status)}
+                    {getTranslatedStatusLabel(task.status)}
                 </span>
                 <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                     style={{
                         backgroundColor: `${getPriorityColor(task.priority)}15`,
                         color: getPriorityColor(task.priority),
                     }}
                 >
-                    {task.priority}
+                    {getTranslatedPriorityLabel(task.priority)}
                 </span>
                 {task.due_date && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -721,6 +759,7 @@ function SortableKanbanColumn({
     onDeleteColumn,
     onAddTask,
 }: SortableKanbanColumnProps) {
+    const { t } = useTranslations();
     const {
         attributes,
         listeners,
@@ -799,14 +838,14 @@ function SortableKanbanColumn({
                                 onClick={() => onEditColumn(list)}
                             >
                                 <Pencil className="mr-2 size-4" />
-                                Edit column
+                                {t('task_lists.edit', 'Edit column')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
                                 onClick={() => onDeleteColumn(list.id)}
                             >
                                 <Trash2 className="mr-2 size-4" />
-                                Delete column
+                                {t('task_lists.delete', 'Delete column')}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -843,6 +882,55 @@ function SortableKanbanColumn({
 }
 
 export default function ProjectShow({ project }: Props) {
+    const { t } = useTranslations();
+
+    // Helper to get translated column labels
+    const getColumnLabel = (columnId: string, fallback: string): string => {
+        const columnKeyMap: Record<string, string> = {
+            task: 'columns.task',
+            status: 'columns.status',
+            priority: 'columns.priority',
+            dueDate: 'columns.due_date',
+            assignee: 'columns.assignee',
+            createdAt: 'columns.created',
+            completedAt: 'columns.completed',
+            creator: 'columns.created_by',
+        };
+        return t(columnKeyMap[columnId] || `columns.${columnId}`, fallback);
+    };
+
+    // Helper to get translated status label
+    const getTranslatedStatusLabel = (status: string): string => {
+        const statusKeyMap: Record<string, string> = {
+            completed: 'tasks.status_completed',
+            in_progress: 'tasks.status_in_progress',
+            cancelled: 'tasks.status_cancelled',
+            pending: 'tasks.status_pending',
+        };
+        const fallbackMap: Record<string, string> = {
+            completed: 'Completed',
+            in_progress: 'In Progress',
+            cancelled: 'Cancelled',
+            pending: 'Pending',
+        };
+        return t(statusKeyMap[status] || 'tasks.status_pending', fallbackMap[status] || 'Pending');
+    };
+
+    // Helper to get translated priority label
+    const getTranslatedPriorityLabel = (priority: string): string => {
+        const priorityKeyMap: Record<string, string> = {
+            low: 'tasks.priority_low',
+            medium: 'tasks.priority_medium',
+            high: 'tasks.priority_high',
+        };
+        const fallbackMap: Record<string, string> = {
+            low: 'Low',
+            medium: 'Medium',
+            high: 'High',
+        };
+        return t(priorityKeyMap[priority] || 'tasks.priority_medium', fallbackMap[priority] || 'Medium');
+    };
+
     // Get taskLists first before using in state
     const taskLists = project.task_lists ?? mockTaskLists;
 
@@ -1506,7 +1594,7 @@ export default function ProjectShow({ project }: Props) {
     }, []);
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Projects', href: '/projects' },
+        { title: t('nav.projects', 'Projects'), href: '/projects' },
         { title: project.name, href: `/projects/${project.id}` },
     ];
 
@@ -1568,7 +1656,7 @@ export default function ProjectShow({ project }: Props) {
                                 <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     type="text"
-                                    placeholder="Search..."
+                                    placeholder={t('kanban.search', 'Search...')}
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -1622,7 +1710,7 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     <Table className="size-4" />
                                     <span className="hidden sm:inline">
-                                        Table
+                                        {t('kanban.table', 'Table')}
                                     </span>
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
@@ -1632,7 +1720,7 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     <Kanban className="size-4" />
                                     <span className="hidden sm:inline">
-                                        Board
+                                        {t('kanban.board', 'Board')}
                                     </span>
                                 </ToggleGroupItem>
                             </ToggleGroup>
@@ -1700,7 +1788,7 @@ export default function ProjectShow({ project }: Props) {
                                                 />
                                             </button>
                                         )}
-                                        {col.label}
+                                        {getColumnLabel(col.id, col.label)}
                                         {col.id === 'task' && (
                                             <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs">
                                                 {taskLists.length}
@@ -1720,7 +1808,7 @@ export default function ProjectShow({ project }: Props) {
                                             className="w-48 p-2"
                                         >
                                             <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
-                                                Toggle columns
+                                                {t('common.toggle_columns', 'Toggle columns')}
                                             </div>
                                             {columns.map((column) => (
                                                 <button
@@ -1742,7 +1830,7 @@ export default function ProjectShow({ project }: Props) {
                                                             <Check className="size-3" />
                                                         )}
                                                     </div>
-                                                    <span>{column.label}</span>
+                                                    <span>{getColumnLabel(column.id, column.label)}</span>
                                                 </button>
                                             ))}
                                         </PopoverContent>
@@ -1756,7 +1844,7 @@ export default function ProjectShow({ project }: Props) {
                                 className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:text-foreground"
                             >
                                 <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                <span>Create task list</span>
+                                <span>{t('task_lists.create_task_list', 'Create task list')}</span>
                             </button>
 
                             {/* Task Lists */}
@@ -1835,8 +1923,9 @@ export default function ProjectShow({ project }: Props) {
                                                                         gridCols={gridCols}
                                                                         columns={columns}
                                                                         getStatusColor={getStatusColor}
-                                                                        getStatusLabel={getStatusLabel}
+                                                                        getStatusLabel={getTranslatedStatusLabel}
                                                                         getPriorityColor={getPriorityColor}
+                                                                        getPriorityLabel={getTranslatedPriorityLabel}
                                                                     />
                                                                 ))}
 
@@ -1855,7 +1944,7 @@ export default function ProjectShow({ project }: Props) {
                                                                     }}
                                                                 >
                                                                     <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                                                    <span>Create task</span>
+                                                                    <span>{t('tasks.create_task', 'Create task')}</span>
                                                                 </button>
                                                             </div>
                                                         </SortableContext>
@@ -1894,7 +1983,7 @@ export default function ProjectShow({ project }: Props) {
                                                 <div className="flex items-center px-3 py-3">
                                                     <div className="flex items-center gap-2">
                                                         <div className="size-3 rounded" style={{ backgroundColor: getStatusColor(activeTask.status) }} />
-                                                        <span className="text-sm">{getStatusLabel(activeTask.status)}</span>
+                                                        <span className="text-sm">{getTranslatedStatusLabel(activeTask.status)}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -1905,7 +1994,7 @@ export default function ProjectShow({ project }: Props) {
                                                     {activeTask.priority ? (
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-3 rounded" style={{ backgroundColor: getPriorityColor(activeTask.priority) }} />
-                                                            <span className="text-sm capitalize">{activeTask.priority}</span>
+                                                            <span className="text-sm">{getTranslatedPriorityLabel(activeTask.priority)}</span>
                                                         </div>
                                                     ) : (
                                                         <span className="text-sm text-muted-foreground">–</span>
@@ -1932,9 +2021,9 @@ export default function ProjectShow({ project }: Props) {
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="size-6">
                                                                 <AvatarImage src="" />
-                                                                <AvatarFallback className="text-xs">Me</AvatarFallback>
+                                                                <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
                                                             </Avatar>
-                                                            <span className="text-sm">Me</span>
+                                                            <span className="text-sm">{t('common.me', 'Me')}</span>
                                                         </div>
                                                     ) : (
                                                         <span className="text-sm text-muted-foreground">–</span>
@@ -1970,9 +2059,9 @@ export default function ProjectShow({ project }: Props) {
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="size-6">
                                                             <AvatarImage src="" />
-                                                            <AvatarFallback className="text-xs">Me</AvatarFallback>
+                                                            <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
                                                         </Avatar>
-                                                        <span className="text-sm">Me</span>
+                                                        <span className="text-sm">{t('common.me', 'Me')}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -2073,10 +2162,10 @@ export default function ProjectShow({ project }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                Create new task
+                                {t('tasks.create_title', 'Create new task')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Add a new task to {project.name}.
+                                {t('tasks.create_desc', 'Add a new task to')} {project.name}.
                             </p>
                         </SheetHeader>
 
@@ -2087,7 +2176,7 @@ export default function ProjectShow({ project }: Props) {
                                 style={{ animationDelay: '100ms' }}
                             >
                                 <Label htmlFor="title" className="text-base">
-                                    Task title
+                                    {t('tasks.task_title', 'Task title')}
                                 </Label>
                                 <Input
                                     id="title"
@@ -2098,7 +2187,7 @@ export default function ProjectShow({ project }: Props) {
                                             title: e.target.value,
                                         }))
                                     }
-                                    placeholder="Enter task title"
+                                    placeholder={t('tasks.task_title_placeholder', 'Enter task title')}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2112,9 +2201,9 @@ export default function ProjectShow({ project }: Props) {
                                     htmlFor="description"
                                     className="text-base"
                                 >
-                                    Description
+                                    {t('tasks.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('tasks.description_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2126,7 +2215,7 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder="What needs to be done?"
+                                    placeholder={t('tasks.description_placeholder', 'What needs to be done?')}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2136,7 +2225,7 @@ export default function ProjectShow({ project }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '300ms' }}
                             >
-                                <Label className="text-base">Adding to</Label>
+                                <Label className="text-base">{t('tasks.adding_to', 'Adding to')}</Label>
                                 {(() => {
                                     const selectedList = taskLists.find(
                                         (l) => l.id === taskForm.task_list_id,
@@ -2163,7 +2252,7 @@ export default function ProjectShow({ project }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">Priority</Label>
+                                <Label className="text-base">{t('tasks.priority', 'Priority')}</Label>
                                 <div className="grid grid-cols-3 gap-4">
                                     <button
                                         type="button"
@@ -2193,7 +2282,7 @@ export default function ProjectShow({ project }: Props) {
                                                     : 'text-foreground'
                                             }`}
                                         >
-                                            Low
+                                            {t('tasks.priority_low', 'Low')}
                                         </p>
                                     </button>
                                     <button
@@ -2224,7 +2313,7 @@ export default function ProjectShow({ project }: Props) {
                                                     : 'text-foreground'
                                             }`}
                                         >
-                                            Medium
+                                            {t('tasks.priority_medium', 'Medium')}
                                         </p>
                                     </button>
                                     <button
@@ -2255,7 +2344,7 @@ export default function ProjectShow({ project }: Props) {
                                                     : 'text-foreground'
                                             }`}
                                         >
-                                            High
+                                            {t('tasks.priority_high', 'High')}
                                         </p>
                                     </button>
                                 </div>
@@ -2267,9 +2356,9 @@ export default function ProjectShow({ project }: Props) {
                                 style={{ animationDelay: '500ms' }}
                             >
                                 <Label className="text-base">
-                                    Due date
+                                    {t('tasks.due_date', 'Due date')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('tasks.due_date_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Popover>
@@ -2292,7 +2381,7 @@ export default function ProjectShow({ project }: Props) {
                                                           day: 'numeric',
                                                       });
                                                   })()
-                                                : 'Select date'}
+                                                : t('tasks.select_date', 'Select date')}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
@@ -2334,7 +2423,7 @@ export default function ProjectShow({ project }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-md"
                                     onClick={() => setIsCreateTaskOpen(false)}
                                 >
-                                    Cancel
+                                    {t('tasks.cancel', 'Cancel')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -2381,7 +2470,7 @@ export default function ProjectShow({ project }: Props) {
                                         );
                                     }}
                                 >
-                                    Create task
+                                    {t('tasks.create_btn', 'Create task')}
                                 </Button>
                             </div>
                         </form>
@@ -2401,10 +2490,10 @@ export default function ProjectShow({ project }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                Create new column
+                                {t('task_lists.create_title', 'Create new column')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Add a new column to your Kanban board.
+                                {t('task_lists.create_desc', 'Add a new column to your Kanban board.')}
                             </p>
                         </SheetHeader>
 
@@ -2418,7 +2507,7 @@ export default function ProjectShow({ project }: Props) {
                                     htmlFor="column-name"
                                     className="text-base"
                                 >
-                                    Column name
+                                    {t('task_lists.name', 'Column name')}
                                 </Label>
                                 <Input
                                     id="column-name"
@@ -2429,7 +2518,7 @@ export default function ProjectShow({ project }: Props) {
                                             name: e.target.value,
                                         }))
                                     }
-                                    placeholder="e.g., To Do, In Progress, Done"
+                                    placeholder={t('task_lists.name_placeholder', 'e.g., To Do, In Progress, Done')}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2443,9 +2532,9 @@ export default function ProjectShow({ project }: Props) {
                                     htmlFor="column-description"
                                     className="text-base"
                                 >
-                                    Description
+                                    {t('task_lists.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('task_lists.description_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2457,7 +2546,7 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder="Describe what tasks belong in this column"
+                                    placeholder={t('task_lists.description_placeholder', 'Describe what tasks belong in this column')}
                                     className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2468,7 +2557,7 @@ export default function ProjectShow({ project }: Props) {
                                 style={{ animationDelay: '250ms' }}
                             >
                                 <Label className="text-base">
-                                    Column color
+                                    {t('task_lists.color', 'Column color')}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {[
@@ -2573,7 +2662,7 @@ export default function ProjectShow({ project }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-md"
                                     onClick={() => setIsCreateColumnOpen(false)}
                                 >
-                                    Cancel
+                                    {t('task_lists.cancel', 'Cancel')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -2614,8 +2703,8 @@ export default function ProjectShow({ project }: Props) {
                                     }}
                                 >
                                     {isCreatingColumn
-                                        ? 'Creating...'
-                                        : 'Create column'}
+                                        ? t('common.loading', 'Creating...')
+                                        : t('task_lists.create_btn', 'Create column')}
                                 </Button>
                             </div>
                         </form>
@@ -2645,10 +2734,10 @@ export default function ProjectShow({ project }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                Edit column
+                                {t('task_lists.edit_title', 'Edit column')}
                             </SheetTitle>
                             <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                Update column details on your Kanban board.
+                                {t('task_lists.edit_desc', 'Update column details.')}
                             </p>
                         </SheetHeader>
 
@@ -2662,7 +2751,7 @@ export default function ProjectShow({ project }: Props) {
                                     htmlFor="edit-column-name"
                                     className="text-base"
                                 >
-                                    Column name
+                                    {t('task_lists.name', 'Column name')}
                                 </Label>
                                 <Input
                                     id="edit-column-name"
@@ -2673,7 +2762,7 @@ export default function ProjectShow({ project }: Props) {
                                             name: e.target.value,
                                         }))
                                     }
-                                    placeholder="e.g., To Do, In Progress, Done"
+                                    placeholder={t('task_lists.name_placeholder', 'e.g., To Do, In Progress, Done')}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2687,9 +2776,9 @@ export default function ProjectShow({ project }: Props) {
                                     htmlFor="edit-column-description"
                                     className="text-base"
                                 >
-                                    Description
+                                    {t('task_lists.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        (optional)
+                                        {t('task_lists.description_optional', '(optional)')}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2701,7 +2790,7 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder="Describe what tasks belong in this column"
+                                    placeholder={t('task_lists.description_placeholder', 'Describe what tasks belong in this column')}
                                     className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2712,7 +2801,7 @@ export default function ProjectShow({ project }: Props) {
                                 style={{ animationDelay: '250ms' }}
                             >
                                 <Label className="text-base">
-                                    Column color
+                                    {t('task_lists.color', 'Column color')}
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     {[
@@ -2817,7 +2906,7 @@ export default function ProjectShow({ project }: Props) {
                                     className="flex-1 transition-all duration-200 hover:shadow-md"
                                     onClick={() => setIsEditColumnOpen(false)}
                                 >
-                                    Cancel
+                                    {t('common.cancel', 'Cancel')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -2865,8 +2954,8 @@ export default function ProjectShow({ project }: Props) {
                                     }}
                                 >
                                     {isCreatingColumn
-                                        ? 'Saving...'
-                                        : 'Save changes'}
+                                        ? t('common.saving', 'Saving...')
+                                        : t('common.save_changes', 'Save changes')}
                                 </Button>
                             </div>
                         </form>
@@ -2883,14 +2972,13 @@ export default function ProjectShow({ project }: Props) {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete column?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('task_lists.delete_title', 'Delete column?')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete this column and all
-                            tasks within it. This action cannot be undone.
+                            {t('task_lists.delete_desc', 'This will permanently delete this column and all tasks within it. This action cannot be undone.')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel', 'Cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
                             onClick={() => {
@@ -2909,7 +2997,7 @@ export default function ProjectShow({ project }: Props) {
                                 );
                             }}
                         >
-                            Delete
+                            {t('common.delete', 'Delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2947,22 +3035,22 @@ export default function ProjectShow({ project }: Props) {
 
                         const stats = [
                             {
-                                label: 'Pending',
+                                label: t('tasks.status_pending', 'Pending'),
                                 count: pendingTasks,
                                 color: '#a855f7',
                             },
                             {
-                                label: 'In Progress',
+                                label: t('tasks.status_in_progress', 'In Progress'),
                                 count: inProgressTasks,
                                 color: '#3b82f6',
                             },
                             {
-                                label: 'Completed',
+                                label: t('tasks.status_completed', 'Completed'),
                                 count: completedTasks,
                                 color: '#22c55e',
                             },
                             {
-                                label: 'Cancelled',
+                                label: t('tasks.status_cancelled', 'Cancelled'),
                                 count: cancelledTasks,
                                 color: '#ef4444',
                             },
@@ -2996,7 +3084,7 @@ export default function ProjectShow({ project }: Props) {
                                             {totalTasks}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            total tasks
+                                            {t('tasks.total_tasks', 'total tasks')}
                                         </p>
                                     </div>
                                 </div>
@@ -3028,22 +3116,22 @@ export default function ProjectShow({ project }: Props) {
                                 <div className="grid grid-cols-4 gap-6">
                                     {[
                                         {
-                                            label: 'Pending',
+                                            label: t('tasks.status_pending', 'Pending'),
                                             count: pendingTasks,
                                             color: '#a855f7',
                                         },
                                         {
-                                            label: 'In Progress',
+                                            label: t('tasks.status_in_progress', 'In Progress'),
                                             count: inProgressTasks,
                                             color: '#3b82f6',
                                         },
                                         {
-                                            label: 'Completed',
+                                            label: t('tasks.status_completed', 'Completed'),
                                             count: completedTasks,
                                             color: '#22c55e',
                                         },
                                         {
-                                            label: 'Cancelled',
+                                            label: t('tasks.status_cancelled', 'Cancelled'),
                                             count: cancelledTasks,
                                             color: '#ef4444',
                                         },
