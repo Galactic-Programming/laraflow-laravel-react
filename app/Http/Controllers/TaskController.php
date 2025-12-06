@@ -59,14 +59,65 @@ class TaskController extends Controller
         $this->ensureBelongs($project, $taskList, $task);
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high',
-            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'priority' => 'sometimes|required|in:low,medium,high',
+            'status' => 'sometimes|required|in:pending,in_progress,completed,cancelled',
             'due_date' => 'nullable|date',
+            'position' => 'sometimes|integer|min:0',
+            'task_list_id' => 'sometimes|integer|exists:task_lists,id',
         ]);
 
-        $task->update($validated);
+        // Handle position/list change
+        if (isset($validated['position']) || isset($validated['task_list_id'])) {
+            $newListId = $validated['task_list_id'] ?? $task->task_list_id;
+            $newPosition = $validated['position'] ?? $task->position;
+            
+            // If moving to a different list
+            if ($newListId != $task->task_list_id) {
+                // Verify new list belongs to project
+                $newList = TaskList::where('id', $newListId)
+                    ->where('project_id', $project->id)
+                    ->firstOrFail();
+                
+                // Shift tasks in old list (close the gap)
+                Task::where('task_list_id', $task->task_list_id)
+                    ->where('position', '>', $task->position)
+                    ->decrement('position');
+                
+                // Shift tasks in new list (make room)
+                Task::where('task_list_id', $newListId)
+                    ->where('position', '>=', $newPosition)
+                    ->increment('position');
+                
+                $task->task_list_id = $newListId;
+                $task->position = $newPosition;
+            } else {
+                // Moving within the same list
+                $oldPosition = $task->position;
+                
+                if ($newPosition > $oldPosition) {
+                    // Moving down: shift tasks between old and new position up
+                    Task::where('task_list_id', $task->task_list_id)
+                        ->where('position', '>', $oldPosition)
+                        ->where('position', '<=', $newPosition)
+                        ->decrement('position');
+                } elseif ($newPosition < $oldPosition) {
+                    // Moving up: shift tasks between new and old position down
+                    Task::where('task_list_id', $task->task_list_id)
+                        ->where('position', '>=', $newPosition)
+                        ->where('position', '<', $oldPosition)
+                        ->increment('position');
+                }
+                
+                $task->position = $newPosition;
+            }
+            
+            unset($validated['position'], $validated['task_list_id']);
+        }
+
+        $task->fill($validated);
+        $task->save();
 
         return response()->json([
             'message' => 'Task updated successfully',

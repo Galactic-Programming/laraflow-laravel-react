@@ -1,4 +1,4 @@
-import { store as storeTask } from '@/actions/App/Http/Controllers/TaskController';
+import { store as storeTask, update as updateTask } from '@/actions/App/Http/Controllers/TaskController';
 import {
     destroy as destroyTaskList,
     store as storeTaskList,
@@ -35,6 +35,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import {
     Sheet,
     SheetContent,
@@ -47,15 +48,23 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import {
     closestCenter,
+    closestCorners,
     DndContext,
+    DragOverlay,
     KeyboardSensor,
+    MeasuringStrategy,
+    pointerWithin,
     PointerSensor,
+    rectIntersection,
     useSensor,
     useSensors,
     type DragEndEvent,
+    type DragOverEvent,
+    type DragStartEvent,
 } from '@dnd-kit/core';
 import {
     arrayMove,
+    horizontalListSortingStrategy,
     SortableContext,
     sortableKeyboardCoordinates,
     useSortable,
@@ -101,7 +110,7 @@ import {
     X,
     type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Column configuration
 interface ColumnConfig {
@@ -398,6 +407,441 @@ function SortableTaskListRow({
     );
 }
 
+// Sortable Table Task Row Component
+interface SortableTableTaskRowProps {
+    task: Task;
+    listId: number;
+    gridCols: string;
+    columns: ColumnConfig[];
+    getStatusColor: (status: string) => string;
+    getStatusLabel: (status: string) => string;
+    getPriorityColor: (priority: string) => string;
+}
+
+function SortableTableTaskRow({
+    task,
+    listId,
+    gridCols,
+    columns,
+    getStatusColor,
+    getStatusLabel,
+    getPriorityColor,
+}: SortableTableTaskRowProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ 
+        id: `table-task-${task.id}`,
+        data: {
+            type: 'table-task',
+            task,
+            listId,
+        },
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition: isDragging ? 'none' : transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+        opacity: isDragging ? 0 : 1,
+        zIndex: isDragging ? 10 : 0,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                ...style,
+                gridTemplateColumns: `${gridCols} 40px`,
+            }}
+            {...attributes}
+            {...listeners}
+            className={`group grid cursor-grab border-b transition-colors duration-150 active:cursor-grabbing hover:bg-muted/30 pl-6 ${
+                isDragging ? 'bg-muted/50' : ''
+            }`}
+        >
+            {/* Task Title - Always visible */}
+            <div className="flex items-center gap-3 px-4 py-3">
+                <span
+                    className={`text-sm ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
+                >
+                    {task.title}
+                </span>
+                {task.subtasks_total && task.subtasks_total > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Check className="size-3" />
+                        {task.subtasks_completed}/{task.subtasks_total}
+                    </span>
+                )}
+            </div>
+
+            {/* Status */}
+            {columns.find((c) => c.id === 'status')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    <div className="flex items-center gap-2">
+                        <div
+                            className="size-3 rounded"
+                            style={{ backgroundColor: getStatusColor(task.status) }}
+                        />
+                        <span className="text-sm">{getStatusLabel(task.status)}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Priority */}
+            {columns.find((c) => c.id === 'priority')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    {task.priority ? (
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="size-3 rounded"
+                                style={{ backgroundColor: getPriorityColor(task.priority) }}
+                            />
+                            <span className="text-sm capitalize">{task.priority}</span>
+                        </div>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">–</span>
+                    )}
+                </div>
+            )}
+
+            {/* Due Date */}
+            {columns.find((c) => c.id === 'dueDate')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                          })
+                        : '–'}
+                </div>
+            )}
+
+            {/* Assignee */}
+            {columns.find((c) => c.id === 'assignee')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    {task.assigned_to ? (
+                        <div className="flex items-center gap-2">
+                            <Avatar className="size-6">
+                                <AvatarImage src="" />
+                                <AvatarFallback className="text-xs">Me</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">Me</span>
+                        </div>
+                    ) : (
+                        <span className="text-sm text-muted-foreground">–</span>
+                    )}
+                </div>
+            )}
+
+            {/* Created At */}
+            {columns.find((c) => c.id === 'createdAt')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {new Date().toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                    })}
+                </div>
+            )}
+
+            {/* Completed At */}
+            {columns.find((c) => c.id === 'completedAt')?.visible && (
+                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                    {task.completed_at
+                        ? new Date(task.completed_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                          })
+                        : '–'}
+                </div>
+            )}
+
+            {/* Creator */}
+            {columns.find((c) => c.id === 'creator')?.visible && (
+                <div className="flex items-center px-3 py-3">
+                    <div className="flex items-center gap-2">
+                        <Avatar className="size-6">
+                            <AvatarImage src="" />
+                            <AvatarFallback className="text-xs">Me</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">Me</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Empty cell for settings column alignment */}
+            <div />
+        </div>
+    );
+}
+
+// Sortable Task Card Component
+interface SortableTaskCardProps {
+    task: Task;
+    isDragOverlay?: boolean;
+}
+
+function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ 
+        id: `task-${task.id}`,
+        data: {
+            type: 'task',
+            task,
+        },
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    if (isDragOverlay) {
+        return (
+            <div className="w-72 cursor-grabbing rounded-lg border bg-background p-3 shadow-xl ring-2 ring-primary/30">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                    <span className="text-sm font-medium leading-snug">
+                        {task.title}
+                    </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <span
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={{
+                            backgroundColor: `${getStatusColor(task.status)}15`,
+                            color: getStatusColor(task.status),
+                        }}
+                    >
+                        {getStatusLabel(task.status)}
+                    </span>
+                    <span
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                        style={{
+                            backgroundColor: `${getPriorityColor(task.priority)}15`,
+                            color: getPriorityColor(task.priority),
+                        }}
+                    >
+                        {task.priority}
+                    </span>
+                    {task.due_date && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="size-3" />
+                            {(() => {
+                                const [year, month, day] = task.due_date.split('-').map(Number);
+                                const date = new Date(year, month - 1, day);
+                                return date.toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                });
+                            })()}
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className={`group/card cursor-grab rounded-lg border bg-background p-3 shadow-sm transition-all active:cursor-grabbing hover:shadow-md ${
+                isDragging ? 'opacity-50' : ''
+            }`}
+        >
+            <div className="mb-2 flex items-start justify-between gap-2">
+                <span className="text-sm font-medium leading-snug">
+                    {task.title}
+                </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+                <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{
+                        backgroundColor: `${getStatusColor(task.status)}15`,
+                        color: getStatusColor(task.status),
+                    }}
+                >
+                    {getStatusLabel(task.status)}
+                </span>
+                <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                    style={{
+                        backgroundColor: `${getPriorityColor(task.priority)}15`,
+                        color: getPriorityColor(task.priority),
+                    }}
+                >
+                    {task.priority}
+                </span>
+                {task.due_date && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="size-3" />
+                        {(() => {
+                            const [year, month, day] = task.due_date.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            return date.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                            });
+                        })()}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// Sortable Kanban Column Component
+interface SortableKanbanColumnProps {
+    list: TaskList & { _listNameMatches?: boolean };
+    index: number;
+    mounted: boolean;
+    onEditColumn: (list: TaskList) => void;
+    onDeleteColumn: (listId: number) => void;
+    onAddTask: (listId: number) => void;
+}
+
+function SortableKanbanColumn({
+    list,
+    index,
+    mounted,
+    onEditColumn,
+    onDeleteColumn,
+    onAddTask,
+}: SortableKanbanColumnProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ 
+        id: list.id,
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 100 : 'auto',
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                ...style,
+                animation:
+                    mounted && !isDragging && !transform
+                        ? `fadeSlideIn 400ms ease-out ${index * 80}ms both`
+                        : 'none',
+            }}
+            className={`group/column flex w-80 shrink-0 flex-col ${isDragging ? 'rounded-xl shadow-2xl shadow-black/20 ring-2 ring-primary/30' : ''}`}
+        >
+            {/* Column Header - Draggable */}
+            <div
+                {...attributes}
+                {...listeners}
+                className="mb-3 flex cursor-grab items-center justify-between active:cursor-grabbing"
+            >
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onEditColumn(list);
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="-ml-2 flex items-center gap-2.5 rounded-md px-2 py-1 transition-colors hover:bg-muted"
+                >
+                    <div
+                        className="size-2.5 rounded-full"
+                        style={{
+                            backgroundColor: list.color,
+                        }}
+                    />
+                    <h3 className="text-sm font-semibold text-foreground">
+                        {list.name}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                        {list.tasks.length}
+                    </span>
+                </button>
+                <div
+                    className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <button
+                        onClick={() => onAddTask(list.id)}
+                        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                        <Plus className="size-4" />
+                    </button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                <MoreHorizontal className="size-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={() => onEditColumn(list)}
+                            >
+                                <Pencil className="mr-2 size-4" />
+                                Edit column
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                onClick={() => onDeleteColumn(list.id)}
+                            >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete column
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+
+            {/* Cards Container */}
+            <SortableContext
+                items={list.tasks.map((t) => `task-${t.id}`)}
+                strategy={verticalListSortingStrategy}
+            >
+                <div 
+                    className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5"
+                    data-list-id={list.id}
+                >
+                    {list.tasks.length > 0 ? (
+                        list.tasks.map((task) => (
+                            <SortableTaskCard key={task.id} task={task} />
+                        ))
+                    ) : (
+                        /* Add task button - shows on hover when empty */
+                        <button
+                            onClick={() => onAddTask(list.id)}
+                            className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50"
+                        >
+                            <Plus className="size-4" />
+                            <span>Add task</span>
+                        </button>
+                    )}
+                </div>
+            </SortableContext>
+        </div>
+    );
+}
+
 export default function ProjectShow({ project }: Props) {
     // Get taskLists first before using in state
     const taskLists = project.task_lists ?? mockTaskLists;
@@ -417,7 +861,7 @@ export default function ProjectShow({ project }: Props) {
     const [mounted, setMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedLists, setExpandedLists] = useState<number[]>(
-        mockTaskLists.map((l) => l.id),
+        taskLists.map((l) => l.id),
     );
 
     // Load columns config from localStorage
@@ -472,13 +916,15 @@ export default function ProjectShow({ project }: Props) {
     );
     const [orderedTaskLists, setOrderedTaskLists] =
         useState<TaskList[]>(taskLists);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const skipSyncRef = useRef(false);
     const ProjectIcon = getProjectIcon(project.icon);
 
     // DnD sensors
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -486,11 +932,209 @@ export default function ProjectShow({ project }: Props) {
         }),
     );
 
+    // Handle drag start
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const activeId = String(active.id);
+        
+        if (activeId.startsWith('task-')) {
+            const taskId = parseInt(activeId.replace('task-', ''));
+            // Find the task in orderedTaskLists
+            for (const list of orderedTaskLists) {
+                const task = list.tasks.find((t) => t.id === taskId);
+                if (task) {
+                    setActiveTask(task);
+                    break;
+                }
+            }
+        }
+    };
+
+    // Handle drag over (for moving tasks between columns)
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeId = String(active.id);
+        const overId = String(over.id);
+
+        // Only handle task dragging
+        if (!activeId.startsWith('task-')) return;
+
+        const activeTaskId = parseInt(activeId.replace('task-', ''));
+        
+        // Find source list
+        let sourceListId: number | null = null;
+        let sourceTaskIndex: number = -1;
+        
+        for (const list of orderedTaskLists) {
+            const taskIndex = list.tasks.findIndex((t) => t.id === activeTaskId);
+            if (taskIndex !== -1) {
+                sourceListId = list.id;
+                sourceTaskIndex = taskIndex;
+                break;
+            }
+        }
+
+        if (sourceListId === null) return;
+
+        // Determine destination list
+        let destListId: number | null = null;
+        
+        if (overId.startsWith('task-')) {
+            // Dropping on another task
+            const overTaskId = parseInt(overId.replace('task-', ''));
+            for (const list of orderedTaskLists) {
+                if (list.tasks.some((t) => t.id === overTaskId)) {
+                    destListId = list.id;
+                    break;
+                }
+            }
+        } else {
+            // Check if dropping on a column
+            const listId = parseInt(overId);
+            if (orderedTaskLists.some((l) => l.id === listId)) {
+                destListId = listId;
+            }
+        }
+
+        if (destListId === null || sourceListId === destListId) return;
+
+        // Move task to new list (optimistic update)
+        setOrderedTaskLists((prev) => {
+            const newLists = prev.map((list) => ({
+                ...list,
+                tasks: [...list.tasks],
+            }));
+
+            const sourceList = newLists.find((l) => l.id === sourceListId);
+            const destList = newLists.find((l) => l.id === destListId);
+
+            if (!sourceList || !destList) return prev;
+
+            const [movedTask] = sourceList.tasks.splice(sourceTaskIndex, 1);
+            movedTask.task_list_id = destListId!;
+            destList.tasks.push(movedTask);
+
+            return newLists;
+        });
+    };
+
     // Handle drag end
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        
+        setActiveTask(null);
 
-        if (over && active.id !== over.id) {
+        if (!over) return;
+
+        const activeId = String(active.id);
+        const overId = String(over.id);
+
+        // Handle task drag
+        if (activeId.startsWith('task-')) {
+            const activeTaskId = parseInt(activeId.replace('task-', ''));
+            
+            // Find the task and its list
+            let sourceList: TaskList | null = null;
+            let task: Task | null = null;
+            
+            for (const list of orderedTaskLists) {
+                const foundTask = list.tasks.find((t) => t.id === activeTaskId);
+                if (foundTask) {
+                    sourceList = list;
+                    task = foundTask;
+                    break;
+                }
+            }
+
+            if (!sourceList || !task) return;
+
+            // Determine target position and list
+            let targetListId = sourceList.id;
+            let targetPosition = task.position;
+
+            if (overId.startsWith('task-')) {
+                const overTaskId = parseInt(overId.replace('task-', ''));
+                for (const list of orderedTaskLists) {
+                    const overTaskIndex = list.tasks.findIndex((t) => t.id === overTaskId);
+                    if (overTaskIndex !== -1) {
+                        targetListId = list.id;
+                        targetPosition = overTaskIndex;
+                        break;
+                    }
+                }
+            } else {
+                // Dropped on column
+                const listId = parseInt(overId);
+                const targetList = orderedTaskLists.find((l) => l.id === listId);
+                if (targetList) {
+                    targetListId = listId;
+                    targetPosition = targetList.tasks.length;
+                }
+            }
+
+            // Update local state
+            setOrderedTaskLists((prev) => {
+                const newLists = prev.map((list) => ({
+                    ...list,
+                    tasks: [...list.tasks],
+                }));
+
+                // Find and remove task from source
+                const srcList = newLists.find((l) => l.tasks.some((t) => t.id === activeTaskId));
+                if (!srcList) return prev;
+                
+                const taskIndex = srcList.tasks.findIndex((t) => t.id === activeTaskId);
+                const [movedTask] = srcList.tasks.splice(taskIndex, 1);
+                
+                // Add to destination
+                const destList = newLists.find((l) => l.id === targetListId);
+                if (!destList) return prev;
+                
+                movedTask.task_list_id = targetListId;
+                destList.tasks.splice(targetPosition, 0, movedTask);
+
+                // Update positions
+                destList.tasks.forEach((t, i) => {
+                    t.position = i;
+                });
+
+                return newLists;
+            });
+
+            // Skip sync from props
+            skipSyncRef.current = true;
+            setTimeout(() => {
+                skipSyncRef.current = false;
+            }, 1000);
+
+            // Save to backend
+            fetch(
+                updateTask.url({
+                    project: project.id,
+                    taskList: sourceList.id,
+                    task: activeTaskId,
+                }),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        task_list_id: targetListId,
+                        position: targetPosition,
+                    }),
+                },
+            );
+
+            return;
+        }
+
+        // Handle column drag (existing logic)
+        if (active.id !== over.id) {
             const oldIndex = orderedTaskLists.findIndex(
                 (item) => item.id === active.id,
             );
@@ -498,31 +1142,220 @@ export default function ProjectShow({ project }: Props) {
                 (item) => item.id === over.id,
             );
 
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            // Get the moved item before reordering
+            const movedItem = orderedTaskLists[oldIndex];
+
+            // Skip sync from props for a while to prevent flash
+            skipSyncRef.current = true;
+            setTimeout(() => {
+                skipSyncRef.current = false;
+            }, 1000);
+
             // Immediately update UI (optimistic update)
             const newOrder = arrayMove(orderedTaskLists, oldIndex, newIndex);
             setOrderedTaskLists(newOrder);
 
-            // Send single batch update to backend in background
-            // Only update the moved item's position
-            const movedItem = newOrder[newIndex];
-            router.put(
+            // Send update to backend silently (no page reload)
+            fetch(
                 updateTaskList.url({
                     project: project.id,
                     taskList: movedItem.id,
                 }),
-                { position: newIndex },
                 {
-                    preserveScroll: true,
-                    preserveState: true,
-                    only: [], // Don't reload any props
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ position: newIndex }),
                 },
             );
         }
     };
 
-    // Sync orderedTaskLists with taskLists when it changes
+    // Handle Table drag start
+    const handleTableDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const activeId = String(active.id);
+        
+        if (activeId.startsWith('table-task-')) {
+            const taskId = parseInt(activeId.replace('table-task-', ''));
+            for (const list of orderedTaskLists) {
+                const task = list.tasks.find((t) => t.id === taskId);
+                if (task) {
+                    setActiveTask(task);
+                    break;
+                }
+            }
+        }
+    };
+
+    // Handle Table drag end
+    const handleTableDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        setActiveTask(null);
+
+        if (!over) return;
+
+        const activeId = String(active.id);
+        const overId = String(over.id);
+
+        // Handle table task drag
+        if (activeId.startsWith('table-task-')) {
+            const activeTaskId = parseInt(activeId.replace('table-task-', ''));
+            
+            // Find the task and its list
+            let sourceList: TaskList | null = null;
+            let sourceTaskIndex: number = -1;
+            
+            for (const list of orderedTaskLists) {
+                const taskIndex = list.tasks.findIndex((t) => t.id === activeTaskId);
+                if (taskIndex !== -1) {
+                    sourceList = list;
+                    sourceTaskIndex = taskIndex;
+                    break;
+                }
+            }
+
+            if (!sourceList || sourceTaskIndex === -1) return;
+
+            // Determine target position
+            let targetListId = sourceList.id;
+            let targetPosition = sourceTaskIndex;
+
+            if (overId.startsWith('table-task-')) {
+                const overTaskId = parseInt(overId.replace('table-task-', ''));
+                for (const list of orderedTaskLists) {
+                    const overTaskIndex = list.tasks.findIndex((t) => t.id === overTaskId);
+                    if (overTaskIndex !== -1) {
+                        targetListId = list.id;
+                        targetPosition = overTaskIndex;
+                        break;
+                    }
+                }
+            }
+
+            // Only proceed if position changed
+            if (targetListId === sourceList.id && targetPosition === sourceTaskIndex) return;
+
+            // Update local state
+            setOrderedTaskLists((prev) => {
+                const newLists = prev.map((list) => ({
+                    ...list,
+                    tasks: [...list.tasks],
+                }));
+
+                // Find and remove task from source
+                const srcList = newLists.find((l) => l.id === sourceList!.id);
+                if (!srcList) return prev;
+                
+                const [movedTask] = srcList.tasks.splice(sourceTaskIndex, 1);
+                
+                // Add to destination
+                const destList = newLists.find((l) => l.id === targetListId);
+                if (!destList) return prev;
+                
+                movedTask.task_list_id = targetListId;
+                
+                // Adjust target position if moving within same list and moving down
+                let adjustedPosition = targetPosition;
+                if (sourceList!.id === targetListId && sourceTaskIndex < targetPosition) {
+                    adjustedPosition = targetPosition;
+                }
+                
+                destList.tasks.splice(adjustedPosition, 0, movedTask);
+
+                // Update positions
+                destList.tasks.forEach((t, i) => {
+                    t.position = i;
+                });
+
+                return newLists;
+            });
+
+            // Skip sync from props
+            skipSyncRef.current = true;
+            setTimeout(() => {
+                skipSyncRef.current = false;
+            }, 1000);
+
+            // Save to backend
+            fetch(
+                updateTask.url({
+                    project: project.id,
+                    taskList: sourceList.id,
+                    task: activeTaskId,
+                }),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        task_list_id: targetListId,
+                        position: targetPosition,
+                    }),
+                },
+            );
+
+            return;
+        }
+
+        // Handle task list (column) drag
+        if (!activeId.startsWith('table-task-') && over.id !== active.id) {
+            const oldIndex = orderedTaskLists.findIndex(
+                (item) => item.id === active.id,
+            );
+            const newIndex = orderedTaskLists.findIndex(
+                (item) => item.id === over.id,
+            );
+
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            const movedItem = orderedTaskLists[oldIndex];
+
+            skipSyncRef.current = true;
+            setTimeout(() => {
+                skipSyncRef.current = false;
+            }, 1000);
+
+            const newOrder = arrayMove(orderedTaskLists, oldIndex, newIndex);
+            setOrderedTaskLists(newOrder);
+
+            fetch(
+                updateTaskList.url({
+                    project: project.id,
+                    taskList: movedItem.id,
+                }),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ position: newIndex }),
+                },
+            );
+        }
+    };
+
+    // Sync orderedTaskLists with taskLists when it changes (but skip after drag)
     useEffect(() => {
-        setOrderedTaskLists(taskLists);
+        if (!skipSyncRef.current) {
+            setOrderedTaskLists(taskLists);
+        }
+        // Auto-expand any new task lists
+        setExpandedLists((prev) => {
+            const newIds = taskLists.map((l) => l.id).filter((id) => !prev.includes(id));
+            return newIds.length > 0 ? [...newIds, ...prev] : prev;
+        });
     }, [taskLists]);
 
     // Smart search helper - removes Vietnamese diacritics and normalizes text
@@ -929,11 +1762,15 @@ export default function ProjectShow({ project }: Props) {
                             {/* Task Lists */}
                             <DndContext
                                 sensors={sensors}
-                                collisionDetection={closestCenter}
-                                onDragEnd={handleDragEnd}
+                                collisionDetection={closestCorners}
+                                onDragStart={handleTableDragStart}
+                                onDragEnd={handleTableDragEnd}
                             >
                                 <SortableContext
-                                    items={filteredTaskLists.map((l) => l.id)}
+                                    items={[
+                                        ...filteredTaskLists.map((l) => l.id),
+                                        ...filteredTaskLists.flatMap((l) => l.tasks.map((t) => `table-task-${t.id}`)),
+                                    ]}
                                     strategy={verticalListSortingStrategy}
                                 >
                                     <div>
@@ -982,412 +1819,247 @@ export default function ProjectShow({ project }: Props) {
                                                     {expandedLists.includes(
                                                         list.id,
                                                     ) && (
-                                                        <div className="animate-in duration-200 fade-in slide-in-from-top-2">
-                                                            {list.tasks.map(
-                                                                (
-                                                                    task,
-                                                                    taskIndex,
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            task.id
-                                                                        }
-                                                                        className="group grid border-b transition-all duration-150 hover:bg-muted/30"
-                                                                        style={{
-                                                                            gridTemplateColumns: `${gridCols} 40px`,
-                                                                            animation: `fadeSlideIn 300ms ease-out ${taskIndex * 50}ms both`,
-                                                                        }}
-                                                                    >
-                                                                        {/* Task Title - Always visible */}
-                                                                        <div className="flex items-center gap-3 px-4 py-3">
-                                                                            <span
-                                                                                className={`text-sm ${task.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
-                                                                            >
-                                                                                {
-                                                                                    task.title
-                                                                                }
-                                                                            </span>
-                                                                            {task.subtasks_total &&
-                                                                                task.subtasks_total >
-                                                                                    0 && (
-                                                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                                        <Check className="size-3" />
-                                                                                        {
-                                                                                            task.subtasks_completed
-                                                                                        }
-
-                                                                                        /
-                                                                                        {
-                                                                                            task.subtasks_total
-                                                                                        }
-                                                                                    </span>
-                                                                                )}
-                                                                        </div>
-
-                                                                        {/* Status */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'status',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <div
-                                                                                        className="size-3 rounded"
-                                                                                        style={{
-                                                                                            backgroundColor:
-                                                                                                getStatusColor(
-                                                                                                    task.status,
-                                                                                                ),
-                                                                                        }}
-                                                                                    />
-                                                                                    <span className="text-sm">
-                                                                                        {getStatusLabel(
-                                                                                            task.status,
-                                                                                        )}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Priority */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'priority',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3">
-                                                                                {task.priority ? (
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div
-                                                                                            className="size-3 rounded"
-                                                                                            style={{
-                                                                                                backgroundColor:
-                                                                                                    getPriorityColor(
-                                                                                                        task.priority,
-                                                                                                    ),
-                                                                                            }}
-                                                                                        />
-                                                                                        <span className="text-sm capitalize">
-                                                                                            {
-                                                                                                task.priority
-                                                                                            }
-                                                                                        </span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="text-sm text-muted-foreground">
-                                                                                        –
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Due Date */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'dueDate',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                                {task.due_date
-                                                                                    ? new Date(
-                                                                                          task.due_date,
-                                                                                      ).toLocaleDateString(
-                                                                                          'en-US',
-                                                                                          {
-                                                                                              month: 'short',
-                                                                                              day: 'numeric',
-                                                                                          },
-                                                                                      )
-                                                                                    : '–'}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Assignee */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'assignee',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3">
-                                                                                {task.assigned_to ? (
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <Avatar className="size-6">
-                                                                                            <AvatarImage src="" />
-                                                                                            <AvatarFallback className="text-xs">
-                                                                                                Me
-                                                                                            </AvatarFallback>
-                                                                                        </Avatar>
-                                                                                        <span className="text-sm">
-                                                                                            Me
-                                                                                        </span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="text-sm text-muted-foreground">
-                                                                                        –
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Created At */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'createdAt',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                                {new Date().toLocaleDateString(
-                                                                                    'en-US',
-                                                                                    {
-                                                                                        month: 'short',
-                                                                                        day: 'numeric',
-                                                                                    },
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Completed At */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'completedAt',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                                                {task.completed_at
-                                                                                    ? new Date(
-                                                                                          task.completed_at,
-                                                                                      ).toLocaleDateString(
-                                                                                          'en-US',
-                                                                                          {
-                                                                                              month: 'short',
-                                                                                              day: 'numeric',
-                                                                                          },
-                                                                                      )
-                                                                                    : '–'}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Creator */}
-                                                                        {columns.find(
-                                                                            (
-                                                                                c,
-                                                                            ) =>
-                                                                                c.id ===
-                                                                                'creator',
-                                                                        )
-                                                                            ?.visible && (
-                                                                            <div className="flex items-center px-3 py-3">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Avatar className="size-6">
-                                                                                        <AvatarImage src="" />
-                                                                                        <AvatarFallback className="text-xs">
-                                                                                            Me
-                                                                                        </AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    <span className="text-sm">
-                                                                                        Me
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Empty cell for settings column alignment */}
-                                                                        <div />
-                                                                    </div>
-                                                                ),
-                                                            )}
-
-                                                            {/* Add Task Button */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    setTaskForm(
-                                                                        (
-                                                                            prev,
-                                                                        ) => ({
-                                                                            ...prev,
-                                                                            task_list_id:
-                                                                                list.id,
-                                                                        }),
-                                                                    );
-                                                                    setIsCreateTaskOpen(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                                className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-5 hover:text-foreground"
-                                                                style={{
-                                                                    animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
-                                                                }}
+                                                        <SortableContext
+                                                            items={list.tasks.map((t) => `table-task-${t.id}`)}
+                                                            strategy={verticalListSortingStrategy}
+                                                        >
+                                                            <div 
+                                                                className="animate-in duration-200 fade-in slide-in-from-top-2"
+                                                                data-list-id={list.id}
                                                             >
-                                                                <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                                                <span>
-                                                                    Create task
-                                                                </span>
-                                                            </button>
-                                                        </div>
+                                                                {list.tasks.map((task) => (
+                                                                    <SortableTableTaskRow
+                                                                        key={task.id}
+                                                                        task={task}
+                                                                        listId={list.id}
+                                                                        gridCols={gridCols}
+                                                                        columns={columns}
+                                                                        getStatusColor={getStatusColor}
+                                                                        getStatusLabel={getStatusLabel}
+                                                                        getPriorityColor={getPriorityColor}
+                                                                    />
+                                                                ))}
+
+                                                                {/* Add Task Button */}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setTaskForm((prev) => ({
+                                                                            ...prev,
+                                                                            task_list_id: list.id,
+                                                                        }));
+                                                                        setIsCreateTaskOpen(true);
+                                                                    }}
+                                                                    className="group flex w-full items-center gap-2 border-b pl-10 pr-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-12 hover:text-foreground"
+                                                                    style={{
+                                                                        animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
+                                                                    }}
+                                                                >
+                                                                    <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
+                                                                    <span>Create task</span>
+                                                                </button>
+                                                            </div>
+                                                        </SortableContext>
                                                     )}
                                                 </div>
                                             ),
                                         )}
                                     </div>
                                 </SortableContext>
+
+                                {/* DragOverlay for Table Tasks */}
+                                <DragOverlay dropAnimation={{
+                                    duration: 200,
+                                    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                                }}>
+                                    {activeTask ? (
+                                        <div 
+                                            className="grid cursor-grabbing rounded-md border bg-background shadow-xl ring-2 ring-primary/30"
+                                            style={{ gridTemplateColumns: gridCols }}
+                                        >
+                                            {/* Task Title */}
+                                            <div className="flex items-center gap-3 px-4 py-3 pl-6">
+                                                <span className={`text-sm ${activeTask.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}>
+                                                    {activeTask.title}
+                                                </span>
+                                                {activeTask.subtasks_total && activeTask.subtasks_total > 0 && (
+                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                        <Check className="size-3" />
+                                                        {activeTask.subtasks_completed}/{activeTask.subtasks_total}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Status */}
+                                            {columns.find((c) => c.id === 'status')?.visible && (
+                                                <div className="flex items-center px-3 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="size-3 rounded" style={{ backgroundColor: getStatusColor(activeTask.status) }} />
+                                                        <span className="text-sm">{getStatusLabel(activeTask.status)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Priority */}
+                                            {columns.find((c) => c.id === 'priority')?.visible && (
+                                                <div className="flex items-center px-3 py-3">
+                                                    {activeTask.priority ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="size-3 rounded" style={{ backgroundColor: getPriorityColor(activeTask.priority) }} />
+                                                            <span className="text-sm capitalize">{activeTask.priority}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">–</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Due Date */}
+                                            {columns.find((c) => c.id === 'dueDate')?.visible && (
+                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                    {activeTask.due_date
+                                                        ? new Date(activeTask.due_date).toLocaleDateString('en-US', {
+                                                              month: 'short',
+                                                              day: 'numeric',
+                                                          })
+                                                        : '–'}
+                                                </div>
+                                            )}
+
+                                            {/* Assignee */}
+                                            {columns.find((c) => c.id === 'assignee')?.visible && (
+                                                <div className="flex items-center px-3 py-3">
+                                                    {activeTask.assigned_to ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <Avatar className="size-6">
+                                                                <AvatarImage src="" />
+                                                                <AvatarFallback className="text-xs">Me</AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="text-sm">Me</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">–</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Created At */}
+                                            {columns.find((c) => c.id === 'createdAt')?.visible && (
+                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                    {new Date().toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Completed At */}
+                                            {columns.find((c) => c.id === 'completedAt')?.visible && (
+                                                <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
+                                                    {activeTask.completed_at
+                                                        ? new Date(activeTask.completed_at).toLocaleDateString('en-US', {
+                                                              month: 'short',
+                                                              day: 'numeric',
+                                                          })
+                                                        : '–'}
+                                                </div>
+                                            )}
+
+                                            {/* Creator */}
+                                            {columns.find((c) => c.id === 'creator')?.visible && (
+                                                <div className="flex items-center px-3 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar className="size-6">
+                                                            <AvatarImage src="" />
+                                                            <AvatarFallback className="text-xs">Me</AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="text-sm">Me</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </DragOverlay>
                             </DndContext>
                         </div>
                     ) : (
-                        /* Kanban Board - Clean Design */
-                        <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 flex h-full gap-5 overflow-x-auto scroll-smooth p-6 pb-4">
-                            {/* Existing Columns from TaskLists */}
-                            {filteredTaskLists.map((list, index) => (
-                                <div
-                                    key={list.id}
-                                    className="group/column flex w-80 shrink-0 flex-col"
-                                    style={{
-                                        animation: mounted
-                                            ? `fadeSlideIn 400ms ease-out ${index * 80}ms both`
-                                            : 'none',
-                                    }}
-                                >
-                                    {/* Column Header */}
-                                    <div className="mb-3 flex items-center justify-between">
-                                        <button
-                                            onClick={() => {
+                        /* Kanban Board - Clean Design with Drag & Drop */
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCorners}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDragEnd={handleDragEnd}
+                            measuring={{
+                                droppable: {
+                                    strategy: MeasuringStrategy.Always,
+                                },
+                            }}
+                        >
+                            <SortableContext
+                                items={filteredTaskLists.map((l) => l.id)}
+                                strategy={horizontalListSortingStrategy}
+                            >
+                                <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40 flex h-full gap-5 overflow-x-auto scroll-smooth p-6 pb-4">
+                                    {/* Existing Columns from TaskLists */}
+                                    {filteredTaskLists.map((list, index) => (
+                                        <SortableKanbanColumn
+                                            key={list.id}
+                                            list={list}
+                                            index={index}
+                                            mounted={mounted}
+                                            onEditColumn={(l) => {
                                                 setColumnForm({
-                                                    name: list.name,
+                                                    name: l.name,
                                                     description:
-                                                        list.description || '',
-                                                    color: list.color,
+                                                        l.description || '',
+                                                    color: l.color,
                                                 });
-                                                setEditingColumnId(list.id);
+                                                setEditingColumnId(l.id);
                                                 setIsEditColumnOpen(true);
                                             }}
-                                            className="-ml-2 flex items-center gap-2.5 rounded-md px-2 py-1 transition-colors hover:bg-muted"
-                                        >
-                                            <div
-                                                className="size-2.5 rounded-full"
-                                                style={{
-                                                    backgroundColor: list.color,
-                                                }}
-                                            />
-                                            <h3 className="text-sm font-semibold text-foreground">
-                                                {list.name}
-                                            </h3>
-                                            <span className="text-sm text-muted-foreground">
-                                                {list.tasks.length}
-                                            </span>
-                                        </button>
-                                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/column:opacity-100">
-                                            <button
-                                                onClick={() => {
-                                                    setTaskForm((prev) => ({
-                                                        ...prev,
-                                                        task_list_id: list.id,
-                                                    }));
-                                                    setIsCreateTaskOpen(true);
-                                                }}
-                                                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                            >
-                                                <Plus className="size-4" />
-                                            </button>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                                                        <MoreHorizontal className="size-4" />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        onClick={() => {
-                                                            setColumnForm({
-                                                                name: list.name,
-                                                                description:
-                                                                    list.description ||
-                                                                    '',
-                                                                color: list.color,
-                                                            });
-                                                            setEditingColumnId(
-                                                                list.id,
-                                                            );
-                                                            setIsEditColumnOpen(
-                                                                true,
-                                                            );
-                                                        }}
-                                                    >
-                                                        <Pencil className="mr-2 size-4" />
-                                                        Edit column
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
-                                                        onClick={() =>
-                                                            setDeleteColumnId(
-                                                                list.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="mr-2 size-4" />
-                                                        Delete column
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-
-                                    {/* Cards Container */}
-                                    <div className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
-                                        {/* Add task button - shows on hover in center */}
-                                        <button
-                                            onClick={() => {
+                                            onDeleteColumn={(id) =>
+                                                setDeleteColumnId(id)
+                                            }
+                                            onAddTask={(listId) => {
                                                 setTaskForm((prev) => ({
                                                     ...prev,
-                                                    task_list_id: list.id,
+                                                    task_list_id: listId,
                                                 }));
                                                 setIsCreateTaskOpen(true);
                                             }}
-                                            className="absolute inset-0 m-2.5 flex items-center justify-center gap-2 rounded-lg border border-dashed border-transparent text-sm text-muted-foreground opacity-0 transition-all group-hover/column:opacity-100 hover:border-muted-foreground/30 hover:bg-background/50"
+                                        />
+                                    ))}
+
+                                    {/* Add Column */}
+                                    <div
+                                        className="flex w-80 shrink-0 flex-col"
+                                        style={{
+                                            animation: mounted
+                                                ? `fadeSlideIn 400ms ease-out ${filteredTaskLists.length * 80}ms both`
+                                                : 'none',
+                                        }}
+                                    >
+                                        <div className="mb-3 h-7" />
+                                        <button
+                                            onClick={() =>
+                                                setIsCreateColumnOpen(true)
+                                            }
+                                            className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground"
                                         >
                                             <Plus className="size-4" />
-                                            <span>Add task</span>
+                                            Add column
                                         </button>
                                     </div>
                                 </div>
-                            ))}
-
-                            {/* Add Column */}
-                            <div
-                                className="flex w-80 shrink-0 flex-col"
-                                style={{
-                                    animation: mounted
-                                        ? `fadeSlideIn 400ms ease-out ${filteredTaskLists.length * 80}ms both`
-                                        : 'none',
-                                }}
-                            >
-                                <div className="mb-3 h-7" />
-                                <button
-                                    onClick={() => setIsCreateColumnOpen(true)}
-                                    className="flex h-12 items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 text-sm text-muted-foreground transition-all hover:border-muted-foreground/50 hover:bg-muted/30 hover:text-foreground"
-                                >
-                                    <Plus className="size-4" />
-                                    Add column
-                                </button>
-                            </div>
-                        </div>
+                            </SortableContext>
+                            
+                            {/* Drag Overlay for Tasks */}
+                            <DragOverlay>
+                                {activeTask ? (
+                                    <SortableTaskCard task={activeTask} isDragOverlay />
+                                ) : null}
+                            </DragOverlay>
+                        </DndContext>
                     )}
                 </div>
             </div>
@@ -1594,27 +2266,60 @@ export default function ProjectShow({ project }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '500ms' }}
                             >
-                                <Label htmlFor="due_date" className="text-base">
+                                <Label className="text-base">
                                     Due date
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
                                         (optional)
                                     </span>
                                 </Label>
-                                <div className="relative">
-                                    <Calendar className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        id="due_date"
-                                        type="date"
-                                        value={taskForm.due_date}
-                                        onChange={(e) =>
-                                            setTaskForm((prev) => ({
-                                                ...prev,
-                                                due_date: e.target.value,
-                                            }))
-                                        }
-                                        className="h-12 pl-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
-                                    />
-                                </div>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={`h-12 w-full justify-start text-left text-base font-normal transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/10 ${
+                                                !taskForm.due_date && 'text-muted-foreground'
+                                            }`}
+                                        >
+                                            <Calendar className="mr-3 size-5" />
+                                            {taskForm.due_date
+                                                ? (() => {
+                                                      const [year, month, day] = taskForm.due_date.split('-').map(Number);
+                                                      const date = new Date(year, month - 1, day);
+                                                      return date.toLocaleDateString('en-US', {
+                                                          weekday: 'long',
+                                                          year: 'numeric',
+                                                          month: 'long',
+                                                          day: 'numeric',
+                                                      });
+                                                  })()
+                                                : 'Select date'}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <CalendarPicker
+                                            mode="single"
+                                            selected={
+                                                taskForm.due_date
+                                                    ? (() => {
+                                                          const [year, month, day] = taskForm.due_date.split('-').map(Number);
+                                                          return new Date(year, month - 1, day);
+                                                      })()
+                                                    : undefined
+                                            }
+                                            onSelect={(date) =>
+                                                setTaskForm((prev) => ({
+                                                    ...prev,
+                                                    due_date: date
+                                                        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                                                        : '',
+                                                }))
+                                            }
+                                            disabled={{ before: new Date() }}
+                                            className="rounded-md border shadow-sm"
+                                            captionLayout="dropdown"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             </div>
 
                             {/* Actions */}
@@ -1880,28 +2585,6 @@ export default function ProjectShow({ project }: Props) {
                                     onClick={() => {
                                         setIsCreatingColumn(true);
 
-                                        // Optimistic update - add to beginning immediately
-                                        const tempId = Date.now();
-                                        const newTaskList: TaskList = {
-                                            id: tempId,
-                                            project_id: project.id,
-                                            name: columnForm.name,
-                                            description:
-                                                columnForm.description ||
-                                                undefined,
-                                            color: columnForm.color,
-                                            position: 0,
-                                            tasks: [],
-                                        };
-                                        setOrderedTaskLists((prev) => [
-                                            newTaskList,
-                                            ...prev,
-                                        ]);
-                                        setExpandedLists((prev) => [
-                                            tempId,
-                                            ...prev,
-                                        ]);
-
                                         // Close form immediately
                                         setIsCreateColumnOpen(false);
                                         const formData = { ...columnForm };
@@ -1923,8 +2606,6 @@ export default function ProjectShow({ project }: Props) {
                                             },
                                             {
                                                 preserveScroll: true,
-                                                preserveState: true,
-                                                only: [], // Don't reload any props to keep optimistic update
                                                 onFinish: () => {
                                                     setIsCreatingColumn(false);
                                                 },
