@@ -195,7 +195,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                     <div className="space-y-4">
                         {subscription && hasAccess ? (
                             <Card>
-                                <CardHeader className="pb-3">
+                                <CardHeader className="pb-1">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-lg">
                                             {subscription.plan || t('billing.unknown_plan', 'Unknown Plan')}
@@ -236,6 +236,17 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Cancelled But Still Has Access Alert */}
+                                    {canResume && (
+                                        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+                                            <AlertTriangleIcon className="h-4 w-4 text-amber-600" />
+                                            <AlertDescription className="text-amber-700 dark:text-amber-300">
+                                                {t('billing.cancelled_still_access', 'Your subscription has been cancelled, but you still have access to Professional features until')} <strong>{subscription.ends_at}</strong>.
+                                                {' '}{t('billing.cancelled_resume_hint', 'You can resume your subscription anytime before it expires.')}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
 
                                     {/* Auto-Renew Toggle */}
                                     {subscription.is_active && !isCancelled && (
@@ -314,7 +325,7 @@ export default function Billing({ subscription, payments, customerPortalUrl, pay
                                         ) : subscription.is_active ? (
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                                    <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
                                                         <XCircleIcon className="mr-2 h-4 w-4" />
                                                         {t('billing.cancel', 'Cancel Subscription')}
                                                     </Button>

@@ -144,9 +144,32 @@ export function useCountdown({
             return;
         }
 
-        // Determine update interval based on time remaining
-        // Update every second if < 1 day, otherwise every minute
-        const interval = updateInterval ?? (timeLeft.days < 1 ? 1000 : 60000);
+        // Determine update interval based on time remaining for optimal performance
+        // - < 1 hour: every second (real-time countdown)
+        // - 1-24 hours: every 30 seconds
+        // - 1-7 days: every minute
+        // - > 7 days: every 5 minutes
+        const getOptimalInterval = (time: CountdownTime): number => {
+            if (updateInterval !== undefined) return updateInterval;
+
+            const { days, totalSeconds } = time;
+
+            if (totalSeconds <= 3600) {
+                // < 1 hour: update every second
+                return 1000;
+            } else if (days < 1) {
+                // 1-24 hours: update every 30 seconds
+                return 30000;
+            } else if (days <= 7) {
+                // 1-7 days: update every minute
+                return 60000;
+            } else {
+                // > 7 days: update every 5 minutes
+                return 300000;
+            }
+        };
+
+        const interval = getOptimalInterval(timeLeft);
 
         const timer = setInterval(() => {
             const updated = calculateTimeLeft();
@@ -159,12 +182,14 @@ export function useCountdown({
         }, interval);
 
         return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         calculateTimeLeft,
         updateInterval,
         onExpire,
         timeLeft.isExpired,
         timeLeft.days,
+        timeLeft.totalSeconds,
     ]);
 
     return timeLeft;

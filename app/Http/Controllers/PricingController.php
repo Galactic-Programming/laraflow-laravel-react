@@ -165,17 +165,30 @@ class PricingController extends Controller
             return back()->with('error', 'No active subscription found.');
         }
 
+        // Ensure ends_at is set (calculate from plan if missing)
+        $endsAt = $subscription->ends_at;
+        if (! $endsAt) {
+            // Calculate end date based on plan's billing interval from starts_at
+            $startsAt = $subscription->starts_at ?? now();
+            $endsAt = match ($subscription->plan?->billing_interval?->value) {
+                'year' => $startsAt->copy()->addYear(),
+                default => $startsAt->copy()->addMonth(),
+            };
+        }
+
         $subscription->update([
             'status' => SubscriptionStatus::Cancelled,
             'cancelled_at' => now(),
+            'ends_at' => $endsAt,
         ]);
 
         Log::info('Subscription cancelled', [
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
+            'ends_at' => $endsAt,
         ]);
 
-        return back()->with('success', 'Your subscription has been cancelled. You will have access until '.$subscription->ends_at?->format('M d, Y').'.');
+        return back()->with('success', 'Your subscription has been cancelled. You will have access until '.$endsAt->format('M d, Y').'.');
     }
 
     /**

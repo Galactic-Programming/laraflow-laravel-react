@@ -77,7 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get the current valid subscription (active OR cancelled but not expired).
+     * Get the current valid subscription (active OR cancelled but not expired OR past_due with grace period).
      * This is the subscription that grants access to premium features.
      *
      * @return HasOne<Subscription, $this>
@@ -86,11 +86,21 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Subscription::class)
             ->where(function ($query) {
-                // Active subscription OR cancelled but not yet expired
+                // Active subscription
                 $query->where('status', SubscriptionStatus::Active->value)
+                    // OR cancelled but not yet expired
                     ->orWhere(function ($q) {
                         $q->where('status', SubscriptionStatus::Cancelled->value)
                             ->where('ends_at', '>', now());
+                    })
+                    // OR past_due/expired with grace period still valid
+                    ->orWhere(function ($q) {
+                        $q->whereIn('status', [
+                            SubscriptionStatus::PastDue->value,
+                            SubscriptionStatus::Expired->value,
+                        ])
+                            ->whereNotNull('grace_period_ends_at')
+                            ->where('grace_period_ends_at', '>', now());
                     });
             })
             ->latestOfMany();

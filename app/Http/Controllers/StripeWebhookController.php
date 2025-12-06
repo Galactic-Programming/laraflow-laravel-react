@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\SignatureVerificationException;
+use Stripe\PaymentIntent;
+use Stripe\Stripe;
 use Stripe\Webhook;
 
 class StripeWebhookController extends Controller
@@ -159,6 +161,9 @@ class StripeWebhookController extends Controller
 
         // Create initial payment record from checkout
         if ($amountTotal > 0) {
+            $paymentIntentId = $session['payment_intent'] ?? null;
+            $paymentMethodDetails = $this->getPaymentMethodDetails($paymentIntentId);
+
             Payment::create([
                 'user_id' => $user->id,
                 'subscription_id' => $subscription->id,
@@ -168,7 +173,10 @@ class StripeWebhookController extends Controller
                 'status' => PaymentStatus::Completed,
                 'type' => PaymentType::Initial,
                 'payment_method' => 'stripe',
-                'stripe_payment_intent_id' => $session['payment_intent'] ?? null,
+                'payment_method_type' => $paymentMethodDetails['payment_method_type'],
+                'card_brand' => $paymentMethodDetails['card_brand'],
+                'card_last_four' => $paymentMethodDetails['card_last_four'],
+                'stripe_payment_intent_id' => $paymentIntentId,
                 'invoice_number' => Payment::generateInvoiceNumber(),
                 'billing_period_start' => $startsAt,
                 'billing_period_end' => $endsAt,
@@ -179,6 +187,8 @@ class StripeWebhookController extends Controller
                 'user_id' => $user->id,
                 'amount' => $amountTotal,
                 'plan' => $plan->slug,
+                'card_brand' => $paymentMethodDetails['card_brand'],
+                'card_last_four' => $paymentMethodDetails['card_last_four'],
             ]);
         }
 
@@ -383,6 +393,9 @@ class StripeWebhookController extends Controller
             ? now()->setTimestamp($invoice['period_end'])
             : $subscription->ends_at;
 
+        // Get payment method details from invoice
+        $paymentMethodDetails = $this->getPaymentMethodFromInvoice($invoice);
+
         Payment::create([
             'user_id' => $subscription->user_id,
             'subscription_id' => $subscription->id,
@@ -392,8 +405,12 @@ class StripeWebhookController extends Controller
             'status' => PaymentStatus::Completed,
             'type' => $isRenewal ? PaymentType::Renewal : PaymentType::Initial,
             'payment_method' => 'stripe',
+            'payment_method_type' => $paymentMethodDetails['payment_method_type'],
+            'card_brand' => $paymentMethodDetails['card_brand'],
+            'card_last_four' => $paymentMethodDetails['card_last_four'],
             'stripe_payment_intent_id' => $invoice['payment_intent'] ?? null,
             'stripe_invoice_id' => $invoice['id'],
+            'stripe_charge_id' => $paymentMethodDetails['stripe_charge_id'],
             'invoice_number' => Payment::generateInvoiceNumber(),
             'billing_period_start' => $billingPeriodStart,
             'billing_period_end' => $billingPeriodEnd,
@@ -403,6 +420,8 @@ class StripeWebhookController extends Controller
         Log::info('Payment recorded', [
             'subscription_id' => $subscription->id,
             'amount' => ($invoice['amount_paid'] ?? 0) / 100,
+            'card_brand' => $paymentMethodDetails['card_brand'],
+            'card_last_four' => $paymentMethodDetails['card_last_four'],
         ]);
     }
 
@@ -456,5 +475,94 @@ class StripeWebhookController extends Controller
             'subscription_id' => $subscription->id,
             'grace_period_ends_at' => $subscription->grace_period_ends_at,
         ]);
+    }
+
+    /**
+     * Get payment method details from Stripe.
+     * Returns card brand, last 4 digits, and payment method type.
+     *
+     * @return array{payment_method_type: string|null, card_brand: string|null, card_last_four: string|null}
+     */
+    private function getPaymentMethodDetails(?string $paymentIntentId): array
+    {
+        $default = [
+            'payment_method_type' => null,
+            'card_brand' => null,
+            'card_last_four' => null,
+        ];
+
+        if (! $paymentIntentId) {
+            return $default;
+        }
+
+        try {
+            Stripe::setApiKey(config('services.stripe.secret'));
+
+            // Retrieve PaymentIntent to get payment method
+            $paymentIntent = PaymentIntent::retrieve($paymentIntentId, [
+                'expand' => ['payment_method'],
+            ]);
+
+            $paymentMethod = $paymentIntent->payment_method;
+
+            if (! $paymentMethod) {
+                return $default;
+            }
+
+            // Get payment method type
+            $type = $paymentMethod->type ?? null;
+
+            // Get card details if payment method is card
+            if ($type === 'card' && isset($paymentMethod->card)) {
+                return [
+                    'payment_method_type' => 'card',
+                    'card_brand' => $paymentMethod->card->brand ?? null,
+                    'card_last_four' => $paymentMethod->card->last4 ?? null,
+                ];
+            }
+
+            return [
+                'payment_method_type' => $type,
+                'card_brand' => null,
+                'card_last_four' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::warning('Failed to retrieve payment method details', [
+                'payment_intent_id' => $paymentIntentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $default;
+        }
+    }
+
+    /**
+     * Get payment method details from invoice's charge.
+     *
+     * @return array{payment_method_type: string|null, card_brand: string|null, card_last_four: string|null, stripe_charge_id: string|null}
+     */
+    private function getPaymentMethodFromInvoice(array $invoice): array
+    {
+        $default = [
+            'payment_method_type' => null,
+            'card_brand' => null,
+            'card_last_four' => null,
+            'stripe_charge_id' => null,
+        ];
+
+        // Try to get from charge directly in invoice data
+        $charge = $invoice['charge'] ?? null;
+        $paymentIntent = $invoice['payment_intent'] ?? null;
+
+        // If charge is a string (charge ID), we need to get details from payment_intent
+        if ($paymentIntent) {
+            $details = $this->getPaymentMethodDetails($paymentIntent);
+
+            return array_merge($details, [
+                'stripe_charge_id' => is_string($charge) ? $charge : null,
+            ]);
+        }
+
+        return $default;
     }
 }
