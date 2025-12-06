@@ -53,6 +53,30 @@ class TaskListController extends Controller
             'position' => ['sometimes', 'integer', 'min:0'],
         ]);
 
+        // Handle position reordering
+        if (isset($validated['position'])) {
+            $oldPosition = $taskList->position;
+            $newPosition = $validated['position'];
+
+            if ($oldPosition !== $newPosition) {
+                if ($newPosition < $oldPosition) {
+                    // Moving left: shift items between new and old position to the right
+                    $project->taskLists()
+                        ->where('id', '!=', $taskList->id)
+                        ->where('position', '>=', $newPosition)
+                        ->where('position', '<', $oldPosition)
+                        ->increment('position');
+                } else {
+                    // Moving right: shift items between old and new position to the left
+                    $project->taskLists()
+                        ->where('id', '!=', $taskList->id)
+                        ->where('position', '>', $oldPosition)
+                        ->where('position', '<=', $newPosition)
+                        ->decrement('position');
+                }
+            }
+        }
+
         $taskList->update($validated);
 
         return back();
