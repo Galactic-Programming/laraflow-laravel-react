@@ -1,6 +1,12 @@
 import { useState } from 'react';
 
-import { ArrowRight, CheckCircle2, ExternalLink, Info, XCircle } from 'lucide-react';
+import {
+    ArrowRight,
+    CheckCircle2,
+    ExternalLink,
+    Info,
+    XCircle,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -40,7 +46,12 @@ interface FeatureListProps {
 
 function FeatureList({ features, className }: FeatureListProps) {
     return (
-        <ul className={cn('space-y-3 text-left text-muted-foreground', className)}>
+        <ul
+            className={cn(
+                'space-y-3 text-left text-muted-foreground',
+                className,
+            )}
+        >
             {features.map((feature, index) => (
                 <li key={index} className="flex items-center text-sm">
                     {feature.included ? (
@@ -63,12 +74,19 @@ interface BillingToggleProps {
 
 function BillingToggle({ isYearly, onToggle, className }: BillingToggleProps) {
     return (
-        <div className={cn('inline-flex items-center rounded-full bg-muted p-1', className)}>
+        <div
+            className={cn(
+                'inline-flex items-center rounded-full bg-muted p-1',
+                className,
+            )}
+        >
             <button
                 type="button"
                 className={cn(
                     'rounded-full px-6 py-2 text-sm font-medium transition-colors',
-                    !isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                    !isYearly
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground',
                 )}
                 onClick={() => onToggle(false)}
             >
@@ -78,7 +96,9 @@ function BillingToggle({ isYearly, onToggle, className }: BillingToggleProps) {
                 type="button"
                 className={cn(
                     'rounded-full px-6 py-2 text-sm font-medium transition-colors',
-                    isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                    isYearly
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground',
                 )}
                 onClick={() => onToggle(true)}
             >
@@ -150,7 +170,9 @@ function PricingCard({
                 <div
                     className={cn(
                         'absolute -top-4 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold',
-                        variant === 'secondary' ? 'bg-purple-600 text-white' : 'bg-primary text-primary-foreground',
+                        variant === 'secondary'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-primary text-primary-foreground',
                     )}
                 >
                     Most Popular
@@ -159,14 +181,21 @@ function PricingCard({
 
             {/* Discount badge */}
             {plan.discount && (
-                <div className={cn('absolute right-6 top-6 rounded-full px-2 py-1 text-xs font-semibold', styles.badge)}>
+                <div
+                    className={cn(
+                        'absolute top-6 right-6 rounded-full px-2 py-1 text-xs font-semibold',
+                        styles.badge,
+                    )}
+                >
                     {plan.discount}
                 </div>
             )}
 
             {/* Plan header */}
             <h2 className="mb-2 text-2xl font-semibold">{plan.name}</h2>
-            <p className="mb-4 text-sm text-muted-foreground">{plan.description}</p>
+            <p className="mb-4 text-sm text-muted-foreground">
+                {plan.description}
+            </p>
 
             {/* Price */}
             <div className="mb-6 flex items-baseline">
@@ -176,18 +205,25 @@ function PricingCard({
 
             {/* Billing info */}
             <p className="mb-6 text-sm text-muted-foreground">
-                {isFree ? plan.billedYearlyText ?? 'Upgrade any time' : isYearly ? plan.billedYearlyText : 'Billed monthly'}
+                {isFree
+                    ? (plan.billedYearlyText ?? 'Upgrade any time')
+                    : isYearly
+                      ? plan.billedYearlyText
+                      : 'Billed monthly'}
             </p>
 
             {/* CTA Button */}
-            <Button className={cn('font-medium', styles.button)} onClick={() => onSelect?.(plan)}>
+            <Button
+                className={cn('font-medium', styles.button)}
+                onClick={() => onSelect?.(plan)}
+            >
                 {plan.buttonText ?? 'Get started'}
                 <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
 
             {/* Guarantee */}
             {showGuarantee && !isFree && (
-                <div className="mb-6 mt-4 flex items-center justify-center text-xs text-muted-foreground">
+                <div className="mt-4 mb-6 flex items-center justify-center text-xs text-muted-foreground">
                     <Info className="mr-1 size-3" />
                     <span>{guaranteeText}</span>
                 </div>
@@ -197,17 +233,24 @@ function PricingCard({
             <div className="flex-grow">
                 <FeatureList features={plan.features} />
 
-                {plan.additionalFeatures && plan.additionalFeatures.length > 0 && (
-                    <>
-                        <h3 className="mb-3 mt-6 text-sm font-semibold">Additional Features:</h3>
-                        <FeatureList features={plan.additionalFeatures} />
-                    </>
-                )}
+                {plan.additionalFeatures &&
+                    plan.additionalFeatures.length > 0 && (
+                        <>
+                            <h3 className="mt-6 mb-3 text-sm font-semibold">
+                                Additional Features:
+                            </h3>
+                            <FeatureList features={plan.additionalFeatures} />
+                        </>
+                    )}
             </div>
 
             {/* Compare button */}
             {showCompare && (
-                <Button variant="ghost" className="mt-8 w-full text-muted-foreground" onClick={() => onCompare?.(plan)}>
+                <Button
+                    variant="ghost"
+                    className="mt-8 w-full text-muted-foreground"
+                    onClick={() => onCompare?.(plan)}
+                >
                     Compare plans
                     <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
@@ -259,13 +302,19 @@ export default function PricingTable({
     };
 
     return (
-        <div className={cn('min-h-screen px-4 py-12 sm:px-6 lg:px-8', className)}>
+        <div
+            className={cn('min-h-screen px-4 py-12 sm:px-6 lg:px-8', className)}
+        >
             <div className="mx-auto max-w-7xl">
                 {/* Header */}
                 {showHeader && (
                     <header className="mb-12 space-y-4 text-center">
-                        <h1 className="text-4xl font-bold md:text-5xl">{title}</h1>
-                        <p className="text-balance text-lg text-muted-foreground">{description}</p>
+                        <h1 className="text-4xl font-bold md:text-5xl">
+                            {title}
+                        </h1>
+                        <p className="text-lg text-balance text-muted-foreground">
+                            {description}
+                        </p>
                     </header>
                 )}
 
@@ -275,7 +324,12 @@ export default function PricingTable({
                 </div>
 
                 {/* Plans Grid */}
-                <div className={cn('grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8', gridCols[columns])}>
+                <div
+                    className={cn(
+                        'grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8',
+                        gridCols[columns],
+                    )}
+                >
                     {plans.map((plan) => (
                         <PricingCard
                             key={plan.id}

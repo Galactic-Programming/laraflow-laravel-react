@@ -1,5 +1,8 @@
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+    SortableContext,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Calendar, MoreHorizontal, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -7,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-import { TodoItem, type Todo, type PriorityConfig } from './todo-item';
+import { TodoItem, type PriorityConfig, type Todo } from './todo-item';
 
 // =============================================================================
 // Types
@@ -51,7 +54,9 @@ function SectionHeader({
                 {icon && <span className="text-lg">{icon}</span>}
                 <h2 className="font-semibold text-foreground">{title}</h2>
                 {count !== undefined && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {count}
+                    </span>
                 )}
             </div>
 
@@ -59,17 +64,32 @@ function SectionHeader({
                 <div className="flex items-center gap-1">
                     {renderActions?.()}
                     {onAddClick && (
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onAddClick}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={onAddClick}
+                        >
                             <Plus className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
                     {onCalendarClick && (
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onCalendarClick}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={onCalendarClick}
+                        >
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
                     {onMoreClick && (
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onMoreClick}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={onMoreClick}
+                        >
                             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     )}
@@ -85,7 +105,11 @@ interface EmptyStateProps {
     dropText?: string;
 }
 
-function EmptyState({ isOver, emptyText = 'No tasks', dropText = 'Drop task here' }: EmptyStateProps) {
+function EmptyState({
+    isOver,
+    emptyText = 'No tasks',
+    dropText = 'Drop task here',
+}: EmptyStateProps) {
     return (
         <div className="flex h-20 items-center justify-center text-sm text-muted-foreground">
             {isOver ? dropText : emptyText}
@@ -161,20 +185,35 @@ export function TodoSectionCard({
                     icon={section.icon}
                     count={showCount ? section.todos.length : undefined}
                     showActions={showSectionActions}
-                    onAddClick={onAddTodo ? () => onAddTodo(section.id) : undefined}
-                    onCalendarClick={onCalendarClick ? () => onCalendarClick(section.id) : undefined}
-                    onMoreClick={onMoreClick ? () => onMoreClick(section.id) : undefined}
-                    renderActions={renderSectionActions ? () => renderSectionActions(section) : undefined}
+                    onAddClick={
+                        onAddTodo ? () => onAddTodo(section.id) : undefined
+                    }
+                    onCalendarClick={
+                        onCalendarClick
+                            ? () => onCalendarClick(section.id)
+                            : undefined
+                    }
+                    onMoreClick={
+                        onMoreClick ? () => onMoreClick(section.id) : undefined
+                    }
+                    renderActions={
+                        renderSectionActions
+                            ? () => renderSectionActions(section)
+                            : undefined
+                    }
                 />
 
                 {/* Todo List */}
-                <SortableContext items={section.todos.map((todo) => todo.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext
+                    items={section.todos.map((todo) => todo.id)}
+                    strategy={verticalListSortingStrategy}
+                >
                     <div
                         className={cn(
                             'min-h-[100px] space-y-2 rounded-md transition-colors',
                             isDropTarget &&
-                            section.todos.length === 0 &&
-                            'border-2 border-dashed border-primary/30 bg-primary/5',
+                                section.todos.length === 0 &&
+                                'border-2 border-dashed border-primary/30 bg-primary/5',
                         )}
                     >
                         {section.todos.map((todo) => (
@@ -192,7 +231,11 @@ export function TodoSectionCard({
                             />
                         ))}
                         {section.todos.length === 0 && (
-                            <EmptyState isOver={isDropTarget} emptyText={emptyText} dropText={dropText} />
+                            <EmptyState
+                                isOver={isDropTarget}
+                                emptyText={emptyText}
+                                dropText={dropText}
+                            />
                         )}
                     </div>
                 </SortableContext>
@@ -202,7 +245,7 @@ export function TodoSectionCard({
 }
 
 // Export sub-components and legacy name
-export { SectionHeader, EmptyState };
+export { EmptyState, SectionHeader };
 
 // Legacy export for backward compatibility
 export { TodoSectionCard as TodoSection };

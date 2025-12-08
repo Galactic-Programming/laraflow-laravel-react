@@ -1,6 +1,5 @@
+import { AlertSoft } from '@/components/alert-soft';
 import { InfoIcon, type LucideIcon } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
 
 interface AlertSoftInfoProps {
     title: string;
@@ -12,23 +11,16 @@ interface AlertSoftInfoProps {
 export function AlertSoftInfo({
     title,
     description,
-    icon: Icon = InfoIcon,
+    icon = InfoIcon,
     className,
 }: AlertSoftInfoProps) {
     return (
-        <Alert
-            className={cn(
-                'border-none bg-sky-600/10 text-sky-600 dark:bg-sky-400/10 dark:text-sky-400',
-                className
-            )}
-        >
-            <Icon />
-            <AlertTitle>{title}</AlertTitle>
-            {description && (
-                <AlertDescription className="text-sky-600/80 dark:text-sky-400/80">
-                    {description}
-                </AlertDescription>
-            )}
-        </Alert>
+        <AlertSoft
+            variant="info"
+            title={title}
+            description={description}
+            icon={icon}
+            className={className}
+        />
     );
 }

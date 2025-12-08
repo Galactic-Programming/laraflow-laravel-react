@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { type ReactNode } from 'react';
 
@@ -34,17 +40,19 @@ export function SettingsCard({
     const hasHeader = showHeader && (title || description);
 
     return (
-        <Card
-            className={cn(
-                danger && 'border-destructive/50',
-                className,
-            )}
-        >
+        <Card className={cn(danger && 'border-destructive/50', className)}>
             {hasHeader && (
-                <CardHeader className={cn(headerActions && 'flex flex-row items-center justify-between')}>
+                <CardHeader
+                    className={cn(
+                        headerActions &&
+                            'flex flex-row items-center justify-between',
+                    )}
+                >
                     <div>
                         {title && (
-                            <CardTitle className={cn(danger && 'text-destructive')}>
+                            <CardTitle
+                                className={cn(danger && 'text-destructive')}
+                            >
                                 {title}
                             </CardTitle>
                         )}

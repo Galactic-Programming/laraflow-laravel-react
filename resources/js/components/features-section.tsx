@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 
-import { ArrowRightIcon, type LucideIcon } from 'lucide-react';
 import { Link, type InertiaLinkProps } from '@inertiajs/react';
+import { ArrowRightIcon, type LucideIcon } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -84,8 +84,12 @@ export function Features({
                     children
                 ) : (
                     <div className="mb-8 space-y-4 sm:mb-12">
-                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">{title}</h2>
-                        <p className="text-muted-foreground text-xl">{description}</p>
+                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">
+                            {title}
+                        </h2>
+                        <p className="text-xl text-muted-foreground">
+                            {description}
+                        </p>
                         {!hideCta && (
                             <Button
                                 variant="outline"
@@ -130,20 +134,20 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
             className={cn(
                 'shadow-none transition-colors duration-300',
                 feature.cardBorderColor || 'border-border hover:border-primary',
-                className
+                className,
             )}
         >
             <CardContent>
                 <Avatar
                     className={cn(
                         'mb-6 size-10 rounded-md',
-                        feature.avatarTextColor || 'text-primary'
+                        feature.avatarTextColor || 'text-primary',
                     )}
                 >
                     <AvatarFallback
                         className={cn(
                             'rounded-md [&>svg]:size-6',
-                            feature.avatarBgColor || 'bg-primary/10'
+                            feature.avatarBgColor || 'bg-primary/10',
                         )}
                     >
                         <Icon />

@@ -1,9 +1,16 @@
 import { lazy, memo, Suspense, useEffect, useState } from 'react';
 
-import { type BackgroundType, useBackground } from '@/contexts/background-context';
+import {
+    type BackgroundType,
+    useBackground,
+} from '@/contexts/background-context';
 
 // Lazy load heavy components to optimize performance
-const BackgroundBeams = lazy(() => import('@/components/ui/background-beams').then((m) => ({ default: m.BackgroundBeams })));
+const BackgroundBeams = lazy(() =>
+    import('@/components/ui/background-beams').then((m) => ({
+        default: m.BackgroundBeams,
+    })),
+);
 const FloatingLines = lazy(() => import('@/components/floating-lines'));
 const LightPillar = lazy(() => import('@/components/light-pillar'));
 
@@ -24,7 +31,9 @@ function useIsDarkMode() {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'class') {
-                    setIsDark(document.documentElement.classList.contains('dark'));
+                    setIsDark(
+                        document.documentElement.classList.contains('dark'),
+                    );
                 }
             });
         });
@@ -36,8 +45,13 @@ function useIsDarkMode() {
     return isDark;
 }
 
-const BackgroundRenderer = memo(function BackgroundRenderer({ type }: { type: BackgroundType }) {
-    const baseClass = 'pointer-events-none absolute inset-0 z-0 overflow-hidden';
+const BackgroundRenderer = memo(function BackgroundRenderer({
+    type,
+}: {
+    type: BackgroundType;
+}) {
+    const baseClass =
+        'pointer-events-none absolute inset-0 z-0 overflow-hidden';
 
     switch (type) {
         case 'beams':

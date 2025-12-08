@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircleIcon, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AlertCircleIcon, type LucideIcon } from 'lucide-react';
 
 export interface AlertErrorProps {
     /** Array of error messages to display */

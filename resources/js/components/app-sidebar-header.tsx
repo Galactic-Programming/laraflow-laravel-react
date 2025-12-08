@@ -1,6 +1,6 @@
-import { LanguagesIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import LanguageDropdown from '@/components/dropdown-language';
+import { LanguagesIcon } from 'lucide-react';
 // import ProfileDropdown from '@/components/dropdown-profile';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 // import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,16 +22,17 @@ export function AppSidebarHeader({
     // const getInitials = useInitials();
 
     return (
-        <header className="bg-background sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
+        <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border/50 bg-background px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="hidden !h-4 sm:block" />
+                <Separator
+                    orientation="vertical"
+                    className="hidden !h-4 sm:block"
+                />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             <div className="flex items-center gap-1.5">
-                <AnimatedThemeToggler
-                    className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                />
+                <AnimatedThemeToggler className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" />
                 <LanguageDropdown
                     trigger={
                         <Button variant="outline" size="icon">

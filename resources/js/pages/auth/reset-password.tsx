@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { ChevronLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { login } from '@/routes';
 import { update } from '@/routes/password';
 import { Form, Head, Link } from '@inertiajs/react';
+import { ChevronLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useState } from 'react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,16 @@ interface ResetPasswordProps {
 export default function ResetPassword({ token, email }: ResetPasswordProps) {
     const { t } = useTranslations();
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+        useState(false);
 
     return (
         <AuthLayout
             title={t('auth.reset_password', 'Reset Password')}
-            description={t('auth.reset_password_desc', 'Please enter your new password to update your account security')}
+            description={t(
+                'auth.reset_password_desc',
+                'Please enter your new password to update your account security',
+            )}
         >
             <Head title={t('auth.reset_password', 'Reset password')} />
 
@@ -40,7 +44,9 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                         <div className="grid gap-4">
                             {/* Email (readonly) */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('auth.email', 'Email address')}
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -55,11 +61,17 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
 
                             {/* New Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password">{t('auth.new_password', 'New password')}</Label>
+                                <Label htmlFor="password">
+                                    {t('auth.new_password', 'New password')}
+                                </Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
-                                        type={isPasswordVisible ? 'text' : 'password'}
+                                        type={
+                                            isPasswordVisible
+                                                ? 'text'
+                                                : 'password'
+                                        }
                                         name="password"
                                         autoFocus
                                         tabIndex={1}
@@ -71,13 +83,23 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsPasswordVisible(prev => !prev)}
+                                        onClick={() =>
+                                            setIsPasswordVisible(
+                                                (prev) => !prev,
+                                            )
+                                        }
                                         className="absolute inset-y-0 right-0 rounded-l-none text-muted-foreground hover:bg-transparent hover:text-foreground"
                                         tabIndex={-1}
                                     >
-                                        {isPasswordVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                                        {isPasswordVisible ? (
+                                            <EyeOffIcon className="size-4" />
+                                        ) : (
+                                            <EyeIcon className="size-4" />
+                                        )}
                                         <span className="sr-only">
-                                            {isPasswordVisible ? 'Hide password' : 'Show password'}
+                                            {isPasswordVisible
+                                                ? 'Hide password'
+                                                : 'Show password'}
                                         </span>
                                     </Button>
                                 </div>
@@ -86,11 +108,20 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
 
                             {/* Confirm Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password_confirmation">{t('auth.confirm_new_password', 'Confirm password')}</Label>
+                                <Label htmlFor="password_confirmation">
+                                    {t(
+                                        'auth.confirm_new_password',
+                                        'Confirm password',
+                                    )}
+                                </Label>
                                 <div className="relative">
                                     <Input
                                         id="password_confirmation"
-                                        type={isConfirmPasswordVisible ? 'text' : 'password'}
+                                        type={
+                                            isConfirmPasswordVisible
+                                                ? 'text'
+                                                : 'password'
+                                        }
                                         name="password_confirmation"
                                         tabIndex={2}
                                         autoComplete="new-password"
@@ -101,17 +132,29 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsConfirmPasswordVisible(prev => !prev)}
+                                        onClick={() =>
+                                            setIsConfirmPasswordVisible(
+                                                (prev) => !prev,
+                                            )
+                                        }
                                         className="absolute inset-y-0 right-0 rounded-l-none text-muted-foreground hover:bg-transparent hover:text-foreground"
                                         tabIndex={-1}
                                     >
-                                        {isConfirmPasswordVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                                        {isConfirmPasswordVisible ? (
+                                            <EyeOffIcon className="size-4" />
+                                        ) : (
+                                            <EyeIcon className="size-4" />
+                                        )}
                                         <span className="sr-only">
-                                            {isConfirmPasswordVisible ? 'Hide password' : 'Show password'}
+                                            {isConfirmPasswordVisible
+                                                ? 'Hide password'
+                                                : 'Show password'}
                                         </span>
                                     </Button>
                                 </div>
-                                <InputError message={errors.password_confirmation} />
+                                <InputError
+                                    message={errors.password_confirmation}
+                                />
                             </div>
 
                             <Button
@@ -131,7 +174,9 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                             className="group mx-auto flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
                             <ChevronLeftIcon className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                            <span>{t('auth.back_to_login', 'Back to login')}</span>
+                            <span>
+                                {t('auth.back_to_login', 'Back to login')}
+                            </span>
                         </Link>
                     </>
                 )}

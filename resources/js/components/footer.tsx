@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
 import { Link, type InertiaLinkProps } from '@inertiajs/react';
 import { GithubIcon, TwitterIcon, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-import { Separator } from '@/components/ui/separator';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -88,13 +88,15 @@ export function Footer({
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 max-md:flex-col sm:px-6 sm:py-6 md:gap-6 md:py-8">
                 {/* Logo */}
                 <Link href={homeHref} className="flex items-center gap-3">
-                    {logo || <AppLogoIcon className="size-8 fill-current text-foreground" />}
+                    {logo || (
+                        <AppLogoIcon className="size-8 fill-current text-foreground" />
+                    )}
                     <span className="font-semibold">{brandName}</span>
                 </Link>
 
                 {/* Navigation Links */}
                 {links.length > 0 && (
-                    <div className="flex items-center gap-5 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-5 text-sm whitespace-nowrap">
                         {links.map((link) =>
                             link.external ? (
                                 <a
@@ -102,7 +104,7 @@ export function Footer({
                                     href={link.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                    className="text-muted-foreground transition-colors hover:text-foreground"
                                 >
                                     {link.label}
                                 </a>
@@ -110,11 +112,11 @@ export function Footer({
                                 <a
                                     key={link.href}
                                     href={link.href}
-                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                    className="text-muted-foreground transition-colors hover:text-foreground"
                                 >
                                     {link.label}
                                 </a>
-                            )
+                            ),
                         )}
                     </div>
                 )}
@@ -128,7 +130,7 @@ export function Footer({
                                 href={social.href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                className="text-muted-foreground transition-colors hover:text-foreground"
                                 aria-label={social.label}
                             >
                                 <social.icon className="size-5" />
@@ -141,7 +143,7 @@ export function Footer({
             {showSeparator && <Separator />}
 
             <div className="mx-auto flex max-w-7xl justify-center px-4 py-8 sm:px-6">
-                <p className="text-muted-foreground text-balance text-center text-sm">
+                <p className="text-center text-sm text-balance text-muted-foreground">
                     {formattedCopyright}
                 </p>
             </div>

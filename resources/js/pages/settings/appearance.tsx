@@ -26,7 +26,10 @@ export default function Appearance() {
             <SettingsLayout>
                 <SettingsCard
                     title={t('settings.appearance', 'Appearance')}
-                    description={t('settings.appearance_desc', 'Customize the look and feel of your account. Choose your preferred theme and display settings.')}
+                    description={t(
+                        'settings.appearance_desc',
+                        'Customize the look and feel of your account. Choose your preferred theme and display settings.',
+                    )}
                 >
                     <AppearanceTabs />
                 </SettingsCard>

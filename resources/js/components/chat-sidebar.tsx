@@ -1,7 +1,7 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Search, User, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Search, User, Users } from 'lucide-react';
 
 // Types for Chat Contact
 export interface ChatContact {
@@ -64,8 +64,12 @@ export interface ChatSidebarProps {
 
 // Default tabs configuration
 const defaultTabs: ChatTab[] = [
-    { id: "personal", label: "Personal", icon: <User className="mr-2 h-4 w-4" /> },
-    { id: "groups", label: "Groups", icon: <Users className="mr-2 h-4 w-4" /> }
+    {
+        id: 'personal',
+        label: 'Personal',
+        icon: <User className="mr-2 h-4 w-4" />,
+    },
+    { id: 'groups', label: 'Groups', icon: <Users className="mr-2 h-4 w-4" /> },
 ];
 
 // Internal component for rendering a single contact
@@ -77,37 +81,41 @@ const ChatContactItem = ({
     timestamp,
     hasUnread,
     isActive,
-    onClick
+    onClick,
 }: ChatContactItemProps) => (
     <div
         className={cn(
-            "hover:bg-muted flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors",
-            isActive && "bg-muted"
+            'flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted',
+            isActive && 'bg-muted',
         )}
         onClick={() => onClick(id)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onClick(id)}
+        onKeyDown={(e) => e.key === 'Enter' && onClick(id)}
     >
         <Avatar>
             <AvatarImage src={avatarSrc} alt={name} />
             <AvatarFallback>{name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-                <span className="font-medium truncate">{name}</span>
-                <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">{timestamp}</span>
+                <span className="truncate font-medium">{name}</span>
+                <span className="ml-2 flex-shrink-0 text-xs text-muted-foreground">
+                    {timestamp}
+                </span>
             </div>
-            <div className="text-muted-foreground flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <p className="truncate">{lastMessage}</p>
-                {hasUnread && <div className="ml-2 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                {hasUnread && (
+                    <div className="ml-2 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+                )}
             </div>
         </div>
     </div>
 );
 
 export function ChatSidebar({
-    title = "Chat",
+    title = 'Chat',
     contacts,
     activeChatId,
     onContactClick,
@@ -117,21 +125,23 @@ export function ChatSidebar({
     showTabs = true,
     showSearch = true,
     onSearchClick,
-    newChatButtonText = "New chat",
+    newChatButtonText = 'New chat',
     showNewChatButton = true,
     onNewChatClick,
     className,
     isLoading = false,
-    emptyMessage = "No conversations yet"
+    emptyMessage = 'No conversations yet',
 }: ChatSidebarProps) {
     return (
-        <div className={cn("flex w-80 flex-col border border-r p-4", className)}>
+        <div
+            className={cn('flex w-80 flex-col border border-r p-4', className)}
+        >
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{title}</h1>
                 {showSearch && (
                     <Search
-                        className="text-muted-foreground h-5 w-5 cursor-pointer hover:text-foreground transition-colors"
+                        className="h-5 w-5 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
                         onClick={onSearchClick}
                         role="button"
                         tabIndex={0}
@@ -147,10 +157,10 @@ export function ChatSidebar({
                             key={tab.id}
                             variant="ghost"
                             className={cn(
-                                "h-9 flex-1 rounded-md text-sm font-medium",
+                                'h-9 flex-1 rounded-md text-sm font-medium',
                                 activeTab === tab.id
-                                    ? "shadow-sm"
-                                    : "text-muted-foreground hover:bg-transparent"
+                                    ? 'shadow-sm'
+                                    : 'text-muted-foreground hover:bg-transparent',
                             )}
                             onClick={() => onTabChange?.(tab.id)}
                         >
@@ -166,7 +176,10 @@ export function ChatSidebar({
                 {isLoading ? (
                     // Loading skeleton
                     Array.from({ length: 5 }).map((_, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 animate-pulse">
+                        <div
+                            key={index}
+                            className="flex animate-pulse items-center gap-3 p-3"
+                        >
                             <div className="h-10 w-10 rounded-full bg-muted" />
                             <div className="flex-1 space-y-2">
                                 <div className="h-4 w-24 rounded bg-muted" />
@@ -177,7 +190,7 @@ export function ChatSidebar({
                 ) : contacts.length === 0 ? (
                     // Empty state
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                        <User className="h-12 w-12 mb-2 opacity-50" />
+                        <User className="mb-2 h-12 w-12 opacity-50" />
                         <p className="text-sm">{emptyMessage}</p>
                     </div>
                 ) : (

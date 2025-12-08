@@ -1,7 +1,7 @@
-import { ChevronLeftIcon } from 'lucide-react';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 import { Form, Head, Link } from '@inertiajs/react';
+import { ChevronLeftIcon } from 'lucide-react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,10 @@ export default function ForgotPassword({ status }: { status?: string }) {
     return (
         <AuthLayout
             title={t('auth.forgot_password', 'Forgot Password?')}
-            description={t('auth.forgot_password_desc', "Enter your email and we'll send you instructions to reset your password")}
+            description={t(
+                'auth.forgot_password_desc',
+                "Enter your email and we'll send you instructions to reset your password",
+            )}
         >
             <Head title={t('auth.forgot_password', 'Forgot password')} />
 
@@ -33,14 +36,19 @@ export default function ForgotPassword({ status }: { status?: string }) {
                         <div className="grid gap-4">
                             {/* Email */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('auth.email', 'Email address')}
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     autoFocus
                                     autoComplete="email"
-                                    placeholder={t('auth.enter_email', 'Enter your email address')}
+                                    placeholder={t(
+                                        'auth.enter_email',
+                                        'Enter your email address',
+                                    )}
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -61,7 +69,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             className="group mx-auto flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
                             <ChevronLeftIcon className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                            <span>{t('auth.back_to_login', 'Back to login')}</span>
+                            <span>
+                                {t('auth.back_to_login', 'Back to login')}
+                            </span>
                         </Link>
                     </>
                 )}

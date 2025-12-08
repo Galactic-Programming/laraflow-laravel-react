@@ -1,7 +1,7 @@
-import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Building2Icon, CalendarIcon, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Building2Icon, CalendarIcon, type LucideIcon } from 'lucide-react';
+import * as React from 'react';
 
 // ============================================================================
 // Types
@@ -57,7 +57,7 @@ export function Timeline({
     return (
         <div className={cn('relative ml-3', className)}>
             {/* Timeline line */}
-            <div className="absolute bottom-0 left-0 top-4 border-l-2" />
+            <div className="absolute top-4 bottom-0 left-0 border-l-2" />
 
             {items.map((item, index) => {
                 const ItemIcon = item.icon || DefaultIcon;
@@ -65,10 +65,13 @@ export function Timeline({
                 return (
                     <div
                         key={index}
-                        className={cn('relative pb-12 pl-8 last:pb-0', itemClassName)}
+                        className={cn(
+                            'relative pb-12 pl-8 last:pb-0',
+                            itemClassName,
+                        )}
                     >
                         {/* Timeline dot */}
-                        <div className="border-primary bg-background absolute left-px top-3 h-3 w-3 -translate-x-1/2 rounded-full border-2" />
+                        <div className="absolute top-3 left-px h-3 w-3 -translate-x-1/2 rounded-full border-2 border-primary bg-background" />
 
                         {/* Content */}
                         {item.children ? (
@@ -79,11 +82,13 @@ export function Timeline({
                                 {item.subtitle && (
                                     <div className="flex items-center gap-2.5">
                                         {showSubtitleIcon && (
-                                            <div className="bg-accent flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-                                                <ItemIcon className="text-muted-foreground h-5 w-5" />
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent">
+                                                <ItemIcon className="h-5 w-5 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <span className="text-base font-medium">{item.subtitle}</span>
+                                        <span className="text-base font-medium">
+                                            {item.subtitle}
+                                        </span>
                                     </div>
                                 )}
 
@@ -94,7 +99,9 @@ export function Timeline({
                                     </h3>
                                     {item.period && (
                                         <div className="mt-2 flex items-center gap-2 text-sm">
-                                            {showPeriodIcon && <CalendarIcon className="h-4 w-4" />}
+                                            {showPeriodIcon && (
+                                                <CalendarIcon className="h-4 w-4" />
+                                            )}
                                             <span>{item.period}</span>
                                         </div>
                                     )}
@@ -102,7 +109,7 @@ export function Timeline({
 
                                 {/* Description */}
                                 {item.description && (
-                                    <p className="text-muted-foreground text-pretty text-sm sm:text-base">
+                                    <p className="text-sm text-pretty text-muted-foreground sm:text-base">
                                         {item.description}
                                     </p>
                                 )}
@@ -139,7 +146,10 @@ export interface TimelineItemComponentProps {
     className?: string;
 }
 
-export function TimelineItemContent({ children, className }: TimelineItemComponentProps) {
+export function TimelineItemContent({
+    children,
+    className,
+}: TimelineItemComponentProps) {
     return <div className={cn('space-y-3', className)}>{children}</div>;
 }
 
@@ -172,7 +182,7 @@ export function TimelineContainer({
             className={cn(
                 'mx-auto px-6 py-12 md:py-20',
                 maxWidthClasses[maxWidth],
-                containerClassName
+                containerClassName,
             )}
         >
             <Timeline {...props} />

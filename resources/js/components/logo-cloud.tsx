@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 
 // ============================================================================
 // Types
@@ -111,12 +111,18 @@ export const defaultIntegrations: LogoItem[] = [
 // Default Title Component
 // ============================================================================
 
-const DefaultTitle = ({ part1 = 'Seamlessly', part2 = 'integrates with your favorite tools' }: { part1?: string; part2?: string }) => (
+const DefaultTitle = ({
+    part1 = 'Seamlessly',
+    part2 = 'integrates with your favorite tools',
+}: {
+    part1?: string;
+    part2?: string;
+}) => (
     <>
         <span>{part1}</span>{' '}
         <span className="relative z-1">
             {part2}
-            <span className="bg-primary absolute bottom-1 left-0 -z-1 h-px w-full"></span>
+            <span className="absolute bottom-1 left-0 -z-1 h-px w-full bg-primary"></span>
         </span>
     </>
 );
@@ -138,7 +144,9 @@ export function LogoCloud({
     className,
     children,
 }: LogoCloudProps) {
-    const displayTitle = title ?? <DefaultTitle part1={titlePart1} part2={titlePart2} />;
+    const displayTitle = title ?? (
+        <DefaultTitle part1={titlePart1} part2={titlePart2} />
+    );
 
     const LogosContent = (
         <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 text-muted-foreground">
@@ -147,7 +155,9 @@ export function LogoCloud({
                     <>
                         {item.icon}
                         {showNames && (
-                            <span className="text-sm font-medium max-sm:hidden">{item.name}</span>
+                            <span className="text-sm font-medium max-sm:hidden">
+                                {item.name}
+                            </span>
                         )}
                     </>
                 );
@@ -179,7 +189,11 @@ export function LogoCloud({
     return (
         <section
             id={id}
-            className={cn('py-12 sm:py-16', mutedBackground && 'bg-muted', className)}
+            className={cn(
+                'py-12 sm:py-16',
+                mutedBackground && 'bg-muted',
+                className,
+            )}
         >
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 {/* Header */}
@@ -187,9 +201,13 @@ export function LogoCloud({
                     children
                 ) : (
                     <div className="mb-8 space-y-4 text-center sm:mb-12">
-                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">{displayTitle}</h2>
+                        <h2 className="text-2xl font-semibold md:text-3xl lg:text-4xl">
+                            {displayTitle}
+                        </h2>
                         {description && (
-                            <p className="text-muted-foreground text-xl">{description}</p>
+                            <p className="text-xl text-muted-foreground">
+                                {description}
+                            </p>
                         )}
                     </div>
                 )}
@@ -197,7 +215,9 @@ export function LogoCloud({
                 {/* Logos */}
                 {showCard ? (
                     <Card className="py-14 shadow-lg">
-                        <CardContent className="px-14">{LogosContent}</CardContent>
+                        <CardContent className="px-14">
+                            {LogosContent}
+                        </CardContent>
                     </Card>
                 ) : (
                     LogosContent

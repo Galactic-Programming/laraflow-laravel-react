@@ -29,25 +29,29 @@ export function SettingsRow({
         <div
             className={cn(
                 'flex items-center justify-between gap-4',
-                stackOnMobile && 'flex-col items-start sm:flex-row sm:items-center',
+                stackOnMobile &&
+                    'flex-col items-start sm:flex-row sm:items-center',
                 className,
             )}
         >
             <div className="flex items-start gap-3">
-                {icon && (
-                    <div className="mt-0.5 flex-shrink-0">
-                        {icon}
-                    </div>
-                )}
+                {icon && <div className="mt-0.5 flex-shrink-0">{icon}</div>}
                 <div className="space-y-1">
                     <Label className="text-base font-medium">{title}</Label>
                     {description && (
-                        <p className="text-sm text-muted-foreground">{description}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {description}
+                        </p>
                     )}
                 </div>
             </div>
             {action && (
-                <div className={cn('flex-shrink-0', stackOnMobile && 'w-full sm:w-auto')}>
+                <div
+                    className={cn(
+                        'flex-shrink-0',
+                        stackOnMobile && 'w-full sm:w-auto',
+                    )}
+                >
                     {action}
                 </div>
             )}

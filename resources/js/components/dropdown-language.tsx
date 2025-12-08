@@ -17,7 +17,11 @@ type Props = {
     align?: 'start' | 'center' | 'end';
 };
 
-export default function LanguageDropdown({ defaultOpen, align = 'end', trigger }: Props) {
+export default function LanguageDropdown({
+    defaultOpen,
+    align = 'end',
+    trigger,
+}: Props) {
     const { locale, availableLocales } = usePage<SharedData>().props;
 
     const handleLocaleChange = (newLocale: string) => {
@@ -39,12 +43,15 @@ export default function LanguageDropdown({ defaultOpen, align = 'end', trigger }
         <DropdownMenu defaultOpen={defaultOpen}>
             <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
             <DropdownMenuContent className="w-40" align={align}>
-                <DropdownMenuRadioGroup value={locale} onValueChange={handleLocaleChange}>
+                <DropdownMenuRadioGroup
+                    value={locale}
+                    onValueChange={handleLocaleChange}
+                >
                     {Object.entries(availableLocales).map(([code, name]) => (
                         <DropdownMenuRadioItem
                             key={code}
                             value={code}
-                            className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pl-2 [&>span]:hidden"
+                            className="pl-2 data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground [&>span]:hidden"
                         >
                             {name}
                         </DropdownMenuRadioItem>

@@ -1,20 +1,26 @@
-import { type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
-    CardHeader,
     CardDescription,
-    CardTitle,
     CardFooter,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { type ReactNode } from 'react';
 
 interface CardTopImageAction {
     label: string;
     onClick?: () => void;
     href?: string;
-    variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
+    variant?:
+        | 'default'
+        | 'outline'
+        | 'secondary'
+        | 'ghost'
+        | 'link'
+        | 'destructive';
 }
 
 interface CardTopImageProps {
@@ -47,14 +53,19 @@ export function CardTopImage({
             </CardContent>
             <CardHeader>
                 <CardTitle>{title}</CardTitle>
-                {description && <CardDescription>{description}</CardDescription>}
+                {description && (
+                    <CardDescription>{description}</CardDescription>
+                )}
             </CardHeader>
             {(actions || children) && (
                 <CardFooter className="gap-3 max-sm:flex-col max-sm:items-stretch">
                     {actions?.map((action, index) => (
                         <Button
                             key={index}
-                            variant={action.variant || (index === 0 ? 'default' : 'outline')}
+                            variant={
+                                action.variant ||
+                                (index === 0 ? 'default' : 'outline')
+                            }
                             onClick={action.onClick}
                             asChild={!!action.href}
                         >

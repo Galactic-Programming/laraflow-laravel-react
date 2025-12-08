@@ -14,7 +14,9 @@ export default function AppearanceToggleTab({
         <div className={cn('space-y-6', className)} {...props}>
             {/* Background Effect Section */}
             <div className="space-y-3">
-                <Label className="text-sm font-medium">{t('settings.background_effect', 'Background Effect')}</Label>
+                <Label className="text-sm font-medium">
+                    {t('settings.background_effect', 'Background Effect')}
+                </Label>
                 <BackgroundSelector />
             </div>
         </div>

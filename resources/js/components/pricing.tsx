@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -95,22 +95,33 @@ export function PricingCards({
     return (
         <section
             id={id}
-            className={cn('py-12 sm:py-16', mutedBackground && 'bg-muted', className)}
+            className={cn(
+                'py-12 sm:py-16',
+                mutedBackground && 'bg-muted',
+                className,
+            )}
         >
             <div className="mx-auto max-w-7xl space-y-8 px-4 sm:space-y-12 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex flex-col items-center gap-6 text-center">
                     <div className="flex flex-col items-center gap-4">
-                        <h2 className="text-2xl font-semibold sm:text-3xl lg:text-4xl">{title}</h2>
+                        <h2 className="text-2xl font-semibold sm:text-3xl lg:text-4xl">
+                            {title}
+                        </h2>
                         {description && (
-                            <p className="text-muted-foreground text-xl">{description}</p>
+                            <p className="text-xl text-muted-foreground">
+                                {description}
+                            </p>
                         )}
                     </div>
 
                     {showToggle && (
                         <div className="flex items-center gap-3">
                             <span className="font-medium">{monthlyLabel}</span>
-                            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+                            <Switch
+                                checked={isAnnual}
+                                onCheckedChange={setIsAnnual}
+                            />
                             <span className="font-medium">{annualLabel}</span>
                         </div>
                     )}
@@ -163,19 +174,26 @@ export function PricingCard({
 }: PricingCardProps) {
     const price = isAnnual ? plan.annual : plan.monthly;
     const periodLabel = isAnnual ? perYearLabel : perMonthLabel;
-    const savings = isAnnual && plan.monthly > 0 ? plan.monthly * 12 - plan.annual : null;
+    const savings =
+        isAnnual && plan.monthly > 0 ? plan.monthly * 12 - plan.annual : null;
 
     const priceDisplay = (priceClassName?: string) => (
         <div className={cn('flex flex-col items-end', priceClassName)}>
             <div className="flex items-end">
-                <span className="text-primary text-5xl font-bold">
-                    {currency}{price}
+                <span className="text-5xl font-bold text-primary">
+                    {currency}
+                    {price}
                 </span>
-                <span className="text-muted-foreground ml-1 text-lg">{periodLabel}</span>
+                <span className="ml-1 text-lg text-muted-foreground">
+                    {periodLabel}
+                </span>
             </div>
             {savings !== null && savings > 0 && (
                 <span className="mt-1 text-sm font-medium text-green-600">
-                    {saveLabel.replace('{amount}', `${currency}${savings.toLocaleString()}`)}
+                    {saveLabel.replace(
+                        '{amount}',
+                        `${currency}${savings.toLocaleString()}`,
+                    )}
                 </span>
             )}
         </div>
@@ -185,15 +203,17 @@ export function PricingCard({
         <Card
             className={cn(
                 'w-full shadow-none sm:w-lg',
-                plan.featured && 'border-primary ring-primary/20 ring-2',
-                className
+                plan.featured && 'border-primary ring-2 ring-primary/20',
+                className,
             )}
         >
             <CardContent className="flex justify-between gap-4">
                 <div className="flex flex-col justify-center gap-5">
                     <div className="flex flex-col gap-2">
                         <h3 className="text-3xl font-semibold">{plan.title}</h3>
-                        <p className="text-muted-foreground text-base">{plan.description}</p>
+                        <p className="text-base text-muted-foreground">
+                            {plan.description}
+                        </p>
                     </div>
 
                     {/* Mobile price display */}
@@ -204,7 +224,10 @@ export function PricingCard({
                     </Button>
                 </div>
 
-                <Separator orientation="vertical" className="!h-[132px] max-sm:hidden" />
+                <Separator
+                    orientation="vertical"
+                    className="!h-[132px] max-sm:hidden"
+                />
 
                 {/* Desktop price display */}
                 <div className="flex items-end justify-end max-sm:hidden">

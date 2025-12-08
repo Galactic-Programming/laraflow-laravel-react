@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import {
     CheckCircle2Icon,
@@ -8,7 +7,9 @@ import {
     Loader2Icon,
     MoreVerticalIcon,
 } from 'lucide-react';
+import * as React from 'react';
 
+import { DragHandle } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,7 +20,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DragHandle } from '@/components/data-table';
 
 // ============================================================================
 // Types
@@ -41,7 +41,9 @@ export type StatusType = 'done' | 'in-progress' | 'not-started' | 'pending';
 /**
  * Creates a drag handle column for reorderable rows
  */
-export function createDragColumn<TData extends { id: string | number }>(): ColumnDef<TData> {
+export function createDragColumn<
+    TData extends { id: string | number },
+>(): ColumnDef<TData> {
     return {
         id: 'drag',
         header: () => null,
@@ -64,7 +66,9 @@ export function createSelectColumn<TData>(): ColumnDef<TData> {
                         table.getIsAllPageRowsSelected() ||
                         (table.getIsSomePageRowsSelected() && 'indeterminate')
                     }
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                    onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(!!value)
+                    }
                     aria-label="Select all"
                 />
             </div>
@@ -87,7 +91,7 @@ export function createSelectColumn<TData>(): ColumnDef<TData> {
  * Creates an actions column with dropdown menu
  */
 export function createActionsColumn<TData>(
-    getActions: (row: TData) => ActionMenuItem[]
+    getActions: (row: TData) => ActionMenuItem[],
 ): ColumnDef<TData> {
     return {
         id: 'actions',
@@ -100,7 +104,7 @@ export function createActionsColumn<TData>(
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="ghost"
-                            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
                             size="icon"
                         >
                             <MoreVerticalIcon className="size-4" />
@@ -110,7 +114,9 @@ export function createActionsColumn<TData>(
                     <DropdownMenuContent align="end" className="w-32">
                         {actions.map((action, index) => (
                             <React.Fragment key={action.label}>
-                                {action.separator && index > 0 && <DropdownMenuSeparator />}
+                                {action.separator && index > 0 && (
+                                    <DropdownMenuSeparator />
+                                )}
                                 <DropdownMenuItem
                                     onClick={action.onClick}
                                     variant={action.variant}
@@ -141,11 +147,18 @@ interface StatusBadgeProps {
  * Status badge component for displaying row status
  */
 export function StatusBadge({ status, label }: StatusBadgeProps) {
-    const normalizedStatus = status.toLowerCase().replace(/\s+/g, '-') as StatusType;
+    const normalizedStatus = status
+        .toLowerCase()
+        .replace(/\s+/g, '-') as StatusType;
 
-    const statusConfig: Record<StatusType, { icon: React.ReactNode; className?: string }> = {
+    const statusConfig: Record<
+        StatusType,
+        { icon: React.ReactNode; className?: string }
+    > = {
         done: {
-            icon: <CheckCircle2Icon className="size-3.5 fill-green-500 text-white dark:fill-green-400" />,
+            icon: (
+                <CheckCircle2Icon className="size-3.5 fill-green-500 text-white dark:fill-green-400" />
+            ),
         },
         'in-progress': {
             icon: <Loader2Icon className="size-3.5 animate-spin" />,
@@ -158,11 +171,12 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
         },
     };
 
-    const config = statusConfig[normalizedStatus] || statusConfig['not-started'];
+    const config =
+        statusConfig[normalizedStatus] || statusConfig['not-started'];
     const displayLabel = label || status;
 
     return (
-        <Badge variant="outline" className="text-muted-foreground gap-1 px-1.5">
+        <Badge variant="outline" className="gap-1 px-1.5 text-muted-foreground">
             {config.icon}
             {displayLabel}
         </Badge>
@@ -179,7 +193,10 @@ interface TypeBadgeProps {
  */
 export function TypeBadge({ type, className }: TypeBadgeProps) {
     return (
-        <Badge variant="outline" className={`text-muted-foreground px-1.5 ${className || ''}`}>
+        <Badge
+            variant="outline"
+            className={`px-1.5 text-muted-foreground ${className || ''}`}
+        >
             {type}
         </Badge>
     );
@@ -198,14 +215,15 @@ export function createTextColumn<TData>(
     options?: {
         enableHiding?: boolean;
         cell?: (value: TData[keyof TData], row: TData) => React.ReactNode;
-    }
+    },
 ): ColumnDef<TData> {
     return {
         accessorKey,
         header,
         enableHiding: options?.enableHiding ?? true,
         cell: options?.cell
-            ? ({ row }) => options.cell!(row.original[accessorKey], row.original)
+            ? ({ row }) =>
+                  options.cell!(row.original[accessorKey], row.original)
             : undefined,
     };
 }
@@ -218,7 +236,7 @@ export function createBadgeColumn<TData>(
     header: string,
     options?: {
         width?: string;
-    }
+    },
 ): ColumnDef<TData> {
     return {
         accessorKey,
@@ -236,12 +254,14 @@ export function createBadgeColumn<TData>(
  */
 export function createStatusColumn<TData>(
     accessorKey: keyof TData & string,
-    header: string = 'Status'
+    header: string = 'Status',
 ): ColumnDef<TData> {
     return {
         accessorKey,
         header,
-        cell: ({ row }) => <StatusBadge status={String(row.original[accessorKey])} />,
+        cell: ({ row }) => (
+            <StatusBadge status={String(row.original[accessorKey])} />
+        ),
     };
 }
 
@@ -253,7 +273,7 @@ export function createNumberColumn<TData>(
     header: string,
     options?: {
         format?: (value: number) => string;
-    }
+    },
 ): ColumnDef<TData> {
     return {
         accessorKey,
@@ -261,7 +281,9 @@ export function createNumberColumn<TData>(
         cell: ({ row }) => {
             const value = row.original[accessorKey];
             const numValue = typeof value === 'number' ? value : Number(value);
-            const formatted = options?.format ? options.format(numValue) : String(value);
+            const formatted = options?.format
+                ? options.format(numValue)
+                : String(value);
 
             return <div className="text-right">{formatted}</div>;
         },

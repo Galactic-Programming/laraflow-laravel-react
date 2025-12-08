@@ -98,7 +98,10 @@ function TwoFactorSetupStep({
                     <div className="relative flex w-full items-center justify-center">
                         <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
                         <span className="relative bg-card px-2 py-1">
-                            {t('settings.or_enter_manually', 'or, enter the code manually')}
+                            {t(
+                                'settings.or_enter_manually',
+                                'or, enter the code manually',
+                            )}
                         </span>
                     </div>
 
@@ -258,23 +261,41 @@ export default function TwoFactorSetupModal({
     }>(() => {
         if (twoFactorEnabled) {
             return {
-                title: t('settings.2fa_enabled_title', 'Two-Factor Authentication Enabled'),
-                description: t('settings.2fa_enabled_desc', 'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.'),
+                title: t(
+                    'settings.2fa_enabled_title',
+                    'Two-Factor Authentication Enabled',
+                ),
+                description: t(
+                    'settings.2fa_enabled_desc',
+                    'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
+                ),
                 buttonText: t('common.close', 'Close'),
             };
         }
 
         if (showVerificationStep) {
             return {
-                title: t('settings.verify_auth_code', 'Verify Authentication Code'),
-                description: t('settings.verify_auth_code_desc', 'Enter the 6-digit code from your authenticator app'),
+                title: t(
+                    'settings.verify_auth_code',
+                    'Verify Authentication Code',
+                ),
+                description: t(
+                    'settings.verify_auth_code_desc',
+                    'Enter the 6-digit code from your authenticator app',
+                ),
                 buttonText: t('common.continue', 'Continue'),
             };
         }
 
         return {
-            title: t('settings.enable_2fa_title', 'Enable Two-Factor Authentication'),
-            description: t('settings.enable_2fa_desc', 'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app'),
+            title: t(
+                'settings.enable_2fa_title',
+                'Enable Two-Factor Authentication',
+            ),
+            description: t(
+                'settings.enable_2fa_desc',
+                'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
+            ),
             buttonText: t('common.continue', 'Continue'),
         };
     }, [twoFactorEnabled, showVerificationStep, t]);

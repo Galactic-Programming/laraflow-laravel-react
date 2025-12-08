@@ -1,9 +1,9 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Camera, Calendar, Mail, MapPin, type LucideIcon } from 'lucide-react';
+import { Calendar, Camera, Mail, MapPin, type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 
 // =============================================================================
@@ -121,18 +121,23 @@ export function ProfileHeader({
     avatarSize = 'lg',
 }: ProfileHeaderProps) {
     // Use custom meta items or build from individual props
-    const displayMetaItems = metaItems ?? buildDefaultMetaItems(email, location, joinedDate);
+    const displayMetaItems =
+        metaItems ?? buildDefaultMetaItems(email, location, joinedDate);
 
     const content = (
-        <div className={cn(
-            'flex flex-col items-start gap-6 md:flex-row md:items-center',
-            !showCard && className,
-        )}>
+        <div
+            className={cn(
+                'flex flex-col items-start gap-6 md:flex-row md:items-center',
+                !showCard && className,
+            )}
+        >
             {/* Avatar */}
             <div className="relative">
                 <Avatar className={avatarSizeClasses[avatarSize]}>
                     <AvatarImage src={avatarUrl ?? undefined} alt={name} />
-                    <AvatarFallback className={avatarFallbackClasses[avatarSize]}>
+                    <AvatarFallback
+                        className={avatarFallbackClasses[avatarSize]}
+                    >
                         {getInitials(name)}
                     </AvatarFallback>
                 </Avatar>
@@ -170,7 +175,10 @@ export function ProfileHeader({
                 {displayMetaItems.length > 0 && (
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                         {displayMetaItems.map((item, index) => (
-                            <div key={index} className="flex items-center gap-1">
+                            <div
+                                key={index}
+                                className="flex items-center gap-1"
+                            >
                                 <item.icon className="size-4" />
                                 {item.label}
                             </div>
@@ -190,9 +198,7 @@ export function ProfileHeader({
 
     return (
         <Card className={className}>
-            <CardContent className="pt-6">
-                {content}
-            </CardContent>
+            <CardContent className="pt-6">{content}</CardContent>
         </Card>
     );
 }

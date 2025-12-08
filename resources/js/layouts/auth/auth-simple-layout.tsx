@@ -18,7 +18,7 @@ export default function AuthSimpleLayout({
     return (
         <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background p-6 md:p-10">
             {/* Background Shape */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 <AuthBackgroundShape className="opacity-50" />
             </div>
 

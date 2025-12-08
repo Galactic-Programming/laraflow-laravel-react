@@ -1,7 +1,7 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Settings, Plus } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 
 // Types
 export interface TeamMember {
@@ -38,7 +38,7 @@ function ProjectCard({ project, onSettingsClick }: ProjectCardProps) {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-4 top-4 h-auto p-1"
+                    className="absolute top-4 right-4 h-auto p-1"
                     onClick={() => onSettingsClick?.(project)}
                 >
                     <Settings className="h-4 w-4" />
@@ -52,7 +52,9 @@ function ProjectCard({ project, onSettingsClick }: ProjectCardProps) {
 
                 {/* Project Title */}
                 <div className="mb-6">
-                    <h3 className="mb-1 text-lg font-semibold leading-tight">{project.title}</h3>
+                    <h3 className="mb-1 text-lg leading-tight font-semibold">
+                        {project.title}
+                    </h3>
                     <p className="text-sm opacity-90">{project.subtitle}</p>
                 </div>
 
@@ -60,7 +62,9 @@ function ProjectCard({ project, onSettingsClick }: ProjectCardProps) {
                 <div className="mb-6">
                     <div className="mb-2 flex items-center justify-between">
                         <span className="text-sm opacity-90">Progress</span>
-                        <span className="text-sm font-semibold">{project.progress}%</span>
+                        <span className="text-sm font-semibold">
+                            {project.progress}%
+                        </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/30">
                         <div
@@ -76,7 +80,11 @@ function ProjectCard({ project, onSettingsClick }: ProjectCardProps) {
                     <TeamAvatars team={project.team} />
 
                     {/* Time Left Badge */}
-                    <Badge className={`${project.badgeColor} border-0 text-white`}>{project.timeLeft}</Badge>
+                    <Badge
+                        className={`${project.badgeColor} border-0 text-white`}
+                    >
+                        {project.timeLeft}
+                    </Badge>
                 </div>
             </CardContent>
         </Card>
@@ -145,7 +153,9 @@ export default function ProjectBoard({
                     <div className="mb-8 flex items-center justify-between">
                         <div className="space-y-2">
                             <h1 className="text-2xl font-bold">{title}</h1>
-                            <p className="text-muted-foreground">{description}</p>
+                            <p className="text-muted-foreground">
+                                {description}
+                            </p>
                         </div>
                         {onNewProject && (
                             <Button onClick={onNewProject}>
@@ -159,16 +169,26 @@ export default function ProjectBoard({
                 {/* Projects Grid */}
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                     {projects.map((project) => (
-                        <ProjectCard key={project.id} project={project} onSettingsClick={onProjectSettings} />
+                        <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onSettingsClick={onProjectSettings}
+                        />
                     ))}
                 </div>
 
                 {/* Empty State */}
                 {projects.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <p className="text-muted-foreground">No projects found</p>
+                        <p className="text-muted-foreground">
+                            No projects found
+                        </p>
                         {onNewProject && (
-                            <Button variant="outline" className="mt-4" onClick={onNewProject}>
+                            <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={onNewProject}
+                            >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create your first project
                             </Button>

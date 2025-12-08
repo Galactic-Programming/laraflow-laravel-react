@@ -13,13 +13,19 @@ export default function VerifyEmail({ status }: { status?: string }) {
     return (
         <AuthLayout
             title={t('auth.verify_email', 'Verify your email')}
-            description={t('auth.verify_email_desc', 'An activation link has been sent to your email address. Please check your inbox and click on the link to complete the activation process.')}
+            description={t(
+                'auth.verify_email_desc',
+                'An activation link has been sent to your email address. Please check your inbox and click on the link to complete the activation process.',
+            )}
         >
             <Head title={t('auth.verify_email', 'Email verification')} />
 
             {status === 'verification-link-sent' && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {t('auth.verification_sent', 'A new verification link has been sent to the email address you provided during registration.')}
+                    {t(
+                        'auth.verification_sent',
+                        'A new verification link has been sent to the email address you provided during registration.',
+                    )}
                 </div>
             )}
 
@@ -32,15 +38,18 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             disabled={processing}
                         >
                             {processing && <Spinner className="mr-2" />}
-                            {t('auth.resend_verification', 'Resend verification email')}
+                            {t(
+                                'auth.resend_verification',
+                                'Resend verification email',
+                            )}
                         </Button>
 
                         <p className="text-center text-sm text-muted-foreground">
                             Didn't get the email?{' '}
                             <TextLink href={logout()}>
                                 {t('auth.logout', 'Log out')}
-                            </TextLink>
-                            {' '}and try again
+                            </TextLink>{' '}
+                            and try again
                         </p>
                     </div>
                 )}

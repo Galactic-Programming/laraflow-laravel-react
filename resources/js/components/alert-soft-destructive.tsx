@@ -1,6 +1,5 @@
+import { AlertSoft } from '@/components/alert-soft';
 import { TriangleAlertIcon, type LucideIcon } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
 
 interface AlertSoftDestructiveProps {
     title: string;
@@ -12,23 +11,16 @@ interface AlertSoftDestructiveProps {
 export function AlertSoftDestructive({
     title,
     description,
-    icon: Icon = TriangleAlertIcon,
+    icon = TriangleAlertIcon,
     className,
 }: AlertSoftDestructiveProps) {
     return (
-        <Alert
-            className={cn(
-                'border-none bg-destructive/10 text-destructive',
-                className
-            )}
-        >
-            <Icon />
-            <AlertTitle>{title}</AlertTitle>
-            {description && (
-                <AlertDescription className="text-destructive/80">
-                    {description}
-                </AlertDescription>
-            )}
-        </Alert>
+        <AlertSoft
+            variant="destructive"
+            title={title}
+            description={description}
+            icon={icon}
+            className={className}
+        />
     );
 }

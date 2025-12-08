@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from '@/hooks/use-translations';
 import { Form } from '@inertiajs/react';
 import { useRef } from 'react';
-import { useTranslations } from '@/hooks/use-translations';
 
 export interface DeleteUserProps {
     /** Whether to wrap in DangerZone styling */
@@ -37,19 +37,22 @@ export function DeleteUser({
     const deleteButton = (
         <Dialog>
             <DialogTrigger asChild>
-                <Button
-                    variant="destructive"
-                    data-test="delete-user-button"
-                >
+                <Button variant="destructive" data-test="delete-user-button">
                     {t('settings.delete_account_btn', 'Delete account')}
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogTitle>
-                    {t('settings.delete_confirm_title', 'Are you sure you want to delete your account?')}
+                    {t(
+                        'settings.delete_confirm_title',
+                        'Are you sure you want to delete your account?',
+                    )}
                 </DialogTitle>
                 <DialogDescription>
-                    {t('settings.delete_confirm_desc', 'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.')}
+                    {t(
+                        'settings.delete_confirm_desc',
+                        'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.',
+                    )}
                 </DialogDescription>
 
                 <Form
@@ -64,10 +67,7 @@ export function DeleteUser({
                     {({ resetAndClearErrors, processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label
-                                    htmlFor="password"
-                                    className="sr-only"
-                                >
+                                <Label htmlFor="password" className="sr-only">
                                     Password
                                 </Label>
 
@@ -87,9 +87,7 @@ export function DeleteUser({
                                 <DialogClose asChild>
                                     <Button
                                         variant="secondary"
-                                        onClick={() =>
-                                            resetAndClearErrors()
-                                        }
+                                        onClick={() => resetAndClearErrors()}
                                     >
                                         {t('common.cancel', 'Cancel')}
                                     </Button>
@@ -104,7 +102,10 @@ export function DeleteUser({
                                         type="submit"
                                         data-test="confirm-delete-user-button"
                                     >
-                                        {t('settings.delete_account_btn', 'Delete account')}
+                                        {t(
+                                            'settings.delete_account_btn',
+                                            'Delete account',
+                                        )}
                                     </button>
                                 </Button>
                             </DialogFooter>
@@ -122,7 +123,13 @@ export function DeleteUser({
     return (
         <DangerZone
             title={warningTitle || t('common.warning', 'Warning')}
-            description={warningDescription || t('settings.danger_zone_desc', 'Please proceed with caution, this cannot be undone.')}
+            description={
+                warningDescription ||
+                t(
+                    'settings.danger_zone_desc',
+                    'Please proceed with caution, this cannot be undone.',
+                )
+            }
         >
             {deleteButton}
         </DangerZone>

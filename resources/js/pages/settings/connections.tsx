@@ -1,6 +1,6 @@
-import { GoogleIcon, GitHubIcon } from '@/components/logo-cloud';
-import { SettingsCard } from '@/components/settings';
 import { AlertError } from '@/components/alert-error';
+import { GitHubIcon, GoogleIcon } from '@/components/logo-cloud';
+import { SettingsCard } from '@/components/settings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from '@/hooks/use-translations';
@@ -64,7 +64,9 @@ function ConnectionItem({
                             {isConnected ? connectedLabel : notConnectedLabel}
                         </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{description}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {description}
+                    </p>
                 </div>
             </div>
             <div>
@@ -104,8 +106,10 @@ function ConnectionItem({
 
 export default function Connections({ connections, status }: ConnectionsProps) {
     const { t } = useTranslations();
-    const linkUrl = (provider: Provider) => `/auth/${provider}/redirect` as const;
-    const unlinkAction = (provider: Provider) => `/settings/connections/${provider}` as const;
+    const linkUrl = (provider: Provider) =>
+        `/auth/${provider}/redirect` as const;
+    const unlinkAction = (provider: Provider) =>
+        `/settings/connections/${provider}` as const;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -130,7 +134,10 @@ export default function Connections({ connections, status }: ConnectionsProps) {
             <SettingsLayout>
                 <SettingsCard
                     title={t('settings.connections', 'Social Connections')}
-                    description={t('settings.connections_desc', 'Connect your accounts to enable single sign-on and easier access to your account.')}
+                    description={t(
+                        'settings.connections_desc',
+                        'Connect your accounts to enable single sign-on and easier access to your account.',
+                    )}
                 >
                     <div className="space-y-4">
                         {/* Success Status */}
@@ -159,29 +166,53 @@ export default function Connections({ connections, status }: ConnectionsProps) {
                         {/* Google Connection */}
                         <ConnectionItem
                             name="Google"
-                            description={t('settings.sign_in_google', 'Sign in with your Google account')}
+                            description={t(
+                                'settings.sign_in_google',
+                                'Sign in with your Google account',
+                            )}
                             icon={<GoogleIcon />}
                             isConnected={connections.google}
                             linkUrl={linkUrl('google')}
                             unlinkAction={unlinkAction('google')}
                             connectLabel={t('settings.connect', 'Connect')}
-                            disconnectLabel={t('settings.disconnect', 'Disconnect')}
-                            connectedLabel={t('settings.connected', 'Connected')}
-                            notConnectedLabel={t('settings.not_connected', 'Not connected')}
+                            disconnectLabel={t(
+                                'settings.disconnect',
+                                'Disconnect',
+                            )}
+                            connectedLabel={t(
+                                'settings.connected',
+                                'Connected',
+                            )}
+                            notConnectedLabel={t(
+                                'settings.not_connected',
+                                'Not connected',
+                            )}
                         />
 
                         {/* GitHub Connection */}
                         <ConnectionItem
                             name="GitHub"
-                            description={t('settings.sign_in_github', 'Sign in with your GitHub account')}
+                            description={t(
+                                'settings.sign_in_github',
+                                'Sign in with your GitHub account',
+                            )}
                             icon={<GitHubIcon />}
                             isConnected={connections.github}
                             linkUrl={linkUrl('github')}
                             unlinkAction={unlinkAction('github')}
                             connectLabel={t('settings.connect', 'Connect')}
-                            disconnectLabel={t('settings.disconnect', 'Disconnect')}
-                            connectedLabel={t('settings.connected', 'Connected')}
-                            notConnectedLabel={t('settings.not_connected', 'Not connected')}
+                            disconnectLabel={t(
+                                'settings.disconnect',
+                                'Disconnect',
+                            )}
+                            connectedLabel={t(
+                                'settings.connected',
+                                'Connected',
+                            )}
+                            notConnectedLabel={t(
+                                'settings.not_connected',
+                                'Not connected',
+                            )}
                         />
                     </div>
                 </SettingsCard>

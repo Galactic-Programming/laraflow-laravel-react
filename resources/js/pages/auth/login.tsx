@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -14,6 +12,8 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useState } from 'react';
 
 interface LoginProps {
     status?: string;
@@ -35,7 +35,10 @@ export default function Login({
     return (
         <AuthLayout
             title={t('auth.welcome_back', 'Welcome back')}
-            description={t('auth.sign_in_desc', 'Sign in to continue managing your projects')}
+            description={t(
+                'auth.sign_in_desc',
+                'Sign in to continue managing your projects',
+            )}
         >
             <Head title={t('auth.login', 'Log in')} />
 
@@ -55,7 +58,9 @@ export default function Login({
                         <div className="grid gap-4">
                             {/* Email */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="email">{t('auth.email', 'Email address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('auth.email', 'Email address')}
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -63,18 +68,27 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
-                                    placeholder={t('auth.enter_email', 'Enter your email address')}
+                                    placeholder={t(
+                                        'auth.enter_email',
+                                        'Enter your email address',
+                                    )}
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             {/* Password */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
+                                <Label htmlFor="password">
+                                    {t('auth.password', 'Password')}
+                                </Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
-                                        type={isPasswordVisible ? 'text' : 'password'}
+                                        type={
+                                            isPasswordVisible
+                                                ? 'text'
+                                                : 'password'
+                                        }
                                         name="password"
                                         tabIndex={2}
                                         autoComplete="current-password"
@@ -85,13 +99,23 @@ export default function Login({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsPasswordVisible(prev => !prev)}
+                                        onClick={() =>
+                                            setIsPasswordVisible(
+                                                (prev) => !prev,
+                                            )
+                                        }
                                         className="absolute inset-y-0 right-0 rounded-l-none text-muted-foreground hover:bg-transparent hover:text-foreground"
                                         tabIndex={-1}
                                     >
-                                        {isPasswordVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                                        {isPasswordVisible ? (
+                                            <EyeOffIcon className="size-4" />
+                                        ) : (
+                                            <EyeIcon className="size-4" />
+                                        )}
                                         <span className="sr-only">
-                                            {isPasswordVisible ? 'Hide password' : 'Show password'}
+                                            {isPasswordVisible
+                                                ? 'Hide password'
+                                                : 'Show password'}
                                         </span>
                                     </Button>
                                 </div>
@@ -106,7 +130,10 @@ export default function Login({
                                         name="remember"
                                         tabIndex={3}
                                     />
-                                    <Label htmlFor="remember" className="text-muted-foreground text-sm font-normal">
+                                    <Label
+                                        htmlFor="remember"
+                                        className="text-sm font-normal text-muted-foreground"
+                                    >
                                         {t('auth.remember_me', 'Remember me')}
                                     </Label>
                                 </div>
@@ -117,7 +144,10 @@ export default function Login({
                                         className="text-sm"
                                         tabIndex={5}
                                     >
-                                        {t('auth.forgot_password', 'Forgot your password?')}
+                                        {t(
+                                            'auth.forgot_password',
+                                            'Forgot your password?',
+                                        )}
                                     </TextLink>
                                 )}
                             </div>
@@ -146,17 +176,15 @@ export default function Login({
                         {/* Divider */}
                         <div className="flex items-center gap-4">
                             <Separator className="flex-1" />
-                            <span className="text-xs text-muted-foreground uppercase">{t('auth.or_continue_with', 'or continue with')}</span>
+                            <span className="text-xs text-muted-foreground uppercase">
+                                {t('auth.or_continue_with', 'or continue with')}
+                            </span>
                             <Separator className="flex-1" />
                         </div>
 
                         {/* Social Login */}
                         <div className="grid grid-cols-2 gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                asChild
-                            >
+                            <Button type="button" variant="outline" asChild>
                                 <a
                                     href={socialRedirect('google')}
                                     aria-label="Continue with Google"
@@ -168,19 +196,27 @@ export default function Login({
                                         className="size-5"
                                         aria-hidden
                                     >
-                                        <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.826 32.091 29.316 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 5.149 28.991 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z" />
-                                        <path fill="#FF3D00" d="M6.306 14.691l6.571 4.816C14.297 16.012 18.789 13 24 13c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 5.149 28.991 3 24 3 16.318 3 9.656 7.337 6.306 14.691z" />
-                                        <path fill="#4CAF50" d="M24 43c5.241 0 10.031-2.007 13.59-5.277l-6.26-5.28C29.289 33.466 26.773 34.5 24 34.5c-5.285 0-9.773-3.389-11.393-8.115l-6.56 5.053C8.359 37.977 15.624 43 24 43z" />
-                                        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.03 3.091-3.332 5.466-6.673 6.943l.001-.001 6.26 5.28C38.01 37.991 44 33 44 23c0-1.341-.138-2.651-.389-3.917z" />
+                                        <path
+                                            fill="#FFC107"
+                                            d="M43.611 20.083H42V20H24v8h11.303C33.826 32.091 29.316 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 5.149 28.991 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"
+                                        />
+                                        <path
+                                            fill="#FF3D00"
+                                            d="M6.306 14.691l6.571 4.816C14.297 16.012 18.789 13 24 13c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 5.149 28.991 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"
+                                        />
+                                        <path
+                                            fill="#4CAF50"
+                                            d="M24 43c5.241 0 10.031-2.007 13.59-5.277l-6.26-5.28C29.289 33.466 26.773 34.5 24 34.5c-5.285 0-9.773-3.389-11.393-8.115l-6.56 5.053C8.359 37.977 15.624 43 24 43z"
+                                        />
+                                        <path
+                                            fill="#1976D2"
+                                            d="M43.611 20.083H42V20H24v8h11.303c-1.03 3.091-3.332 5.466-6.673 6.943l.001-.001 6.26 5.28C38.01 37.991 44 33 44 23c0-1.341-.138-2.651-.389-3.917z"
+                                        />
                                     </svg>
                                     Google
                                 </a>
                             </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                asChild
-                            >
+                            <Button type="button" variant="outline" asChild>
                                 <a
                                     href={socialRedirect('github')}
                                     aria-label="Continue with GitHub"

@@ -1,8 +1,13 @@
-import { type ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { type ReactNode } from 'react';
 
-type GradientPreset = 'indigo-pink' | 'blue-purple' | 'green-teal' | 'orange-red' | 'custom';
+type GradientPreset =
+    | 'indigo-pink'
+    | 'blue-purple'
+    | 'green-teal'
+    | 'orange-red'
+    | 'custom';
 
 interface BadgeGradientProps {
     children: ReactNode;
@@ -34,9 +39,9 @@ export function BadgeGradient({
     return (
         <Badge
             className={cn(
-                'rounded-sm border-transparent bg-gradient-to-r bg-center text-white [background-size:105%]',
+                'rounded-sm border-transparent bg-gradient-to-r [background-size:105%] bg-center text-white',
                 gradientClass,
-                className
+                className,
             )}
         >
             {children}

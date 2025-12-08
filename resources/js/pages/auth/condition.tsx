@@ -1,5 +1,10 @@
 import { Head, router } from '@inertiajs/react';
-import { FileTextIcon, ShieldCheckIcon, ArrowLeftIcon, CheckCircleIcon } from 'lucide-react';
+import {
+    ArrowLeftIcon,
+    CheckCircleIcon,
+    FileTextIcon,
+    ShieldCheckIcon,
+} from 'lucide-react';
 
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -23,14 +28,35 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
 
     return (
         <AuthLayout
-            title={isTerms ? t('condition.terms_title', 'Terms of Service') : t('condition.privacy_title', 'Privacy Policy')}
-            description={isTerms ? t('condition.terms_desc', 'Please read our terms carefully') : t('condition.privacy_desc', 'How we handle your data')}
+            title={
+                isTerms
+                    ? t('condition.terms_title', 'Terms of Service')
+                    : t('condition.privacy_title', 'Privacy Policy')
+            }
+            description={
+                isTerms
+                    ? t(
+                          'condition.terms_desc',
+                          'Please read our terms carefully',
+                      )
+                    : t('condition.privacy_desc', 'How we handle your data')
+            }
         >
-            <Head title={isTerms ? t('condition.terms_title', 'Terms of Service') : t('condition.privacy_title', 'Privacy Policy')} />
+            <Head
+                title={
+                    isTerms
+                        ? t('condition.terms_title', 'Terms of Service')
+                        : t('condition.privacy_title', 'Privacy Policy')
+                }
+            />
 
             <div className="flex flex-col gap-5">
                 {/* Tabs Navigation */}
-                <Tabs value={type} onValueChange={handleTabChange} className="w-full">
+                <Tabs
+                    value={type}
+                    onValueChange={handleTabChange}
+                    className="w-full"
+                >
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="terms" className="gap-2">
                             <FileTextIcon className="size-4" />
@@ -119,19 +145,51 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
 
                 {/* Summary Highlights */}
                 <div className="rounded-lg border border-dashed bg-muted/20 p-4">
-                    <h4 className="mb-3 text-sm font-medium text-foreground">{t('condition.key_points', 'Key Points')}</h4>
+                    <h4 className="mb-3 text-sm font-medium text-foreground">
+                        {t('condition.key_points', 'Key Points')}
+                    </h4>
                     <ul className="space-y-2">
                         {isTerms ? (
                             <>
-                                <Highlight text={t('condition.terms_point_1', 'You must be 18+ to use this service')} />
-                                <Highlight text={t('condition.terms_point_2', "You're responsible for your account security")} />
-                                <Highlight text={t('condition.terms_point_3', 'We may update terms with notice')} />
+                                <Highlight
+                                    text={t(
+                                        'condition.terms_point_1',
+                                        'You must be 18+ to use this service',
+                                    )}
+                                />
+                                <Highlight
+                                    text={t(
+                                        'condition.terms_point_2',
+                                        "You're responsible for your account security",
+                                    )}
+                                />
+                                <Highlight
+                                    text={t(
+                                        'condition.terms_point_3',
+                                        'We may update terms with notice',
+                                    )}
+                                />
                             </>
                         ) : (
                             <>
-                                <Highlight text={t('condition.privacy_point_1', 'We never sell your personal data')} />
-                                <Highlight text={t('condition.privacy_point_2', 'You can delete your data anytime')} />
-                                <Highlight text={t('condition.privacy_point_3', 'We use encryption to protect your info')} />
+                                <Highlight
+                                    text={t(
+                                        'condition.privacy_point_1',
+                                        'We never sell your personal data',
+                                    )}
+                                />
+                                <Highlight
+                                    text={t(
+                                        'condition.privacy_point_2',
+                                        'You can delete your data anytime',
+                                    )}
+                                />
+                                <Highlight
+                                    text={t(
+                                        'condition.privacy_point_3',
+                                        'We use encryption to protect your info',
+                                    )}
+                                />
                             </>
                         )}
                     </ul>
@@ -141,7 +199,7 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
 
                 {/* Back to Register */}
                 <Button variant="outline" asChild className="w-full">
-                    <TextLink href="/register" className="no-underline gap-2">
+                    <TextLink href="/register" className="gap-2 no-underline">
                         <ArrowLeftIcon className="size-4" />
                         {t('condition.back_to_register', 'Back to Register')}
                     </TextLink>
@@ -151,7 +209,15 @@ export default function Condition({ type = 'terms' }: ConditionProps) {
     );
 }
 
-function Section({ number, title, content }: { number: number; title: string; content: string }) {
+function Section({
+    number,
+    title,
+    content,
+}: {
+    number: number;
+    title: string;
+    content: string;
+}) {
     return (
         <div className="space-y-2">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -160,7 +226,7 @@ function Section({ number, title, content }: { number: number; title: string; co
                 </span>
                 {title}
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground pl-8">
+            <p className="pl-8 text-sm leading-relaxed text-muted-foreground">
                 {content}
             </p>
         </div>

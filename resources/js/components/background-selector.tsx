@@ -1,6 +1,9 @@
 import { Check, CircleOff, Sparkles, Waves, Zap } from 'lucide-react';
 
-import { type BackgroundType, useBackground } from '@/contexts/background-context';
+import {
+    type BackgroundType,
+    useBackground,
+} from '@/contexts/background-context';
 import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
 
@@ -25,8 +28,14 @@ export function BackgroundSelector() {
         const labels: Record<BackgroundType, string> = {
             none: t('settings.background_none', 'None'),
             beams: t('settings.background_beams', 'Beams'),
-            'floating-lines': t('settings.background_floating_lines', 'Floating Lines'),
-            'light-pillar': t('settings.background_light_pillar', 'Light Pillar'),
+            'floating-lines': t(
+                'settings.background_floating_lines',
+                'Floating Lines',
+            ),
+            'light-pillar': t(
+                'settings.background_light_pillar',
+                'Light Pillar',
+            ),
         };
         return labels[value];
     };
@@ -66,29 +75,58 @@ export function BackgroundSelector() {
                             className={cn(
                                 'relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all',
                                 'hover:border-primary/50 hover:bg-accent/50',
-                                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                                isSelected ? 'border-primary bg-accent' : 'border-border bg-card',
+                                'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                                isSelected
+                                    ? 'border-primary bg-accent'
+                                    : 'border-border bg-card',
                             )}
                         >
                             {isSelected && (
-                                <div className="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 rounded-full p-0.5">
+                                <div className="absolute -top-1.5 -right-1.5 rounded-full bg-primary p-0.5 text-primary-foreground">
                                     <Check className="h-3 w-3" />
                                 </div>
                             )}
-                            <Icon className={cn('h-6 w-6', isSelected ? 'text-primary' : 'text-muted-foreground')} />
-                            <span className={cn('text-sm font-medium', isSelected ? 'text-foreground' : 'text-muted-foreground')}>
+                            <Icon
+                                className={cn(
+                                    'h-6 w-6',
+                                    isSelected
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground',
+                                )}
+                            />
+                            <span
+                                className={cn(
+                                    'text-sm font-medium',
+                                    isSelected
+                                        ? 'text-foreground'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
                                 {getLabel(option.value)}
                             </span>
                             {option.performance !== 'none' && (
-                                <span className={cn('text-xs', getPerformanceColor(option.performance))}>{getPerformanceLabel(option.performance)}</span>
+                                <span
+                                    className={cn(
+                                        'text-xs',
+                                        getPerformanceColor(option.performance),
+                                    )}
+                                >
+                                    {getPerformanceLabel(option.performance)}
+                                </span>
                             )}
                         </button>
                     );
                 })}
             </div>
-            <p className="text-muted-foreground text-xs">
-                {t('settings.background_hint', 'Background effects are applied to dashboard and project pages.')}{' '}
-                {t('settings.background_dark_mode_only', 'Effects are only visible in dark mode for best visual experience.')}
+            <p className="text-xs text-muted-foreground">
+                {t(
+                    'settings.background_hint',
+                    'Background effects are applied to dashboard and project pages.',
+                )}{' '}
+                {t(
+                    'settings.background_dark_mode_only',
+                    'Effects are only visible in dark mode for best visual experience.',
+                )}
             </p>
         </div>
     );

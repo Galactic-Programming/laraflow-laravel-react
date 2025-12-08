@@ -1,15 +1,15 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     InputOTP,
     InputOTPGroup,
     InputOTPSlot,
 } from '@/components/ui/input-otp';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import { useTranslations } from '@/hooks/use-translations';
+import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import AuthLayout from '@/layouts/auth-layout';
 import { store } from '@/routes/two-factor/login';
 import { Form, Head } from '@inertiajs/react';
@@ -29,14 +29,23 @@ export default function TwoFactorChallenge() {
         if (showRecoveryInput) {
             return {
                 title: t('auth.recovery_code', 'Recovery Code'),
-                description: t('auth.recovery_code_desc', 'Please confirm access to your account by entering one of your emergency recovery codes'),
-                toggleText: t('auth.use_auth_code', 'Use authentication code instead'),
+                description: t(
+                    'auth.recovery_code_desc',
+                    'Please confirm access to your account by entering one of your emergency recovery codes',
+                ),
+                toggleText: t(
+                    'auth.use_auth_code',
+                    'Use authentication code instead',
+                ),
             };
         }
 
         return {
             title: t('auth.two_factor_title', 'Two Factor Authentication'),
-            description: t('auth.two_factor_desc', 'Please confirm access to your account by entering the code provided by your authenticator application'),
+            description: t(
+                'auth.two_factor_desc',
+                'Please confirm access to your account by entering the code provided by your authenticator application',
+            ),
             toggleText: t('auth.use_recovery_code', 'Use a recovery code'),
         };
     }, [showRecoveryInput, t]);
@@ -52,7 +61,9 @@ export default function TwoFactorChallenge() {
             title={authConfigContent.title}
             description={authConfigContent.description}
         >
-            <Head title={t('auth.two_factor_title', 'Two-Factor Authentication')} />
+            <Head
+                title={t('auth.two_factor_title', 'Two-Factor Authentication')}
+            />
 
             <Form
                 {...store.form()}
@@ -65,24 +76,38 @@ export default function TwoFactorChallenge() {
                         <div className="grid gap-4">
                             {showRecoveryInput ? (
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="recovery_code">{t('auth.recovery_code', 'Recovery code')}</Label>
+                                    <Label htmlFor="recovery_code">
+                                        {t(
+                                            'auth.recovery_code',
+                                            'Recovery code',
+                                        )}
+                                    </Label>
                                     <Input
                                         id="recovery_code"
                                         name="recovery_code"
                                         type="text"
-                                        placeholder={t('auth.enter_recovery_code', 'Enter your recovery code')}
+                                        placeholder={t(
+                                            'auth.enter_recovery_code',
+                                            'Enter your recovery code',
+                                        )}
                                         autoFocus
                                     />
-                                    <InputError message={errors.recovery_code} />
+                                    <InputError
+                                        message={errors.recovery_code}
+                                    />
                                 </div>
                             ) : (
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="code">{t('auth.enter_code', 'Code')}</Label>
+                                        <Label htmlFor="code">
+                                            {t('auth.enter_code', 'Code')}
+                                        </Label>
                                         <button
                                             type="button"
-                                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                                            onClick={() => toggleRecoveryMode(clearErrors)}
+                                            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                            onClick={() =>
+                                                toggleRecoveryMode(clearErrors)
+                                            }
                                         >
                                             {authConfigContent.toggleText}
                                         </button>
@@ -128,7 +153,9 @@ export default function TwoFactorChallenge() {
                                 <button
                                     type="button"
                                     className="font-medium text-foreground hover:underline"
-                                    onClick={() => toggleRecoveryMode(clearErrors)}
+                                    onClick={() =>
+                                        toggleRecoveryMode(clearErrors)
+                                    }
                                 >
                                     {authConfigContent.toggleText}
                                 </button>

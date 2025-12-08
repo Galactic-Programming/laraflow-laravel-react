@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
-import { Link, type InertiaLinkProps } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
+import { Link, type InertiaLinkProps } from '@inertiajs/react';
+import type { ReactNode } from 'react';
 
 // ============================================================================
 // Types
@@ -117,7 +117,8 @@ const defaultDescription = (
     <>
         Take control of your projects with our intuitive management platform.
         <br />
-        From planning tasks to tracking progress, achieve your goals effortlessly.
+        From planning tasks to tracking progress, achieve your goals
+        effortlessly.
     </>
 );
 
@@ -143,7 +144,9 @@ export function HeroSection({
     rippleConfig,
 }: HeroSectionProps) {
     // Check if title is HeroTitleProps object
-    const isHeroTitleProps = (t: HeroSectionProps['title']): t is HeroTitleProps => {
+    const isHeroTitleProps = (
+        t: HeroSectionProps['title'],
+    ): t is HeroTitleProps => {
         return typeof t === 'object' && t !== null && 'line1' in t;
     };
 
@@ -176,7 +179,7 @@ export function HeroSection({
             id={id}
             className={cn(
                 'relative flex min-h-[calc(80dvh-4rem)] flex-1 flex-col justify-between gap-8 overflow-hidden pt-6 sm:gap-12 sm:pt-12 lg:gap-16 lg:pt-16',
-                className
+                className,
             )}
         >
             {/* Background Ripple Effect */}
@@ -192,21 +195,23 @@ export function HeroSection({
             <div
                 className={cn(
                     'relative z-10 mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8',
-                    contentClassName
+                    contentClassName,
                 )}
             >
                 {/* Badge */}
                 {badge && (
-                    <div className="bg-muted flex items-center gap-2.5 rounded-full border px-3 py-2">
+                    <div className="flex items-center gap-2.5 rounded-full border bg-muted px-3 py-2">
                         {badge.label && <Badge>{badge.label}</Badge>}
                         {badge.description && (
-                            <span className="text-muted-foreground">{badge.description}</span>
+                            <span className="text-muted-foreground">
+                                {badge.description}
+                            </span>
                         )}
                     </div>
                 )}
 
                 {/* Title */}
-                <h1 className="text-3xl font-bold leading-[1.29167] text-balance sm:text-4xl lg:text-5xl">
+                <h1 className="text-3xl leading-[1.29167] font-bold text-balance sm:text-4xl lg:text-5xl">
                     {renderTitle()}
                 </h1>
 
@@ -225,7 +230,9 @@ export function HeroSection({
                         )}
                         {cta.secondaryText && cta.secondaryHref && (
                             <Button size="lg" variant="outline" asChild>
-                                <Link href={cta.secondaryHref}>{cta.secondaryText}</Link>
+                                <Link href={cta.secondaryHref}>
+                                    {cta.secondaryText}
+                                </Link>
                             </Button>
                         )}
                     </div>

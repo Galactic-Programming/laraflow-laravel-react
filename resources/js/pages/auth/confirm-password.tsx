@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +7,8 @@ import { useTranslations } from '@/hooks/use-translations';
 import AuthLayout from '@/layouts/auth-layout';
 import { store } from '@/routes/password/confirm';
 import { Form, Head } from '@inertiajs/react';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ConfirmPassword() {
     const { t } = useTranslations();
@@ -17,7 +17,10 @@ export default function ConfirmPassword() {
     return (
         <AuthLayout
             title={t('auth.confirm_password', 'Confirm Password')}
-            description={t('auth.confirm_password_desc', 'This is a secure area of the application. Please confirm your password before continuing.')}
+            description={t(
+                'auth.confirm_password_desc',
+                'This is a secure area of the application. Please confirm your password before continuing.',
+            )}
         >
             <Head title={t('auth.confirm_password', 'Confirm password')} />
 
@@ -30,11 +33,15 @@ export default function ConfirmPassword() {
                     <div className="grid gap-4">
                         {/* Password */}
                         <div className="space-y-1.5">
-                            <Label htmlFor="password">{t('auth.password', 'Password')}</Label>
+                            <Label htmlFor="password">
+                                {t('auth.password', 'Password')}
+                            </Label>
                             <div className="relative">
                                 <Input
                                     id="password"
-                                    type={isPasswordVisible ? 'text' : 'password'}
+                                    type={
+                                        isPasswordVisible ? 'text' : 'password'
+                                    }
                                     name="password"
                                     autoFocus
                                     autoComplete="current-password"
@@ -45,13 +52,21 @@ export default function ConfirmPassword() {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setIsPasswordVisible(prev => !prev)}
+                                    onClick={() =>
+                                        setIsPasswordVisible((prev) => !prev)
+                                    }
                                     className="absolute inset-y-0 right-0 rounded-l-none text-muted-foreground hover:bg-transparent hover:text-foreground"
                                     tabIndex={-1}
                                 >
-                                    {isPasswordVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                                    {isPasswordVisible ? (
+                                        <EyeOffIcon className="size-4" />
+                                    ) : (
+                                        <EyeIcon className="size-4" />
+                                    )}
                                     <span className="sr-only">
-                                        {isPasswordVisible ? 'Hide password' : 'Show password'}
+                                        {isPasswordVisible
+                                            ? 'Hide password'
+                                            : 'Show password'}
                                     </span>
                                 </Button>
                             </div>

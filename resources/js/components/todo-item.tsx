@@ -89,15 +89,25 @@ interface ProgressIndicatorProps {
     className?: string;
 }
 
-export function ProgressIndicator({ progress, className }: ProgressIndicatorProps) {
+export function ProgressIndicator({
+    progress,
+    className,
+}: ProgressIndicatorProps) {
     const colorClass = getProgressColor(progress);
 
     return (
         <div className={cn('flex items-center gap-1', className)}>
-            <div className={cn('flex h-4 w-4 items-center justify-center rounded-full border-2', colorClass)}>
+            <div
+                className={cn(
+                    'flex h-4 w-4 items-center justify-center rounded-full border-2',
+                    colorClass,
+                )}
+            >
                 <div className="h-2 w-2 rounded-full bg-current" />
             </div>
-            <span className={cn('text-xs font-medium', colorClass)}>{progress}%</span>
+            <span className={cn('text-xs font-medium', colorClass)}>
+                {progress}%
+            </span>
         </div>
     );
 }
@@ -109,7 +119,12 @@ interface AssigneeAvatarsProps {
     className?: string;
 }
 
-export function AssigneeAvatars({ assignees, avatar, maxDisplay = 2, className }: AssigneeAvatarsProps) {
+export function AssigneeAvatars({
+    assignees,
+    avatar,
+    maxDisplay = 2,
+    className,
+}: AssigneeAvatarsProps) {
     // Handle legacy single avatar
     if (!assignees?.length && avatar) {
         return (
@@ -135,7 +150,10 @@ export function AssigneeAvatars({ assignees, avatar, maxDisplay = 2, className }
     return (
         <div className={cn('flex -space-x-1', className)}>
             {displayed.map((assignee) => (
-                <Avatar key={assignee.id} className="h-6 w-6 border border-background">
+                <Avatar
+                    key={assignee.id}
+                    className="h-6 w-6 border border-background"
+                >
                     <AvatarImage src={assignee.avatar} alt={assignee.name} />
                     <AvatarFallback className="bg-blue-500 text-xs text-white">
                         {getInitials(assignee.name)}
@@ -144,7 +162,9 @@ export function AssigneeAvatars({ assignees, avatar, maxDisplay = 2, className }
             ))}
             {remaining > 0 && (
                 <div className="flex h-6 w-6 items-center justify-center rounded-full border border-background bg-muted">
-                    <span className="text-xs text-muted-foreground">+{remaining}</span>
+                    <span className="text-xs text-muted-foreground">
+                        +{remaining}
+                    </span>
                 </div>
             )}
         </div>
@@ -182,7 +202,15 @@ export function TodoItem({
     renderActions,
     className,
 }: TodoItemProps) {
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
         id: todo.id,
     });
 
@@ -233,7 +261,12 @@ export function TodoItem({
 
             {/* Text */}
             <div className="min-w-0 flex-1">
-                <p className={cn('text-sm font-medium', todo.completed && 'text-muted-foreground line-through')}>
+                <p
+                    className={cn(
+                        'text-sm font-medium',
+                        todo.completed && 'text-muted-foreground line-through',
+                    )}
+                >
                     {todo.text}
                 </p>
             </div>
@@ -242,24 +275,39 @@ export function TodoItem({
             <div className="flex items-center gap-2">
                 {/* Priority Badge */}
                 {todo.priority && priorityStyle && (
-                    <Badge variant="secondary" className={cn('border-0 text-xs font-medium', priorityStyle.className)}>
+                    <Badge
+                        variant="secondary"
+                        className={cn(
+                            'border-0 text-xs font-medium',
+                            priorityStyle.className,
+                        )}
+                    >
                         {priorityStyle.label}
                     </Badge>
                 )}
 
                 {/* Progress */}
-                {showProgress && todo.progress !== undefined && <ProgressIndicator progress={todo.progress} />}
-
-                {/* Comments */}
-                {showComments && todo.comments !== undefined && todo.comments > 0 && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                        <MessageCircle className="h-3 w-3" />
-                        <span className="text-xs">{todo.comments}</span>
-                    </div>
+                {showProgress && todo.progress !== undefined && (
+                    <ProgressIndicator progress={todo.progress} />
                 )}
 
+                {/* Comments */}
+                {showComments &&
+                    todo.comments !== undefined &&
+                    todo.comments > 0 && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                            <MessageCircle className="h-3 w-3" />
+                            <span className="text-xs">{todo.comments}</span>
+                        </div>
+                    )}
+
                 {/* Assignees */}
-                {showAssignees && <AssigneeAvatars assignees={todo.assignees} avatar={todo.avatar} />}
+                {showAssignees && (
+                    <AssigneeAvatars
+                        assignees={todo.assignees}
+                        avatar={todo.avatar}
+                    />
+                )}
 
                 {/* Custom Actions */}
                 {renderActions?.(todo)}

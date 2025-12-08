@@ -60,10 +60,17 @@ export function SubscriptionCountdown({
 
     if (countdown.isExpired) {
         return (
-            <div className={cn('rounded-lg border border-destructive/50 bg-destructive/10 p-4', className)}>
+            <div
+                className={cn(
+                    'rounded-lg border border-destructive/50 bg-destructive/10 p-4',
+                    className,
+                )}
+            >
                 <div className="flex items-center gap-2 text-destructive">
                     <AlertTriangleIcon className="h-5 w-5" />
-                    <span className="font-medium">Subscription has expired</span>
+                    <span className="font-medium">
+                        Subscription has expired
+                    </span>
                 </div>
             </div>
         );
@@ -89,7 +96,9 @@ export function SubscriptionCountdown({
         <div
             className={cn(
                 'rounded-lg border p-4',
-                countdown.isExpiringSoon ? 'border-amber-500/50 bg-amber-500/10' : 'border-border bg-muted/30',
+                countdown.isExpiringSoon
+                    ? 'border-amber-500/50 bg-amber-500/10'
+                    : 'border-border bg-muted/30',
                 className,
             )}
         >
@@ -109,15 +118,23 @@ export function SubscriptionCountdown({
 
             {/* Countdown boxes */}
             <div className="mb-4 grid grid-cols-4 gap-2">
-                <CountdownBox value={countdown.days} label="Days" highlight={countdown.days <= 3} />
+                <CountdownBox
+                    value={countdown.days}
+                    label="Days"
+                    highlight={countdown.days <= 3}
+                />
                 <CountdownBox value={countdown.hours} label="Hours" />
                 <CountdownBox value={countdown.minutes} label="Minutes" />
                 {showSeconds || countdown.days === 0 ? (
                     <CountdownBox value={countdown.seconds} label="Seconds" />
                 ) : (
                     <div className="flex flex-col items-center justify-center rounded-md bg-background/50 p-2">
-                        <span className="text-2xl font-bold tabular-nums">--</span>
-                        <span className="text-xs text-muted-foreground">Seconds</span>
+                        <span className="text-2xl font-bold tabular-nums">
+                            --
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            Seconds
+                        </span>
                     </div>
                 )}
             </div>
@@ -126,12 +143,20 @@ export function SubscriptionCountdown({
             {showProgress && (
                 <div className="mb-3">
                     <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                        <span>{Math.round(countdown.progressPercentage)}% used</span>
-                        <span>{Math.round(countdown.remainingPercentage)}% remaining</span>
+                        <span>
+                            {Math.round(countdown.progressPercentage)}% used
+                        </span>
+                        <span>
+                            {Math.round(countdown.remainingPercentage)}%
+                            remaining
+                        </span>
                     </div>
                     <Progress
                         value={countdown.progressPercentage}
-                        className={cn('h-2', countdown.isExpiringSoon && '[&>div]:bg-amber-500')}
+                        className={cn(
+                            'h-2',
+                            countdown.isExpiringSoon && '[&>div]:bg-amber-500',
+                        )}
                     />
                 </div>
             )}
@@ -139,7 +164,9 @@ export function SubscriptionCountdown({
             {/* Date range */}
             {(startsAtFormatted || endsAtFormatted) && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    {startsAtFormatted && <span>Started: {startsAtFormatted}</span>}
+                    {startsAtFormatted && (
+                        <span>Started: {startsAtFormatted}</span>
+                    )}
                     {endsAtFormatted && <span>Expires: {endsAtFormatted}</span>}
                 </div>
             )}
@@ -158,10 +185,17 @@ function CountdownBox({ value, label, highlight = false }: CountdownBoxProps) {
         <div
             className={cn(
                 'flex flex-col items-center justify-center rounded-md p-2',
-                highlight ? 'bg-destructive/10 text-destructive' : 'bg-background/50',
+                highlight
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-background/50',
             )}
         >
-            <span className={cn('text-2xl font-bold tabular-nums', highlight && 'animate-pulse')}>
+            <span
+                className={cn(
+                    'text-2xl font-bold tabular-nums',
+                    highlight && 'animate-pulse',
+                )}
+            >
                 {String(value).padStart(2, '0')}
             </span>
             <span className="text-xs text-muted-foreground">{label}</span>
@@ -192,11 +226,16 @@ export function InlineCountdown({
     }
 
     return (
-        <span className={cn('inline-flex items-center gap-1 text-sm', className)}>
+        <span
+            className={cn('inline-flex items-center gap-1 text-sm', className)}
+        >
             <ClockIcon className="h-3.5 w-3.5" />
             <span className="tabular-nums">{formatCountdown(countdown)}</span>
             {countdown.isExpiringSoon && (
-                <Badge variant="destructive" className="ml-1 px-1 py-0 text-[10px]">
+                <Badge
+                    variant="destructive"
+                    className="ml-1 px-1 py-0 text-[10px]"
+                >
                     Soon
                 </Badge>
             )}

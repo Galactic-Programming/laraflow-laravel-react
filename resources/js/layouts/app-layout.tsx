@@ -8,8 +8,17 @@ interface AppLayoutProps {
     showBackground?: boolean;
 }
 
-export default ({ children, breadcrumbs, showBackground = true, ...props }: AppLayoutProps) => (
-    <AppLayoutTemplate breadcrumbs={breadcrumbs} showBackground={showBackground} {...props}>
+export default ({
+    children,
+    breadcrumbs,
+    showBackground = true,
+    ...props
+}: AppLayoutProps) => (
+    <AppLayoutTemplate
+        breadcrumbs={breadcrumbs}
+        showBackground={showBackground}
+        {...props}
+    >
         {children}
     </AppLayoutTemplate>
 );

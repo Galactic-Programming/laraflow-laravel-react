@@ -42,7 +42,10 @@ export default function Profile({
                 {/* Profile Header with Avatar */}
                 <SettingsCard
                     title={t('settings.profile', 'Profile')}
-                    description={t('settings.profile_desc', 'Your public profile information')}
+                    description={t(
+                        'settings.profile_desc',
+                        'Your public profile information',
+                    )}
                 >
                     <div className="space-y-6">
                         {/* Avatar Section */}
@@ -78,7 +81,9 @@ export default function Profile({
                                             >
                                                 {t('settings.upload', 'Upload')}
                                             </Button>
-                                            <InputError message={errors.avatar} />
+                                            <InputError
+                                                message={errors.avatar}
+                                            />
                                         </>
                                     )}
                                 </Form>
@@ -95,7 +100,10 @@ export default function Profile({
                                                 size="sm"
                                                 disabled={processing}
                                             >
-                                                {t('settings.remove_avatar', 'Remove')}
+                                                {t(
+                                                    'settings.remove_avatar',
+                                                    'Remove',
+                                                )}
                                             </Button>
                                         )}
                                     </Form>
@@ -108,7 +116,10 @@ export default function Profile({
                 {/* Profile Information Form */}
                 <SettingsCard
                     title={t('settings.profile_info', 'Personal Information')}
-                    description={t('settings.profile_info_desc', 'Update your name and email address')}
+                    description={t(
+                        'settings.profile_info_desc',
+                        'Update your name and email address',
+                    )}
                 >
                     <Form
                         {...ProfileController.update.form()}
@@ -121,26 +132,36 @@ export default function Profile({
                             <>
                                 <div className="grid gap-6 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">{t('auth.full_name', 'Full Name')}</Label>
+                                        <Label htmlFor="name">
+                                            {t('auth.full_name', 'Full Name')}
+                                        </Label>
                                         <Input
                                             id="name"
                                             defaultValue={auth.user.name}
                                             name="name"
                                             autoComplete="name"
-                                            placeholder={t('auth.enter_name', 'Enter your full name')}
+                                            placeholder={t(
+                                                'auth.enter_name',
+                                                'Enter your full name',
+                                            )}
                                         />
                                         <InputError message={errors.name} />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">{t('auth.email', 'Email Address')}</Label>
+                                        <Label htmlFor="email">
+                                            {t('auth.email', 'Email Address')}
+                                        </Label>
                                         <Input
                                             id="email"
                                             type="email"
                                             defaultValue={auth.user.email}
                                             name="email"
                                             autoComplete="username"
-                                            placeholder={t('auth.enter_email', 'Enter your email')}
+                                            placeholder={t(
+                                                'auth.enter_email',
+                                                'Enter your email',
+                                            )}
                                         />
                                         <InputError message={errors.email} />
                                     </div>
@@ -150,18 +171,24 @@ export default function Profile({
                                     auth.user.email_verified_at === null && (
                                         <div className="rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/20">
                                             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                                Your email address is unverified.{' '}
+                                                Your email address is
+                                                unverified.{' '}
                                                 <Link
                                                     href={send()}
                                                     as="button"
                                                     className="font-medium underline underline-offset-4 hover:no-underline"
                                                 >
-                                                    Click here to resend the verification email.
+                                                    Click here to resend the
+                                                    verification email.
                                                 </Link>
                                             </p>
-                                            {status === 'verification-link-sent' && (
+                                            {status ===
+                                                'verification-link-sent' && (
                                                 <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                                                    {t('auth.verification_sent', 'A new verification link has been sent to your email address.')}
+                                                    {t(
+                                                        'auth.verification_sent',
+                                                        'A new verification link has been sent to your email address.',
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
@@ -185,7 +212,10 @@ export default function Profile({
                                         leaveTo="opacity-0"
                                     >
                                         <p className="text-sm text-green-600 dark:text-green-400">
-                                            {t('settings.saved', 'Saved successfully')}
+                                            {t(
+                                                'settings.saved',
+                                                'Saved successfully',
+                                            )}
                                         </p>
                                     </Transition>
                                 </div>
@@ -197,7 +227,10 @@ export default function Profile({
                 {/* Danger Zone */}
                 <SettingsCard
                     title={t('settings.delete_account', 'Danger Zone')}
-                    description={t('settings.delete_account_desc', 'Irreversible and destructive actions')}
+                    description={t(
+                        'settings.delete_account_desc',
+                        'Irreversible and destructive actions',
+                    )}
                     danger
                 >
                     <DeleteUser />

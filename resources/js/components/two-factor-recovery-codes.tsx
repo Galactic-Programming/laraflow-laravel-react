@@ -6,12 +6,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { useTranslations } from '@/hooks/use-translations';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
 import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertError } from './alert-error';
-import { useTranslations } from '@/hooks/use-translations';
 
 interface TwoFactorRecoveryCodesProps {
     recoveryCodesList: string[];
@@ -62,7 +62,10 @@ export default function TwoFactorRecoveryCodes({
                     {t('settings.2fa_recovery_codes', '2FA Recovery Codes')}
                 </CardTitle>
                 <CardDescription>
-                    {t('settings.2fa_recovery_codes_desc', 'Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.')}
+                    {t(
+                        'settings.2fa_recovery_codes_desc',
+                        'Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.',
+                    )}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -77,7 +80,15 @@ export default function TwoFactorRecoveryCodes({
                             className="size-4"
                             aria-hidden="true"
                         />
-                        {codesAreVisible ? t('settings.hide_recovery_codes', 'Hide Recovery Codes') : t('settings.view_recovery_codes', 'View Recovery Codes')}
+                        {codesAreVisible
+                            ? t(
+                                  'settings.hide_recovery_codes',
+                                  'Hide Recovery Codes',
+                              )
+                            : t(
+                                  'settings.view_recovery_codes',
+                                  'View Recovery Codes',
+                              )}
                     </Button>
 
                     {canRegenerateCodes && (
@@ -93,7 +104,11 @@ export default function TwoFactorRecoveryCodes({
                                     disabled={processing}
                                     aria-describedby="regenerate-warning"
                                 >
-                                    <RefreshCw /> {t('settings.regenerate_codes', 'Regenerate Codes')}
+                                    <RefreshCw />{' '}
+                                    {t(
+                                        'settings.regenerate_codes',
+                                        'Regenerate Codes',
+                                    )}
                                 </Button>
                             )}
                         </Form>
@@ -146,7 +161,17 @@ export default function TwoFactorRecoveryCodes({
 
                                 <div className="text-xs text-muted-foreground select-none">
                                     <p id="regenerate-warning">
-                                        {t('settings.recovery_codes_warning', 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click')} <span className="font-bold">{t('settings.regenerate_codes', 'Regenerate Codes')}</span>.
+                                        {t(
+                                            'settings.recovery_codes_warning',
+                                            'Each recovery code can be used once to access your account and will be removed after use. If you need more, click',
+                                        )}{' '}
+                                        <span className="font-bold">
+                                            {t(
+                                                'settings.regenerate_codes',
+                                                'Regenerate Codes',
+                                            )}
+                                        </span>
+                                        .
                                     </p>
                                 </div>
                             </>

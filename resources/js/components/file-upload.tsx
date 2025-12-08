@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * @author: @dorian_baffier
@@ -10,18 +10,18 @@
  * @github: https://github.com/kokonut-labs/kokonutui
  */
 
+import { cn } from '@/lib/utils';
+import { UploadCloud } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
-    useState,
-    useRef,
     useCallback,
-    type DragEvent,
     useEffect,
-} from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { UploadCloud, File as FileIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+    useRef,
+    useState,
+    type DragEvent,
+} from 'react';
 
-type FileStatus = "idle" | "dragging" | "uploading" | "error";
+type FileStatus = 'idle' | 'dragging' | 'uploading' | 'error';
 
 interface FileError {
     message: string;
@@ -44,19 +44,19 @@ interface FileUploadProps {
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const UPLOAD_STEP_SIZE = 5;
 const FILE_SIZES = [
-    "Bytes",
-    "KB",
-    "MB",
-    "GB",
-    "TB",
-    "PB",
-    "EB",
-    "ZB",
-    "YB",
+    'Bytes',
+    'KB',
+    'MB',
+    'GB',
+    'TB',
+    'PB',
+    'EB',
+    'ZB',
+    'YB',
 ] as const;
 
 const formatBytes = (bytes: number, decimals = 2): string => {
-    if (!+bytes) return "0 Bytes";
+    if (!+bytes) return '0 Bytes';
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -65,12 +65,12 @@ const formatBytes = (bytes: number, decimals = 2): string => {
 };
 
 const UploadIllustration = () => (
-    <div className="relative w-16 h-16">
+    <div className="relative h-16 w-16">
         <svg
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full"
+            className="h-full w-full"
             aria-label="Upload illustration"
         >
             <title>Upload File Illustration</title>
@@ -94,7 +94,7 @@ const UploadIllustration = () => (
 
             <path
                 d="M30 35H70C75 35 75 40 75 40V65C75 70 70 70 70 70H30C25 70 25 65 25 65V40C25 35 30 35 30 35Z"
-                className="fill-blue-100 dark:fill-blue-900/30 stroke-blue-500 dark:stroke-blue-400"
+                className="fill-blue-100 stroke-blue-500 dark:fill-blue-900/30 dark:stroke-blue-400"
                 strokeWidth="2"
             >
                 <animate
@@ -115,7 +115,7 @@ const UploadIllustration = () => (
                 fill="none"
             />
 
-            <g className="transform translate-y-2">
+            <g className="translate-y-2 transform">
                 <line
                     x1="50"
                     y1="45"
@@ -153,12 +153,12 @@ const UploadIllustration = () => (
 );
 
 const UploadingAnimation = ({ progress }: { progress: number }) => (
-    <div className="relative w-16 h-16">
+    <div className="relative h-16 w-16">
         <svg
             viewBox="0 0 240 240"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full"
+            className="h-full w-full"
             aria-label={`Upload progress: ${Math.round(progress)}%`}
         >
             <title>Upload Progress Indicator</title>
@@ -333,7 +333,7 @@ export default function FileUpload({
     className,
 }: FileUploadProps) {
     const [file, setFile] = useState<File | null>(initialFile);
-    const [status, setStatus] = useState<FileStatus>("idle");
+    const [status, setStatus] = useState<FileStatus>('idle');
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState<FileError | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -352,12 +352,12 @@ export default function FileUpload({
             if (file.size > maxFileSize) {
                 return {
                     message: `File size exceeds ${formatBytes(maxFileSize)}`,
-                    code: "FILE_TOO_LARGE",
+                    code: 'FILE_TOO_LARGE',
                 };
             }
             return null;
         },
-        [maxFileSize]
+        [maxFileSize],
     );
 
     const validateFileType = useCallback(
@@ -367,33 +367,33 @@ export default function FileUpload({
             const fileType = file.type.toLowerCase();
             if (
                 !acceptedFileTypes.some((type) =>
-                    fileType.match(type.toLowerCase())
+                    fileType.match(type.toLowerCase()),
                 )
             ) {
                 return {
                     message: `File type must be ${acceptedFileTypes.join(
-                        ", "
+                        ', ',
                     )}`,
-                    code: "INVALID_FILE_TYPE",
+                    code: 'INVALID_FILE_TYPE',
                 };
             }
             return null;
         },
-        [acceptedFileTypes]
+        [acceptedFileTypes],
     );
 
     const handleError = useCallback(
         (error: FileError) => {
             setError(error);
-            setStatus("error");
+            setStatus('error');
             onUploadError?.(error);
 
             setTimeout(() => {
                 setError(null);
-                setStatus("idle");
+                setStatus('idle');
             }, 3000);
         },
-        [onUploadError]
+        [onUploadError],
     );
 
     const simulateUpload = useCallback(
@@ -404,31 +404,34 @@ export default function FileUpload({
                 clearInterval(uploadIntervalRef.current);
             }
 
-            uploadIntervalRef.current = setInterval(() => {
-                currentProgress += UPLOAD_STEP_SIZE;
-                if (currentProgress >= 100) {
-                    if (uploadIntervalRef.current) {
-                        clearInterval(uploadIntervalRef.current);
-                    }
-                    setProgress(0);
-                    setStatus("idle");
-                    setFile(null);
-                    onUploadSuccess?.(uploadingFile);
-                } else {
-                    setStatus((prevStatus) => {
-                        if (prevStatus === "uploading") {
-                            setProgress(currentProgress);
-                            return "uploading";
-                        }
+            uploadIntervalRef.current = setInterval(
+                () => {
+                    currentProgress += UPLOAD_STEP_SIZE;
+                    if (currentProgress >= 100) {
                         if (uploadIntervalRef.current) {
                             clearInterval(uploadIntervalRef.current);
                         }
-                        return prevStatus;
-                    });
-                }
-            }, uploadDelay / (100 / UPLOAD_STEP_SIZE));
+                        setProgress(0);
+                        setStatus('idle');
+                        setFile(null);
+                        onUploadSuccess?.(uploadingFile);
+                    } else {
+                        setStatus((prevStatus) => {
+                            if (prevStatus === 'uploading') {
+                                setProgress(currentProgress);
+                                return 'uploading';
+                            }
+                            if (uploadIntervalRef.current) {
+                                clearInterval(uploadIntervalRef.current);
+                            }
+                            return prevStatus;
+                        });
+                    }
+                },
+                uploadDelay / (100 / UPLOAD_STEP_SIZE),
+            );
         },
-        [onUploadSuccess, uploadDelay]
+        [onUploadSuccess, uploadDelay],
     );
 
     const handleFileSelect = useCallback(
@@ -458,7 +461,7 @@ export default function FileUpload({
             }
 
             setFile(selectedFile);
-            setStatus("uploading");
+            setStatus('uploading');
             setProgress(0);
             simulateUpload(selectedFile);
         },
@@ -468,99 +471,99 @@ export default function FileUpload({
             validateFileType,
             validateFile,
             handleError,
-        ]
+        ],
     );
 
     const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        setStatus((prev) => (prev !== "uploading" ? "dragging" : prev));
+        setStatus((prev) => (prev !== 'uploading' ? 'dragging' : prev));
     }, []);
 
     const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        setStatus((prev) => (prev === "dragging" ? "idle" : prev));
+        setStatus((prev) => (prev === 'dragging' ? 'idle' : prev));
     }, []);
 
     const handleDrop = useCallback(
         (e: DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             e.stopPropagation();
-            if (status === "uploading") return;
-            setStatus("idle");
+            if (status === 'uploading') return;
+            setStatus('idle');
             const droppedFile = e.dataTransfer.files?.[0];
             if (droppedFile) handleFileSelect(droppedFile);
         },
-        [status, handleFileSelect]
+        [status, handleFileSelect],
     );
 
     const handleFileInputChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const selectedFile = e.target.files?.[0];
             handleFileSelect(selectedFile || null);
-            if (e.target) e.target.value = "";
+            if (e.target) e.target.value = '';
         },
-        [handleFileSelect]
+        [handleFileSelect],
     );
 
     const triggerFileInput = useCallback(() => {
-        if (status === "uploading") return;
+        if (status === 'uploading') return;
         fileInputRef.current?.click();
     }, [status]);
 
     const resetState = useCallback(() => {
         setFile(null);
-        setStatus("idle");
+        setStatus('idle');
         setProgress(0);
         if (onFileRemove) onFileRemove();
     }, [onFileRemove]);
 
     return (
         <div
-            className={cn("relative w-full max-w-sm mx-auto", className || "")}
+            className={cn('relative mx-auto w-full max-w-sm', className || '')}
             role="complementary"
             aria-label="File upload"
         >
-            <div className="group relative w-full rounded-xl bg-white dark:bg-black ring-1 ring-gray-200 dark:ring-white/10 p-0.5">
+            <div className="group relative w-full rounded-xl bg-white p-0.5 ring-1 ring-gray-200 dark:bg-black dark:ring-white/10">
                 <div className="absolute inset-x-0 -top-px h-px w-full bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
 
-                <div className="relative w-full rounded-[10px] bg-gray-50/50 dark:bg-white/[0.02] p-1.5">
+                <div className="relative w-full rounded-[10px] bg-gray-50/50 p-1.5 dark:bg-white/[0.02]">
                     <div
                         className={cn(
-                            "relative mx-auto w-full overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.08] bg-white dark:bg-black/50",
-                            error ? "border-red-500/50" : ""
+                            'relative mx-auto w-full overflow-hidden rounded-lg border border-gray-100 bg-white dark:border-white/[0.08] dark:bg-black/50',
+                            error ? 'border-red-500/50' : '',
                         )}
                     >
                         <div
                             className={cn(
-                                "absolute inset-0 transition-opacity duration-300",
-                                status === "dragging"
-                                    ? "opacity-100"
-                                    : "opacity-0"
+                                'absolute inset-0 transition-opacity duration-300',
+                                status === 'dragging'
+                                    ? 'opacity-100'
+                                    : 'opacity-0',
                             )}
                         >
                             <div className="absolute inset-x-0 top-0 h-[20%] bg-gradient-to-b from-blue-500/10 to-transparent" />
                             <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-blue-500/10 to-transparent" />
                             <div className="absolute inset-y-0 left-0 w-[20%] bg-gradient-to-r from-blue-500/10 to-transparent" />
                             <div className="absolute inset-y-0 right-0 w-[20%] bg-gradient-to-l from-blue-500/10 to-transparent" />
-                            <div className="absolute inset-[20%] bg-blue-500/5 rounded-lg transition-all duration-300 animate-pulse" />
+                            <div className="absolute inset-[20%] animate-pulse rounded-lg bg-blue-500/5 transition-all duration-300" />
                         </div>
 
-                        <div className="absolute -right-4 -top-4 h-8 w-8 bg-gradient-to-br from-blue-500/20 to-transparent blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute -top-4 -right-4 h-8 w-8 bg-gradient-to-br from-blue-500/20 to-transparent opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-100" />
 
                         <div className="relative h-[240px]">
                             <AnimatePresence mode="wait">
-                                {status === "idle" || status === "dragging" ? (
+                                {status === 'idle' || status === 'dragging' ? (
                                     <motion.div
                                         key="dropzone"
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{
                                             opacity:
-                                                status === "dragging" ? 0.8 : 1,
+                                                status === 'dragging' ? 0.8 : 1,
                                             y: 0,
                                             scale:
-                                                status === "dragging"
+                                                status === 'dragging'
                                                     ? 0.98
                                                     : 1,
                                         }}
@@ -575,8 +578,8 @@ export default function FileUpload({
                                             <UploadIllustration />
                                         </div>
 
-                                        <div className="text-center space-y-1.5 mb-4">
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
+                                        <div className="mb-4 space-y-1.5 text-center">
+                                            <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
                                                 Drag and drop or
                                             </h3>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -585,15 +588,15 @@ export default function FileUpload({
                                                           .map(
                                                               (t) =>
                                                                   t.split(
-                                                                      "/"
-                                                                  )[1]
+                                                                      '/',
+                                                                  )[1],
                                                           )
-                                                          .join(", ")
+                                                          .join(', ')
                                                           .toUpperCase()}`
-                                                    : "SVG, PNG, JPG or GIF"}{" "}
+                                                    : 'SVG, PNG, JPG or GIF'}{' '}
                                                 {maxFileSize &&
                                                     `up to ${formatBytes(
-                                                        maxFileSize
+                                                        maxFileSize,
                                                     )}`}
                                             </p>
                                         </div>
@@ -601,10 +604,10 @@ export default function FileUpload({
                                         <button
                                             type="button"
                                             onClick={triggerFileInput}
-                                            className="w-4/5 flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/20 group"
+                                            className="group flex w-4/5 items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
                                         >
                                             <span>Upload File</span>
-                                            <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+                                            <UploadCloud className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
                                         </button>
 
                                         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
@@ -617,12 +620,12 @@ export default function FileUpload({
                                             className="sr-only"
                                             onChange={handleFileInputChange}
                                             accept={acceptedFileTypes?.join(
-                                                ","
+                                                ',',
                                             )}
                                             aria-label="File input"
                                         />
                                     </motion.div>
-                                ) : status === "uploading" ? (
+                                ) : status === 'uploading' ? (
                                     <motion.div
                                         key="uploading"
                                         initial={{ opacity: 0, scale: 0.95 }}
@@ -636,14 +639,14 @@ export default function FileUpload({
                                             />
                                         </div>
 
-                                        <div className="text-center space-y-1.5 mb-4">
-                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                        <div className="mb-4 space-y-1.5 text-center">
+                                            <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white">
                                                 {file?.name}
                                             </h3>
                                             <div className="flex items-center justify-center gap-2 text-xs">
                                                 <span className="text-gray-500 dark:text-gray-400">
                                                     {formatBytes(
-                                                        file?.size || 0
+                                                        file?.size || 0,
                                                     )}
                                                 </span>
                                                 <span className="font-medium text-blue-500">
@@ -655,7 +658,7 @@ export default function FileUpload({
                                         <button
                                             onClick={resetState}
                                             type="button"
-                                            className="w-4/5 flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/20"
+                                            className="flex w-4/5 items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
                                         >
                                             Cancel
                                         </button>
@@ -670,7 +673,7 @@ export default function FileUpload({
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg"
+                                    className="absolute bottom-4 left-1/2 -translate-x-1/2 transform rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2"
                                 >
                                     <p className="text-sm text-red-500 dark:text-red-400">
                                         {error.message}
@@ -685,4 +688,4 @@ export default function FileUpload({
     );
 }
 
-FileUpload.displayName = "FileUpload";
+FileUpload.displayName = 'FileUpload';

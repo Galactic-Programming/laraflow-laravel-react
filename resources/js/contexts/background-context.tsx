@@ -1,13 +1,26 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+    type ReactNode,
+} from 'react';
 
-export type BackgroundType = 'none' | 'beams' | 'floating-lines' | 'light-pillar';
+export type BackgroundType =
+    | 'none'
+    | 'beams'
+    | 'floating-lines'
+    | 'light-pillar';
 
 interface BackgroundContextType {
     background: BackgroundType;
     setBackground: (type: BackgroundType) => void;
 }
 
-const BackgroundContext = createContext<BackgroundContextType | undefined>(undefined);
+const BackgroundContext = createContext<BackgroundContextType | undefined>(
+    undefined,
+);
 
 const STORAGE_KEY = 'app-background';
 const DEFAULT_BACKGROUND: BackgroundType = 'none';
@@ -18,7 +31,10 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
             return DEFAULT_BACKGROUND;
         }
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored && ['none', 'beams', 'floating-lines', 'light-pillar'].includes(stored)) {
+        if (
+            stored &&
+            ['none', 'beams', 'floating-lines', 'light-pillar'].includes(stored)
+        ) {
             return stored as BackgroundType;
         }
         return DEFAULT_BACKGROUND;
@@ -40,13 +56,19 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
-    return <BackgroundContext.Provider value={{ background, setBackground }}>{children}</BackgroundContext.Provider>;
+    return (
+        <BackgroundContext.Provider value={{ background, setBackground }}>
+            {children}
+        </BackgroundContext.Provider>
+    );
 }
 
 export function useBackground() {
     const context = useContext(BackgroundContext);
     if (context === undefined) {
-        throw new Error('useBackground must be used within a BackgroundProvider');
+        throw new Error(
+            'useBackground must be used within a BackgroundProvider',
+        );
     }
     return context;
 }
