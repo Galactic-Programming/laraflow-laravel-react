@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ManagesPositions;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    use ManagesPositions;
     /**
      * Đảm bảo:
      * - TaskList thuộc Project
@@ -40,7 +42,7 @@ class TaskController extends Controller
             'due_date' => 'nullable|date',
         ]);
 
-        $position = ($taskList->tasks()->max('position') ?? -1) + 1;
+        $position = $this->getNextPosition($taskList->tasks());
 
         $task = $taskList->tasks()->create([
             ...$validated,
@@ -80,35 +82,28 @@ class TaskController extends Controller
                     ->where('project_id', $project->id)
                     ->firstOrFail();
                 
-                // Shift tasks in old list (close the gap)
-                Task::where('task_list_id', $task->task_list_id)
-                    ->where('position', '>', $task->position)
-                    ->decrement('position');
+                // Close gap in old list
+                $this->closeGapAtPosition(
+                    Task::where('task_list_id', $task->task_list_id),
+                    $task->position
+                );
                 
-                // Shift tasks in new list (make room)
-                Task::where('task_list_id', $newListId)
-                    ->where('position', '>=', $newPosition)
-                    ->increment('position');
+                // Make room in new list
+                $this->makeRoomAtPosition(
+                    Task::where('task_list_id', $newListId),
+                    $newPosition
+                );
                 
                 $task->task_list_id = $newListId;
                 $task->position = $newPosition;
             } else {
                 // Moving within the same list
-                $oldPosition = $task->position;
-                
-                if ($newPosition > $oldPosition) {
-                    // Moving down: shift tasks between old and new position up
-                    Task::where('task_list_id', $task->task_list_id)
-                        ->where('position', '>', $oldPosition)
-                        ->where('position', '<=', $newPosition)
-                        ->decrement('position');
-                } elseif ($newPosition < $oldPosition) {
-                    // Moving up: shift tasks between new and old position down
-                    Task::where('task_list_id', $task->task_list_id)
-                        ->where('position', '>=', $newPosition)
-                        ->where('position', '<', $oldPosition)
-                        ->increment('position');
-                }
+                $this->reorderPositions(
+                    Task::where('task_list_id', $task->task_list_id),
+                    $task->position,
+                    $newPosition,
+                    $task->id
+                );
                 
                 $task->position = $newPosition;
             }

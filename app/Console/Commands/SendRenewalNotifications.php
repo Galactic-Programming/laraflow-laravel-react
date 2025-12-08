@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\HandlesDryRun;
 use App\Enums\SubscriptionStatus;
 use App\Models\Subscription;
 use App\Notifications\SubscriptionRenewalNotification;
@@ -9,6 +10,7 @@ use Illuminate\Console\Command;
 
 class SendRenewalNotifications extends Command
 {
+    use HandlesDryRun;
     /**
      * The name and signature of the console command.
      *
@@ -29,8 +31,6 @@ class SendRenewalNotifications extends Command
      */
     public function handle(): int
     {
-        $isDryRun = $this->option('dry-run');
-
         $subscriptions = Subscription::query()
             ->with(['user', 'plan'])
             ->where('status', SubscriptionStatus::Active)
@@ -55,7 +55,7 @@ class SendRenewalNotifications extends Command
                 continue;
             }
 
-            if ($isDryRun) {
+            if ($this->isDryRun()) {
                 $this->info("Would send notification to {$subscription->user->email} ({$daysUntilExpiry} days until expiry)");
                 $sent++;
 
@@ -77,7 +77,7 @@ class SendRenewalNotifications extends Command
         }
 
         $this->newLine();
-        $this->info($isDryRun ? "Would send {$sent} renewal notifications." : "Sent {$sent} renewal notifications.");
+        $this->dryRunSummary($sent, 'send', 'renewal notifications');
         $this->info("Skipped {$skipped} subscriptions (not eligible for notification).");
 
         return Command::SUCCESS;

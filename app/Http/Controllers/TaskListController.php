@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesProjectOwnership;
+use App\Http\Controllers\Concerns\ManagesPositions;
 use App\Models\Project;
 use App\Models\TaskList;
 use Illuminate\Http\RedirectResponse;
@@ -9,12 +11,11 @@ use Illuminate\Http\Request;
 
 class TaskListController extends Controller
 {
+    use AuthorizesProjectOwnership;
+    use ManagesPositions;
     public function store(Request $request, Project $project): RedirectResponse
     {
-        // Ensure user owns the project
-        if ($project->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeProjectOwnership($project);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -25,13 +26,10 @@ class TaskListController extends Controller
 
         // If position is provided (e.g., 0 for top), shift existing items
         if (isset($validated['position'])) {
-            $project->taskLists()
-                ->where('position', '>=', $validated['position'])
-                ->increment('position');
+            $this->makeRoomAtPosition($project->taskLists(), $validated['position']);
         } else {
             // Default: add to end
-            $maxPosition = $project->taskLists()->max('position') ?? -1;
-            $validated['position'] = $maxPosition + 1;
+            $validated['position'] = $this->getNextPosition($project->taskLists());
         }
 
         $project->taskLists()->create($validated);
@@ -41,10 +39,7 @@ class TaskListController extends Controller
 
     public function update(Request $request, Project $project, TaskList $taskList): RedirectResponse
     {
-        // Ensure user owns the project
-        if ($project->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeProjectOwnership($project);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -55,26 +50,12 @@ class TaskListController extends Controller
 
         // Handle position reordering
         if (isset($validated['position'])) {
-            $oldPosition = $taskList->position;
-            $newPosition = $validated['position'];
-
-            if ($oldPosition !== $newPosition) {
-                if ($newPosition < $oldPosition) {
-                    // Moving left: shift items between new and old position to the right
-                    $project->taskLists()
-                        ->where('id', '!=', $taskList->id)
-                        ->where('position', '>=', $newPosition)
-                        ->where('position', '<', $oldPosition)
-                        ->increment('position');
-                } else {
-                    // Moving right: shift items between old and new position to the left
-                    $project->taskLists()
-                        ->where('id', '!=', $taskList->id)
-                        ->where('position', '>', $oldPosition)
-                        ->where('position', '<=', $newPosition)
-                        ->decrement('position');
-                }
-            }
+            $this->reorderPositions(
+                $project->taskLists(),
+                $taskList->position,
+                $validated['position'],
+                $taskList->id
+            );
         }
 
         $taskList->update($validated);
@@ -84,10 +65,7 @@ class TaskListController extends Controller
 
     public function destroy(Project $project, TaskList $taskList): RedirectResponse
     {
-        // Ensure user owns the project
-        if ($project->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeProjectOwnership($project);
 
         $taskList->delete();
 

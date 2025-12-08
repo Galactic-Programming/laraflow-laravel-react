@@ -2,12 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\HandlesDryRun;
 use App\Enums\SubscriptionStatus;
 use App\Models\Subscription;
 use Illuminate\Console\Command;
 
 class ExpirePastDueSubscriptions extends Command
 {
+    use HandlesDryRun;
     /**
      * The name and signature of the console command.
      *
@@ -28,8 +30,6 @@ class ExpirePastDueSubscriptions extends Command
      */
     public function handle(): int
     {
-        $isDryRun = $this->option('dry-run');
-
         // Find past due subscriptions where grace period has ended
         $query = Subscription::query()
             ->where('status', SubscriptionStatus::PastDue)
@@ -38,7 +38,7 @@ class ExpirePastDueSubscriptions extends Command
                     ->orWhere('grace_period_ends_at', '<', now());
             });
 
-        if ($isDryRun) {
+        if ($this->isDryRun()) {
             $subscriptions = $query->with('user')->get();
             $count = $subscriptions->count();
 
@@ -47,14 +47,14 @@ class ExpirePastDueSubscriptions extends Command
             }
 
             $this->newLine();
-            $this->info("Would expire {$count} past-due subscriptions.");
+            $this->dryRunSummary($count, 'expire', 'past-due subscriptions');
 
             return Command::SUCCESS;
         }
 
         $expired = $query->update(['status' => SubscriptionStatus::Expired]);
 
-        $this->info("Expired {$expired} past-due subscriptions.");
+        $this->dryRunSummary($expired, 'expired', 'past-due subscriptions');
 
         return Command::SUCCESS;
     }
