@@ -17,6 +17,7 @@ import { Link } from '@inertiajs/react';
 import {
     BookOpen,
     CheckSquare,
+    ClockAlert,
     Folder,
     FolderKanban,
     LayoutGrid,
@@ -41,6 +42,11 @@ export function AppSidebar() {
             title: t('nav.tasks', 'Tasks'),
             href: '/tasks',
             icon: CheckSquare,
+        },
+        {
+            title: t('nav.activity', 'Activity'),
+            href: '/activity',
+            icon: ClockAlert,
         },
     ];
 

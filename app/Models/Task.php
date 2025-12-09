@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,29 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model
 {
     /** @use HasFactory<\Database\Factories\TaskFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    /**
+     * Get the project ID for activity logging.
+     */
+    protected function getActivityProjectId(): ?int
+    {
+        return $this->taskList?->project_id;
+    }
+
+    /**
+     * Get the target URL for activity logging.
+     */
+    protected function getActivityTargetUrl(): ?string
+    {
+        $projectId = $this->getActivityProjectId();
+
+        if ($projectId) {
+            return "/projects/{$projectId}/tasks/{$this->id}";
+        }
+
+        return null;
+    }
 
     protected $fillable = [
         'task_list_id',

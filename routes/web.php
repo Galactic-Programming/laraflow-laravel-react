@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\SocialController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PricingController;
@@ -60,6 +61,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('projects/{project}/task-lists/{taskList}/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::put('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+    // Activity Log routes
+    Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::get('activity/project/{projectId}', [ActivityLogController::class, 'forProject'])->name('activity.project');
+    Route::get('api/activity', [ActivityLogController::class, 'list'])->name('activity.list');
 });
 
 // Unified Social OAuth routes - works for both login (guest) and linking (auth)
