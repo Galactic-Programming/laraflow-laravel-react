@@ -51,6 +51,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
+    Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+
     Route::post('projects/{project}/task-lists', [TaskListController::class, 'store'])->name('task-lists.store');
     Route::put('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'update'])->name('task-lists.update');
     Route::delete('projects/{project}/task-lists/{taskList}', [TaskListController::class, 'destroy'])->name('task-lists.destroy');

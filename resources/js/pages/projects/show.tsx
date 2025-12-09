@@ -1,4 +1,7 @@
-import { store as storeTask, update as updateTask } from '@/actions/App/Http/Controllers/TaskController';
+import {
+    store as storeTask,
+    update as updateTask,
+} from '@/actions/App/Http/Controllers/TaskController';
 import {
     destroy as destroyTaskList,
     store as storeTaskList,
@@ -16,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import {
     Drawer,
     DrawerContent,
@@ -35,27 +39,25 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import {
-    closestCenter,
     closestCorners,
     DndContext,
     DragOverlay,
     KeyboardSensor,
     MeasuringStrategy,
-    pointerWithin,
     PointerSensor,
-    rectIntersection,
     useSensor,
     useSensors,
     type DragEndEvent,
@@ -111,7 +113,6 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslations } from '@/hooks/use-translations';
 
 // Column configuration
 interface ColumnConfig {
@@ -335,13 +336,15 @@ function SortableTaskListRow({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: list.id });
+    } = useSortable({
+        id: list.id,
+        animateLayoutChanges: () => false,
+    });
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: isDragging ? 'none' : transition,
         opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 1 : 0,
     };
 
     return (
@@ -352,7 +355,7 @@ function SortableTaskListRow({
             {...listeners}
             className={`group/row cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-lg' : ''}`}
         >
-            <div className="flex w-full items-center border-b bg-muted/30 px-4 py-2.5 transition-all duration-200 hover:bg-muted/50">
+            <div className="flex w-full items-center border-b bg-muted/30 px-4 py-2.5 hover:bg-muted/50">
                 {/* Expand/Collapse Button - only the icon area */}
                 <button
                     onClick={(e) => {
@@ -419,6 +422,8 @@ interface SortableTableTaskRowProps {
     getStatusLabel: (status: string) => string;
     getPriorityColor: (priority: string) => string;
     getPriorityLabel: (priority: string) => string;
+    onEdit: () => void;
+    onDelete: () => void;
 }
 
 function SortableTableTaskRow({
@@ -430,6 +435,8 @@ function SortableTableTaskRow({
     getStatusLabel,
     getPriorityColor,
     getPriorityLabel,
+    onEdit,
+    onDelete,
 }: SortableTableTaskRowProps) {
     const { t } = useTranslations();
     const {
@@ -439,7 +446,7 @@ function SortableTableTaskRow({
         transform,
         transition,
         isDragging,
-    } = useSortable({ 
+    } = useSortable({
         id: `table-task-${task.id}`,
         data: {
             type: 'table-task',
@@ -450,7 +457,9 @@ function SortableTableTaskRow({
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? 'none' : transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+        transition: isDragging
+            ? 'none'
+            : transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
         opacity: isDragging ? 0 : 1,
         zIndex: isDragging ? 10 : 0,
     };
@@ -464,7 +473,7 @@ function SortableTableTaskRow({
             }}
             {...attributes}
             {...listeners}
-            className={`group grid cursor-grab border-b transition-colors duration-150 active:cursor-grabbing hover:bg-muted/30 pl-6 ${
+            className={`group/task grid cursor-grab border-b pl-6 transition-colors duration-150 hover:bg-muted/30 active:cursor-grabbing ${
                 isDragging ? 'bg-muted/50' : ''
             }`}
         >
@@ -489,9 +498,13 @@ function SortableTableTaskRow({
                     <div className="flex items-center gap-2">
                         <div
                             className="size-3 rounded"
-                            style={{ backgroundColor: getStatusColor(task.status) }}
+                            style={{
+                                backgroundColor: getStatusColor(task.status),
+                            }}
                         />
-                        <span className="text-sm">{getStatusLabel(task.status)}</span>
+                        <span className="text-sm">
+                            {getStatusLabel(task.status)}
+                        </span>
                     </div>
                 </div>
             )}
@@ -503,9 +516,15 @@ function SortableTableTaskRow({
                         <div className="flex items-center gap-2">
                             <div
                                 className="size-3 rounded"
-                                style={{ backgroundColor: getPriorityColor(task.priority) }}
+                                style={{
+                                    backgroundColor: getPriorityColor(
+                                        task.priority,
+                                    ),
+                                }}
                             />
-                            <span className="text-sm">{getPriorityLabel(task.priority)}</span>
+                            <span className="text-sm">
+                                {getPriorityLabel(task.priority)}
+                            </span>
                         </div>
                     ) : (
                         <span className="text-sm text-muted-foreground">–</span>
@@ -532,9 +551,13 @@ function SortableTableTaskRow({
                         <div className="flex items-center gap-2">
                             <Avatar className="size-6">
                                 <AvatarImage src="" />
-                                <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
+                                <AvatarFallback className="text-xs">
+                                    {t('common.me', 'Me')}
+                                </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{t('common.me', 'Me')}</span>
+                            <span className="text-sm">
+                                {t('common.me', 'Me')}
+                            </span>
                         </div>
                     ) : (
                         <span className="text-sm text-muted-foreground">–</span>
@@ -556,10 +579,13 @@ function SortableTableTaskRow({
             {columns.find((c) => c.id === 'completedAt')?.visible && (
                 <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
                     {task.completed_at
-                        ? new Date(task.completed_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                          })
+                        ? new Date(task.completed_at).toLocaleDateString(
+                              'en-US',
+                              {
+                                  month: 'short',
+                                  day: 'numeric',
+                              },
+                          )
                         : '–'}
                 </div>
             )}
@@ -570,15 +596,44 @@ function SortableTableTaskRow({
                     <div className="flex items-center gap-2">
                         <Avatar className="size-6">
                             <AvatarImage src="" />
-                            <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
+                            <AvatarFallback className="text-xs">
+                                {t('common.me', 'Me')}
+                            </AvatarFallback>
                         </Avatar>
                         <span className="text-sm">{t('common.me', 'Me')}</span>
                     </div>
                 </div>
             )}
 
-            {/* Empty cell for settings column alignment */}
-            <div />
+            {/* Actions Menu - appears on hover */}
+            <div
+                className="flex items-center justify-center opacity-0 transition-opacity group-hover/task:opacity-100"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <MoreVertical className="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={onEdit}>
+                            <Pencil className="mr-2 size-4" />
+                            {t('tasks.edit', 'Edit task')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                            onClick={onDelete}
+                        >
+                            <Trash2 className="mr-2 size-4" />
+                            {t('tasks.delete', 'Delete task')}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 }
@@ -587,9 +642,16 @@ function SortableTableTaskRow({
 interface SortableTaskCardProps {
     task: Task;
     isDragOverlay?: boolean;
+    onEdit?: () => void;
+    onDelete?: () => void;
 }
 
-function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps) {
+function SortableTaskCard({
+    task,
+    isDragOverlay = false,
+    onEdit,
+    onDelete,
+}: SortableTaskCardProps) {
     const { t } = useTranslations();
     const {
         attributes,
@@ -598,7 +660,7 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
         transform,
         transition,
         isDragging,
-    } = useSortable({ 
+    } = useSortable({
         id: `task-${task.id}`,
         data: {
             type: 'task',
@@ -620,7 +682,10 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
             cancelled: 'Cancelled',
             pending: 'Pending',
         };
-        return t(statusKeyMap[status] || 'tasks.status_pending', fallbackMap[status] || 'Pending');
+        return t(
+            statusKeyMap[status] || 'tasks.status_pending',
+            fallbackMap[status] || 'Pending',
+        );
     };
 
     // Helper to get translated priority label
@@ -635,7 +700,10 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
             medium: 'Medium',
             high: 'High',
         };
-        return t(priorityKeyMap[priority] || 'tasks.priority_medium', fallbackMap[priority] || 'Medium');
+        return t(
+            priorityKeyMap[priority] || 'tasks.priority_medium',
+            fallbackMap[priority] || 'Medium',
+        );
     };
 
     const style: React.CSSProperties = {
@@ -648,7 +716,7 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
         return (
             <div className="w-72 cursor-grabbing rounded-lg border bg-background p-3 shadow-xl ring-2 ring-primary/30">
                 <div className="mb-2 flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium leading-snug">
+                    <span className="text-sm leading-snug font-medium">
                         {task.title}
                     </span>
                 </div>
@@ -675,7 +743,9 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="size-3" />
                             {(() => {
-                                const [year, month, day] = task.due_date.split('-').map(Number);
+                                const [year, month, day] = task.due_date
+                                    .split('-')
+                                    .map(Number);
                                 const date = new Date(year, month - 1, day);
                                 return date.toLocaleDateString('en-US', {
                                     month: 'short',
@@ -695,15 +765,46 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
             style={style}
             {...attributes}
             {...listeners}
-            className={`group/card cursor-grab rounded-lg border bg-background p-3 shadow-sm transition-all active:cursor-grabbing hover:shadow-md ${
+            className={`group/card relative cursor-grab rounded-lg border bg-background p-3 shadow-sm transition-all hover:shadow-md active:cursor-grabbing ${
                 isDragging ? 'opacity-50' : ''
             }`}
         >
-            <div className="mb-2 flex items-start justify-between gap-2">
-                <span className="text-sm font-medium leading-snug">
+            <div className="mb-2 flex items-start gap-2">
+                <span className="flex-1 text-sm leading-snug font-medium">
                     {task.title}
                 </span>
             </div>
+            {/* Actions Menu - appears on hover, positioned on the right center */}
+            {onEdit && onDelete && (
+                <div
+                    className="absolute top-1/2 right-2 -translate-y-1/2 opacity-0 transition-opacity group-hover/card:opacity-100"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                                <MoreVertical className="size-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={onEdit}>
+                                <Pencil className="mr-2 size-4" />
+                                {t('tasks.edit', 'Edit task')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="font-medium text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                                onClick={onDelete}
+                            >
+                                <Trash2 className="mr-2 size-4" />
+                                {t('tasks.delete', 'Delete task')}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
                 <span
                     className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
@@ -727,7 +828,9 @@ function SortableTaskCard({ task, isDragOverlay = false }: SortableTaskCardProps
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="size-3" />
                         {(() => {
-                            const [year, month, day] = task.due_date.split('-').map(Number);
+                            const [year, month, day] = task.due_date
+                                .split('-')
+                                .map(Number);
                             const date = new Date(year, month - 1, day);
                             return date.toLocaleDateString('en-US', {
                                 month: 'short',
@@ -749,6 +852,8 @@ interface SortableKanbanColumnProps {
     onEditColumn: (list: TaskList) => void;
     onDeleteColumn: (listId: number) => void;
     onAddTask: (listId: number) => void;
+    onEditTask: (task: Task) => void;
+    onDeleteTask: (taskId: number) => void;
 }
 
 function SortableKanbanColumn({
@@ -758,6 +863,8 @@ function SortableKanbanColumn({
     onEditColumn,
     onDeleteColumn,
     onAddTask,
+    onEditTask,
+    onDeleteTask,
 }: SortableKanbanColumnProps) {
     const { t } = useTranslations();
     const {
@@ -767,7 +874,7 @@ function SortableKanbanColumn({
         transform,
         transition,
         isDragging,
-    } = useSortable({ 
+    } = useSortable({
         id: list.id,
     });
 
@@ -788,7 +895,7 @@ function SortableKanbanColumn({
                         ? `fadeSlideIn 400ms ease-out ${index * 80}ms both`
                         : 'none',
             }}
-            className={`group/column flex w-80 shrink-0 flex-col ${isDragging ? 'rounded-xl shadow-2xl shadow-black/20 ring-2 ring-primary/30' : ''}`}
+            className={`group/column flex w-80 shrink-0 flex-col ${isDragging ? 'rounded-xl shadow-2xl ring-2 shadow-black/20 ring-primary/30' : ''}`}
         >
             {/* Column Header - Draggable */}
             <div
@@ -857,13 +964,18 @@ function SortableKanbanColumn({
                 items={list.tasks.map((t) => `task-${t.id}`)}
                 strategy={verticalListSortingStrategy}
             >
-                <div 
+                <div
                     className="relative flex flex-1 flex-col gap-2.5 overflow-y-auto rounded-xl bg-muted/40 p-2.5"
                     data-list-id={list.id}
                 >
                     {list.tasks.length > 0 ? (
                         list.tasks.map((task) => (
-                            <SortableTaskCard key={task.id} task={task} />
+                            <SortableTaskCard
+                                key={task.id}
+                                task={task}
+                                onEdit={() => onEditTask(task)}
+                                onDelete={() => onDeleteTask(task.id)}
+                            />
                         ))
                     ) : (
                         /* Add task button - shows on hover when empty */
@@ -913,7 +1025,10 @@ export default function ProjectShow({ project }: Props) {
             cancelled: 'Cancelled',
             pending: 'Pending',
         };
-        return t(statusKeyMap[status] || 'tasks.status_pending', fallbackMap[status] || 'Pending');
+        return t(
+            statusKeyMap[status] || 'tasks.status_pending',
+            fallbackMap[status] || 'Pending',
+        );
     };
 
     // Helper to get translated priority label
@@ -928,7 +1043,10 @@ export default function ProjectShow({ project }: Props) {
             medium: 'Medium',
             high: 'High',
         };
-        return t(priorityKeyMap[priority] || 'tasks.priority_medium', fallbackMap[priority] || 'Medium');
+        return t(
+            priorityKeyMap[priority] || 'tasks.priority_medium',
+            fallbackMap[priority] || 'Medium',
+        );
     };
 
     // Get taskLists first before using in state
@@ -1002,9 +1120,13 @@ export default function ProjectShow({ project }: Props) {
     const [selectedColumnId, setSelectedColumnId] = useState<number | null>(
         null,
     );
+    const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [orderedTaskLists, setOrderedTaskLists] =
         useState<TaskList[]>(taskLists);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const [isDraggingTaskList, setIsDraggingTaskList] = useState(false);
     const skipSyncRef = useRef(false);
     const ProjectIcon = getProjectIcon(project.icon);
 
@@ -1024,7 +1146,7 @@ export default function ProjectShow({ project }: Props) {
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
         const activeId = String(active.id);
-        
+
         if (activeId.startsWith('task-')) {
             const taskId = parseInt(activeId.replace('task-', ''));
             // Find the task in orderedTaskLists
@@ -1050,13 +1172,15 @@ export default function ProjectShow({ project }: Props) {
         if (!activeId.startsWith('task-')) return;
 
         const activeTaskId = parseInt(activeId.replace('task-', ''));
-        
+
         // Find source list
         let sourceListId: number | null = null;
         let sourceTaskIndex: number = -1;
-        
+
         for (const list of orderedTaskLists) {
-            const taskIndex = list.tasks.findIndex((t) => t.id === activeTaskId);
+            const taskIndex = list.tasks.findIndex(
+                (t) => t.id === activeTaskId,
+            );
             if (taskIndex !== -1) {
                 sourceListId = list.id;
                 sourceTaskIndex = taskIndex;
@@ -1068,7 +1192,7 @@ export default function ProjectShow({ project }: Props) {
 
         // Determine destination list
         let destListId: number | null = null;
-        
+
         if (overId.startsWith('task-')) {
             // Dropping on another task
             const overTaskId = parseInt(overId.replace('task-', ''));
@@ -1111,7 +1235,7 @@ export default function ProjectShow({ project }: Props) {
     // Handle drag end
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        
+
         setActiveTask(null);
 
         if (!over) return;
@@ -1122,11 +1246,11 @@ export default function ProjectShow({ project }: Props) {
         // Handle task drag
         if (activeId.startsWith('task-')) {
             const activeTaskId = parseInt(activeId.replace('task-', ''));
-            
+
             // Find the task and its list
             let sourceList: TaskList | null = null;
             let task: Task | null = null;
-            
+
             for (const list of orderedTaskLists) {
                 const foundTask = list.tasks.find((t) => t.id === activeTaskId);
                 if (foundTask) {
@@ -1145,7 +1269,9 @@ export default function ProjectShow({ project }: Props) {
             if (overId.startsWith('task-')) {
                 const overTaskId = parseInt(overId.replace('task-', ''));
                 for (const list of orderedTaskLists) {
-                    const overTaskIndex = list.tasks.findIndex((t) => t.id === overTaskId);
+                    const overTaskIndex = list.tasks.findIndex(
+                        (t) => t.id === overTaskId,
+                    );
                     if (overTaskIndex !== -1) {
                         targetListId = list.id;
                         targetPosition = overTaskIndex;
@@ -1155,7 +1281,9 @@ export default function ProjectShow({ project }: Props) {
             } else {
                 // Dropped on column
                 const listId = parseInt(overId);
-                const targetList = orderedTaskLists.find((l) => l.id === listId);
+                const targetList = orderedTaskLists.find(
+                    (l) => l.id === listId,
+                );
                 if (targetList) {
                     targetListId = listId;
                     targetPosition = targetList.tasks.length;
@@ -1170,16 +1298,20 @@ export default function ProjectShow({ project }: Props) {
                 }));
 
                 // Find and remove task from source
-                const srcList = newLists.find((l) => l.tasks.some((t) => t.id === activeTaskId));
+                const srcList = newLists.find((l) =>
+                    l.tasks.some((t) => t.id === activeTaskId),
+                );
                 if (!srcList) return prev;
-                
-                const taskIndex = srcList.tasks.findIndex((t) => t.id === activeTaskId);
+
+                const taskIndex = srcList.tasks.findIndex(
+                    (t) => t.id === activeTaskId,
+                );
                 const [movedTask] = srcList.tasks.splice(taskIndex, 1);
-                
+
                 // Add to destination
                 const destList = newLists.find((l) => l.id === targetListId);
                 if (!destList) return prev;
-                
+
                 movedTask.task_list_id = targetListId;
                 destList.tasks.splice(targetPosition, 0, movedTask);
 
@@ -1208,8 +1340,11 @@ export default function ProjectShow({ project }: Props) {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN':
+                            document.querySelector<HTMLMetaElement>(
+                                'meta[name="csrf-token"]',
+                            )?.content || '',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({
                         task_list_id: targetListId,
@@ -1255,8 +1390,11 @@ export default function ProjectShow({ project }: Props) {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN':
+                            document.querySelector<HTMLMetaElement>(
+                                'meta[name="csrf-token"]',
+                            )?.content || '',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({ position: newIndex }),
                 },
@@ -1268,7 +1406,7 @@ export default function ProjectShow({ project }: Props) {
     const handleTableDragStart = (event: DragStartEvent) => {
         const { active } = event;
         const activeId = String(active.id);
-        
+
         if (activeId.startsWith('table-task-')) {
             const taskId = parseInt(activeId.replace('table-task-', ''));
             for (const list of orderedTaskLists) {
@@ -1278,14 +1416,18 @@ export default function ProjectShow({ project }: Props) {
                     break;
                 }
             }
+        } else {
+            // Kéo task list
+            setIsDraggingTaskList(true);
         }
     };
 
     // Handle Table drag end
     const handleTableDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        
+
         setActiveTask(null);
+        setIsDraggingTaskList(false);
 
         if (!over) return;
 
@@ -1295,13 +1437,15 @@ export default function ProjectShow({ project }: Props) {
         // Handle table task drag
         if (activeId.startsWith('table-task-')) {
             const activeTaskId = parseInt(activeId.replace('table-task-', ''));
-            
+
             // Find the task and its list
             let sourceList: TaskList | null = null;
             let sourceTaskIndex: number = -1;
-            
+
             for (const list of orderedTaskLists) {
-                const taskIndex = list.tasks.findIndex((t) => t.id === activeTaskId);
+                const taskIndex = list.tasks.findIndex(
+                    (t) => t.id === activeTaskId,
+                );
                 if (taskIndex !== -1) {
                     sourceList = list;
                     sourceTaskIndex = taskIndex;
@@ -1318,7 +1462,9 @@ export default function ProjectShow({ project }: Props) {
             if (overId.startsWith('table-task-')) {
                 const overTaskId = parseInt(overId.replace('table-task-', ''));
                 for (const list of orderedTaskLists) {
-                    const overTaskIndex = list.tasks.findIndex((t) => t.id === overTaskId);
+                    const overTaskIndex = list.tasks.findIndex(
+                        (t) => t.id === overTaskId,
+                    );
                     if (overTaskIndex !== -1) {
                         targetListId = list.id;
                         targetPosition = overTaskIndex;
@@ -1328,7 +1474,11 @@ export default function ProjectShow({ project }: Props) {
             }
 
             // Only proceed if position changed
-            if (targetListId === sourceList.id && targetPosition === sourceTaskIndex) return;
+            if (
+                targetListId === sourceList.id &&
+                targetPosition === sourceTaskIndex
+            )
+                return;
 
             // Update local state
             setOrderedTaskLists((prev) => {
@@ -1340,21 +1490,24 @@ export default function ProjectShow({ project }: Props) {
                 // Find and remove task from source
                 const srcList = newLists.find((l) => l.id === sourceList!.id);
                 if (!srcList) return prev;
-                
+
                 const [movedTask] = srcList.tasks.splice(sourceTaskIndex, 1);
-                
+
                 // Add to destination
                 const destList = newLists.find((l) => l.id === targetListId);
                 if (!destList) return prev;
-                
+
                 movedTask.task_list_id = targetListId;
-                
+
                 // Adjust target position if moving within same list and moving down
                 let adjustedPosition = targetPosition;
-                if (sourceList!.id === targetListId && sourceTaskIndex < targetPosition) {
+                if (
+                    sourceList!.id === targetListId &&
+                    sourceTaskIndex < targetPosition
+                ) {
                     adjustedPosition = targetPosition;
                 }
-                
+
                 destList.tasks.splice(adjustedPosition, 0, movedTask);
 
                 // Update positions
@@ -1382,8 +1535,11 @@ export default function ProjectShow({ project }: Props) {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN':
+                            document.querySelector<HTMLMetaElement>(
+                                'meta[name="csrf-token"]',
+                            )?.content || '',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({
                         task_list_id: targetListId,
@@ -1425,8 +1581,11 @@ export default function ProjectShow({ project }: Props) {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN':
+                            document.querySelector<HTMLMetaElement>(
+                                'meta[name="csrf-token"]',
+                            )?.content || '',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({ position: newIndex }),
                 },
@@ -1441,7 +1600,9 @@ export default function ProjectShow({ project }: Props) {
         }
         // Auto-expand any new task lists
         setExpandedLists((prev) => {
-            const newIds = taskLists.map((l) => l.id).filter((id) => !prev.includes(id));
+            const newIds = taskLists
+                .map((l) => l.id)
+                .filter((id) => !prev.includes(id));
             return newIds.length > 0 ? [...newIds, ...prev] : prev;
         });
     }, [taskLists]);
@@ -1656,7 +1817,10 @@ export default function ProjectShow({ project }: Props) {
                                 <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     type="text"
-                                    placeholder={t('kanban.search', 'Search...')}
+                                    placeholder={t(
+                                        'kanban.search',
+                                        'Search...',
+                                    )}
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -1808,7 +1972,10 @@ export default function ProjectShow({ project }: Props) {
                                             className="w-48 p-2"
                                         >
                                             <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
-                                                {t('common.toggle_columns', 'Toggle columns')}
+                                                {t(
+                                                    'common.toggle_columns',
+                                                    'Toggle columns',
+                                                )}
                                             </div>
                                             {columns.map((column) => (
                                                 <button
@@ -1830,7 +1997,12 @@ export default function ProjectShow({ project }: Props) {
                                                             <Check className="size-3" />
                                                         )}
                                                     </div>
-                                                    <span>{getColumnLabel(column.id, column.label)}</span>
+                                                    <span>
+                                                        {getColumnLabel(
+                                                            column.id,
+                                                            column.label,
+                                                        )}
+                                                    </span>
                                                 </button>
                                             ))}
                                         </PopoverContent>
@@ -1844,7 +2016,12 @@ export default function ProjectShow({ project }: Props) {
                                 className="group flex w-full items-center gap-2 border-b px-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:text-foreground"
                             >
                                 <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                <span>{t('task_lists.create_task_list', 'Create task list')}</span>
+                                <span>
+                                    {t(
+                                        'task_lists.create_task_list',
+                                        'Create task list',
+                                    )}
+                                </span>
                             </button>
 
                             {/* Task Lists */}
@@ -1857,21 +2034,18 @@ export default function ProjectShow({ project }: Props) {
                                 <SortableContext
                                     items={[
                                         ...filteredTaskLists.map((l) => l.id),
-                                        ...filteredTaskLists.flatMap((l) => l.tasks.map((t) => `table-task-${t.id}`)),
+                                        ...filteredTaskLists.flatMap((l) =>
+                                            l.tasks.map(
+                                                (t) => `table-task-${t.id}`,
+                                            ),
+                                        ),
                                     ]}
                                     strategy={verticalListSortingStrategy}
                                 >
                                     <div>
                                         {filteredTaskLists.map(
                                             (list, listIndex) => (
-                                                <div
-                                                    key={list.id}
-                                                    style={{
-                                                        animation: mounted
-                                                            ? `fadeSlideIn 400ms ease-out ${listIndex * 100 + 200}ms both`
-                                                            : 'none',
-                                                    }}
-                                                >
+                                                <div key={list.id}>
                                                     {/* List Header - Sortable */}
                                                     <SortableTaskListRow
                                                         list={list}
@@ -1903,52 +2077,122 @@ export default function ProjectShow({ project }: Props) {
                                                         }
                                                     />
 
-                                                    {/* Tasks */}
+                                                    {/* Tasks - Hidden during task list drag */}
                                                     {expandedLists.includes(
                                                         list.id,
-                                                    ) && (
-                                                        <SortableContext
-                                                            items={list.tasks.map((t) => `table-task-${t.id}`)}
-                                                            strategy={verticalListSortingStrategy}
-                                                        >
-                                                            <div 
-                                                                className="animate-in duration-200 fade-in slide-in-from-top-2"
-                                                                data-list-id={list.id}
+                                                    ) &&
+                                                        !isDraggingTaskList && (
+                                                            <SortableContext
+                                                                items={list.tasks.map(
+                                                                    (t) =>
+                                                                        `table-task-${t.id}`,
+                                                                )}
+                                                                strategy={
+                                                                    verticalListSortingStrategy
+                                                                }
                                                             >
-                                                                {list.tasks.map((task) => (
-                                                                    <SortableTableTaskRow
-                                                                        key={task.id}
-                                                                        task={task}
-                                                                        listId={list.id}
-                                                                        gridCols={gridCols}
-                                                                        columns={columns}
-                                                                        getStatusColor={getStatusColor}
-                                                                        getStatusLabel={getTranslatedStatusLabel}
-                                                                        getPriorityColor={getPriorityColor}
-                                                                        getPriorityLabel={getTranslatedPriorityLabel}
-                                                                    />
-                                                                ))}
-
-                                                                {/* Add Task Button */}
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setTaskForm((prev) => ({
-                                                                            ...prev,
-                                                                            task_list_id: list.id,
-                                                                        }));
-                                                                        setIsCreateTaskOpen(true);
-                                                                    }}
-                                                                    className="group flex w-full items-center gap-2 border-b pl-10 pr-4 py-2.5 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-12 hover:text-foreground"
-                                                                    style={{
-                                                                        animation: `fadeSlideIn 300ms ease-out ${list.tasks.length * 50}ms both`,
-                                                                    }}
+                                                                <div
+                                                                    data-list-id={
+                                                                        list.id
+                                                                    }
                                                                 >
-                                                                    <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
-                                                                    <span>{t('tasks.create_task', 'Create task')}</span>
-                                                                </button>
-                                                            </div>
-                                                        </SortableContext>
-                                                    )}
+                                                                    {list.tasks.map(
+                                                                        (
+                                                                            task,
+                                                                        ) => (
+                                                                            <SortableTableTaskRow
+                                                                                key={
+                                                                                    task.id
+                                                                                }
+                                                                                task={
+                                                                                    task
+                                                                                }
+                                                                                listId={
+                                                                                    list.id
+                                                                                }
+                                                                                gridCols={
+                                                                                    gridCols
+                                                                                }
+                                                                                columns={
+                                                                                    columns
+                                                                                }
+                                                                                getStatusColor={
+                                                                                    getStatusColor
+                                                                                }
+                                                                                getStatusLabel={
+                                                                                    getTranslatedStatusLabel
+                                                                                }
+                                                                                getPriorityColor={
+                                                                                    getPriorityColor
+                                                                                }
+                                                                                getPriorityLabel={
+                                                                                    getTranslatedPriorityLabel
+                                                                                }
+                                                                                onEdit={() => {
+                                                                                    setTaskForm(
+                                                                                        {
+                                                                                            title: task.title,
+                                                                                            description:
+                                                                                                task.description ||
+                                                                                                '',
+                                                                                            priority:
+                                                                                                task.priority,
+                                                                                            status: task.status,
+                                                                                            task_list_id:
+                                                                                                task.task_list_id,
+                                                                                            due_date:
+                                                                                                task.due_date ||
+                                                                                                '',
+                                                                                        },
+                                                                                    );
+                                                                                    setEditingTaskId(
+                                                                                        task.id,
+                                                                                    );
+                                                                                    setIsEditTaskOpen(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                onDelete={() =>
+                                                                                    setDeleteTaskId(
+                                                                                        task.id,
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        ),
+                                                                    )}
+
+                                                                    {/* Add Task Button - Hidden during drag */}
+                                                                    {!activeTask &&
+                                                                        !isDraggingTaskList && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setTaskForm(
+                                                                                        (
+                                                                                            prev,
+                                                                                        ) => ({
+                                                                                            ...prev,
+                                                                                            task_list_id:
+                                                                                                list.id,
+                                                                                        }),
+                                                                                    );
+                                                                                    setIsCreateTaskOpen(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                className="group flex w-full items-center gap-2 border-b py-2.5 pr-4 pl-10 text-sm text-muted-foreground transition-all duration-150 hover:bg-muted/30 hover:pl-12 hover:text-foreground"
+                                                                            >
+                                                                                <Plus className="size-4 transition-transform duration-150 group-hover:rotate-90" />
+                                                                                <span>
+                                                                                    {t(
+                                                                                        'tasks.create_task',
+                                                                                        'Create task',
+                                                                                    )}
+                                                                                </span>
+                                                                            </button>
+                                                                        )}
+                                                                </div>
+                                                            </SortableContext>
+                                                        )}
                                                 </div>
                                             ),
                                         )}
@@ -1956,112 +2200,201 @@ export default function ProjectShow({ project }: Props) {
                                 </SortableContext>
 
                                 {/* DragOverlay for Table Tasks */}
-                                <DragOverlay dropAnimation={{
-                                    duration: 200,
-                                    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-                                }}>
+                                <DragOverlay
+                                    dropAnimation={{
+                                        duration: 200,
+                                        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                                    }}
+                                >
                                     {activeTask ? (
-                                        <div 
+                                        <div
                                             className="grid cursor-grabbing rounded-md border bg-background shadow-xl ring-2 ring-primary/30"
-                                            style={{ gridTemplateColumns: gridCols }}
+                                            style={{
+                                                gridTemplateColumns: gridCols,
+                                            }}
                                         >
                                             {/* Task Title */}
                                             <div className="flex items-center gap-3 px-4 py-3 pl-6">
-                                                <span className={`text-sm ${activeTask.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}>
+                                                <span
+                                                    className={`text-sm ${activeTask.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}
+                                                >
                                                     {activeTask.title}
                                                 </span>
-                                                {activeTask.subtasks_total && activeTask.subtasks_total > 0 && (
-                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <Check className="size-3" />
-                                                        {activeTask.subtasks_completed}/{activeTask.subtasks_total}
-                                                    </span>
-                                                )}
+                                                {activeTask.subtasks_total &&
+                                                    activeTask.subtasks_total >
+                                                        0 && (
+                                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                            <Check className="size-3" />
+                                                            {
+                                                                activeTask.subtasks_completed
+                                                            }
+                                                            /
+                                                            {
+                                                                activeTask.subtasks_total
+                                                            }
+                                                        </span>
+                                                    )}
                                             </div>
 
                                             {/* Status */}
-                                            {columns.find((c) => c.id === 'status')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'status',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="size-3 rounded" style={{ backgroundColor: getStatusColor(activeTask.status) }} />
-                                                        <span className="text-sm">{getTranslatedStatusLabel(activeTask.status)}</span>
+                                                        <div
+                                                            className="size-3 rounded"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    getStatusColor(
+                                                                        activeTask.status,
+                                                                    ),
+                                                            }}
+                                                        />
+                                                        <span className="text-sm">
+                                                            {getTranslatedStatusLabel(
+                                                                activeTask.status,
+                                                            )}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {/* Priority */}
-                                            {columns.find((c) => c.id === 'priority')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'priority',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3">
                                                     {activeTask.priority ? (
                                                         <div className="flex items-center gap-2">
-                                                            <div className="size-3 rounded" style={{ backgroundColor: getPriorityColor(activeTask.priority) }} />
-                                                            <span className="text-sm">{getTranslatedPriorityLabel(activeTask.priority)}</span>
+                                                            <div
+                                                                className="size-3 rounded"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        getPriorityColor(
+                                                                            activeTask.priority,
+                                                                        ),
+                                                                }}
+                                                            />
+                                                            <span className="text-sm">
+                                                                {getTranslatedPriorityLabel(
+                                                                    activeTask.priority,
+                                                                )}
+                                                            </span>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-sm text-muted-foreground">–</span>
+                                                        <span className="text-sm text-muted-foreground">
+                                                            –
+                                                        </span>
                                                     )}
                                                 </div>
                                             )}
 
                                             {/* Due Date */}
-                                            {columns.find((c) => c.id === 'dueDate')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'dueDate',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
                                                     {activeTask.due_date
-                                                        ? new Date(activeTask.due_date).toLocaleDateString('en-US', {
-                                                              month: 'short',
-                                                              day: 'numeric',
-                                                          })
+                                                        ? new Date(
+                                                              activeTask.due_date,
+                                                          ).toLocaleDateString(
+                                                              'en-US',
+                                                              {
+                                                                  month: 'short',
+                                                                  day: 'numeric',
+                                                              },
+                                                          )
                                                         : '–'}
                                                 </div>
                                             )}
 
                                             {/* Assignee */}
-                                            {columns.find((c) => c.id === 'assignee')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'assignee',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3">
                                                     {activeTask.assigned_to ? (
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="size-6">
                                                                 <AvatarImage src="" />
-                                                                <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
+                                                                <AvatarFallback className="text-xs">
+                                                                    {t(
+                                                                        'common.me',
+                                                                        'Me',
+                                                                    )}
+                                                                </AvatarFallback>
                                                             </Avatar>
-                                                            <span className="text-sm">{t('common.me', 'Me')}</span>
+                                                            <span className="text-sm">
+                                                                {t(
+                                                                    'common.me',
+                                                                    'Me',
+                                                                )}
+                                                            </span>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-sm text-muted-foreground">–</span>
+                                                        <span className="text-sm text-muted-foreground">
+                                                            –
+                                                        </span>
                                                     )}
                                                 </div>
                                             )}
 
                                             {/* Created At */}
-                                            {columns.find((c) => c.id === 'createdAt')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'createdAt',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
-                                                    {new Date().toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    })}
+                                                    {new Date().toLocaleDateString(
+                                                        'en-US',
+                                                        {
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        },
+                                                    )}
                                                 </div>
                                             )}
 
                                             {/* Completed At */}
-                                            {columns.find((c) => c.id === 'completedAt')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'completedAt',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3 text-sm text-muted-foreground">
                                                     {activeTask.completed_at
-                                                        ? new Date(activeTask.completed_at).toLocaleDateString('en-US', {
-                                                              month: 'short',
-                                                              day: 'numeric',
-                                                          })
+                                                        ? new Date(
+                                                              activeTask.completed_at,
+                                                          ).toLocaleDateString(
+                                                              'en-US',
+                                                              {
+                                                                  month: 'short',
+                                                                  day: 'numeric',
+                                                              },
+                                                          )
                                                         : '–'}
                                                 </div>
                                             )}
 
                                             {/* Creator */}
-                                            {columns.find((c) => c.id === 'creator')?.visible && (
+                                            {columns.find(
+                                                (c) => c.id === 'creator',
+                                            )?.visible && (
                                                 <div className="flex items-center px-3 py-3">
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="size-6">
                                                             <AvatarImage src="" />
-                                                            <AvatarFallback className="text-xs">{t('common.me', 'Me')}</AvatarFallback>
+                                                            <AvatarFallback className="text-xs">
+                                                                {t(
+                                                                    'common.me',
+                                                                    'Me',
+                                                                )}
+                                                            </AvatarFallback>
                                                         </Avatar>
-                                                        <span className="text-sm">{t('common.me', 'Me')}</span>
+                                                        <span className="text-sm">
+                                                            {t(
+                                                                'common.me',
+                                                                'Me',
+                                                            )}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             )}
@@ -2116,6 +2449,24 @@ export default function ProjectShow({ project }: Props) {
                                                 }));
                                                 setIsCreateTaskOpen(true);
                                             }}
+                                            onEditTask={(task) => {
+                                                setTaskForm({
+                                                    title: task.title,
+                                                    description:
+                                                        task.description || '',
+                                                    priority: task.priority,
+                                                    status: task.status,
+                                                    task_list_id:
+                                                        task.task_list_id,
+                                                    due_date:
+                                                        task.due_date || '',
+                                                });
+                                                setEditingTaskId(task.id);
+                                                setIsEditTaskOpen(true);
+                                            }}
+                                            onDeleteTask={(taskId) =>
+                                                setDeleteTaskId(taskId)
+                                            }
                                         />
                                     ))}
 
@@ -2141,11 +2492,14 @@ export default function ProjectShow({ project }: Props) {
                                     </div>
                                 </div>
                             </SortableContext>
-                            
+
                             {/* Drag Overlay for Tasks */}
                             <DragOverlay>
                                 {activeTask ? (
-                                    <SortableTaskCard task={activeTask} isDragOverlay />
+                                    <SortableTaskCard
+                                        task={activeTask}
+                                        isDragOverlay
+                                    />
                                 ) : null}
                             </DragOverlay>
                         </DndContext>
@@ -2164,9 +2518,10 @@ export default function ProjectShow({ project }: Props) {
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
                                 {t('tasks.create_title', 'Create new task')}
                             </SheetTitle>
-                            <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                {t('tasks.create_desc', 'Add a new task to')} {project.name}.
-                            </p>
+                            <SheetDescription className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                {t('tasks.create_desc', 'Add a new task to')}{' '}
+                                {project.name}.
+                            </SheetDescription>
                         </SheetHeader>
 
                         <form className="mt-10 space-y-8">
@@ -2187,7 +2542,10 @@ export default function ProjectShow({ project }: Props) {
                                             title: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('tasks.task_title_placeholder', 'Enter task title')}
+                                    placeholder={t(
+                                        'tasks.task_title_placeholder',
+                                        'Enter task title',
+                                    )}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2203,7 +2561,10 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {t('tasks.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('tasks.description_optional', '(optional)')}
+                                        {t(
+                                            'tasks.description_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2215,7 +2576,10 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('tasks.description_placeholder', 'What needs to be done?')}
+                                    placeholder={t(
+                                        'tasks.description_placeholder',
+                                        'What needs to be done?',
+                                    )}
                                     className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2225,7 +2589,9 @@ export default function ProjectShow({ project }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '300ms' }}
                             >
-                                <Label className="text-base">{t('tasks.adding_to', 'Adding to')}</Label>
+                                <Label className="text-base">
+                                    {t('tasks.adding_to', 'Adding to')}
+                                </Label>
                                 {(() => {
                                     const selectedList = taskLists.find(
                                         (l) => l.id === taskForm.task_list_id,
@@ -2252,7 +2618,9 @@ export default function ProjectShow({ project }: Props) {
                                 className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
                                 style={{ animationDelay: '400ms' }}
                             >
-                                <Label className="text-base">{t('tasks.priority', 'Priority')}</Label>
+                                <Label className="text-base">
+                                    {t('tasks.priority', 'Priority')}
+                                </Label>
                                 <div className="grid grid-cols-3 gap-4">
                                     <button
                                         type="button"
@@ -2313,7 +2681,10 @@ export default function ProjectShow({ project }: Props) {
                                                     : 'text-foreground'
                                             }`}
                                         >
-                                            {t('tasks.priority_medium', 'Medium')}
+                                            {t(
+                                                'tasks.priority_medium',
+                                                'Medium',
+                                            )}
                                         </p>
                                     </button>
                                     <button
@@ -2358,7 +2729,10 @@ export default function ProjectShow({ project }: Props) {
                                 <Label className="text-base">
                                     {t('tasks.due_date', 'Due date')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('tasks.due_date_optional', '(optional)')}
+                                        {t(
+                                            'tasks.due_date_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Popover>
@@ -2366,32 +2740,59 @@ export default function ProjectShow({ project }: Props) {
                                         <Button
                                             variant="outline"
                                             className={`h-12 w-full justify-start text-left text-base font-normal transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/10 ${
-                                                !taskForm.due_date && 'text-muted-foreground'
+                                                !taskForm.due_date &&
+                                                'text-muted-foreground'
                                             }`}
                                         >
                                             <Calendar className="mr-3 size-5" />
                                             {taskForm.due_date
                                                 ? (() => {
-                                                      const [year, month, day] = taskForm.due_date.split('-').map(Number);
-                                                      const date = new Date(year, month - 1, day);
-                                                      return date.toLocaleDateString('en-US', {
-                                                          weekday: 'long',
-                                                          year: 'numeric',
-                                                          month: 'long',
-                                                          day: 'numeric',
-                                                      });
+                                                      const [year, month, day] =
+                                                          taskForm.due_date
+                                                              .split('-')
+                                                              .map(Number);
+                                                      const date = new Date(
+                                                          year,
+                                                          month - 1,
+                                                          day,
+                                                      );
+                                                      return date.toLocaleDateString(
+                                                          'en-US',
+                                                          {
+                                                              weekday: 'long',
+                                                              year: 'numeric',
+                                                              month: 'long',
+                                                              day: 'numeric',
+                                                          },
+                                                      );
                                                   })()
-                                                : t('tasks.select_date', 'Select date')}
+                                                : t(
+                                                      'tasks.select_date',
+                                                      'Select date',
+                                                  )}
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <PopoverContent
+                                        className="w-auto p-0"
+                                        align="start"
+                                    >
                                         <CalendarPicker
                                             mode="single"
                                             selected={
                                                 taskForm.due_date
                                                     ? (() => {
-                                                          const [year, month, day] = taskForm.due_date.split('-').map(Number);
-                                                          return new Date(year, month - 1, day);
+                                                          const [
+                                                              year,
+                                                              month,
+                                                              day,
+                                                          ] = taskForm.due_date
+                                                              .split('-')
+                                                              .map(Number);
+                                                          return new Date(
+                                                              year,
+                                                              month - 1,
+                                                              day,
+                                                          );
                                                       })()
                                                     : undefined
                                             }
@@ -2478,6 +2879,501 @@ export default function ProjectShow({ project }: Props) {
                 </SheetContent>
             </Sheet>
 
+            {/* Edit Task Sheet */}
+            <Sheet
+                open={isEditTaskOpen}
+                onOpenChange={(open) => {
+                    setIsEditTaskOpen(open);
+                    if (!open) {
+                        setEditingTaskId(null);
+                        setTaskForm({
+                            title: '',
+                            description: '',
+                            priority: 'medium',
+                            status: 'pending',
+                            task_list_id: mockTaskLists[0]?.id || 1,
+                            due_date: '',
+                        });
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    className="w-full overflow-y-auto sm:max-w-2xl"
+                >
+                    <div className="mx-auto max-w-lg py-6">
+                        <SheetHeader className="text-left">
+                            <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
+                                {t('tasks.edit_title', 'Edit task')}
+                            </SheetTitle>
+                            <SheetDescription className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                {t('tasks.edit_desc', 'Update task details.')}
+                            </SheetDescription>
+                        </SheetHeader>
+
+                        <form className="mt-10 space-y-8">
+                            {/* Title */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '100ms' }}
+                            >
+                                <Label
+                                    htmlFor="edit-title"
+                                    className="text-base"
+                                >
+                                    {t('tasks.task_title', 'Task title')}
+                                </Label>
+                                <Input
+                                    id="edit-title"
+                                    value={taskForm.title}
+                                    onChange={(e) =>
+                                        setTaskForm((prev) => ({
+                                            ...prev,
+                                            title: e.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'tasks.task_title_placeholder',
+                                        'Enter task title',
+                                    )}
+                                    className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '200ms' }}
+                            >
+                                <Label
+                                    htmlFor="edit-description"
+                                    className="text-base"
+                                >
+                                    {t('tasks.description', 'Description')}
+                                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                        {t(
+                                            'tasks.description_optional',
+                                            '(optional)',
+                                        )}
+                                    </span>
+                                </Label>
+                                <Textarea
+                                    id="edit-description"
+                                    value={taskForm.description}
+                                    onChange={(e) =>
+                                        setTaskForm((prev) => ({
+                                            ...prev,
+                                            description: e.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'tasks.description_placeholder',
+                                        'What needs to be done?',
+                                    )}
+                                    className="min-h-[120px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
+                                />
+                            </div>
+
+                            {/* Status */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '300ms' }}
+                            >
+                                <Label className="text-base">
+                                    {t('tasks.status', 'Status')}
+                                </Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        {
+                                            value: 'pending',
+                                            label: t(
+                                                'tasks.status_pending',
+                                                'Pending',
+                                            ),
+                                            color: '#a855f7',
+                                        },
+                                        {
+                                            value: 'in_progress',
+                                            label: t(
+                                                'tasks.status_in_progress',
+                                                'In Progress',
+                                            ),
+                                            color: '#3b82f6',
+                                        },
+                                        {
+                                            value: 'completed',
+                                            label: t(
+                                                'tasks.status_completed',
+                                                'Completed',
+                                            ),
+                                            color: '#22c55e',
+                                        },
+                                        {
+                                            value: 'cancelled',
+                                            label: t(
+                                                'tasks.status_cancelled',
+                                                'Cancelled',
+                                            ),
+                                            color: '#ef4444',
+                                        },
+                                    ].map((status) => (
+                                        <button
+                                            key={status.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setTaskForm((prev) => ({
+                                                    ...prev,
+                                                    status: status.value as
+                                                        | 'pending'
+                                                        | 'in_progress'
+                                                        | 'completed'
+                                                        | 'cancelled',
+                                                }))
+                                            }
+                                            className={`flex items-center gap-3 rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-md ${
+                                                taskForm.status === status.value
+                                                    ? 'border-primary bg-primary/5 shadow-md'
+                                                    : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div
+                                                className="size-3 rounded-full"
+                                                style={{
+                                                    backgroundColor:
+                                                        status.color,
+                                                }}
+                                            />
+                                            <p className="font-medium">
+                                                {status.label}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Priority */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '400ms' }}
+                            >
+                                <Label className="text-base">
+                                    {t('tasks.priority', 'Priority')}
+                                </Label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setTaskForm((prev) => ({
+                                                ...prev,
+                                                priority: 'low',
+                                            }))
+                                        }
+                                        className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-md ${
+                                            taskForm.priority === 'low'
+                                                ? 'border-green-500 bg-green-500/5 shadow-md'
+                                                : 'border-border hover:border-green-500/30 hover:bg-muted/50'
+                                        }`}
+                                    >
+                                        <div
+                                            className={`size-3 rounded-full bg-green-500 transition-transform duration-200 ${
+                                                taskForm.priority === 'low'
+                                                    ? 'scale-125'
+                                                    : ''
+                                            }`}
+                                        />
+                                        <p
+                                            className={`font-medium ${
+                                                taskForm.priority === 'low'
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-foreground'
+                                            }`}
+                                        >
+                                            {t('tasks.priority_low', 'Low')}
+                                        </p>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setTaskForm((prev) => ({
+                                                ...prev,
+                                                priority: 'medium',
+                                            }))
+                                        }
+                                        className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-md ${
+                                            taskForm.priority === 'medium'
+                                                ? 'border-amber-500 bg-amber-500/5 shadow-md'
+                                                : 'border-border hover:border-amber-500/30 hover:bg-muted/50'
+                                        }`}
+                                    >
+                                        <div
+                                            className={`size-3 rounded-full bg-amber-500 transition-transform duration-200 ${
+                                                taskForm.priority === 'medium'
+                                                    ? 'scale-125'
+                                                    : ''
+                                            }`}
+                                        />
+                                        <p
+                                            className={`font-medium ${
+                                                taskForm.priority === 'medium'
+                                                    ? 'text-amber-600 dark:text-amber-400'
+                                                    : 'text-foreground'
+                                            }`}
+                                        >
+                                            {t(
+                                                'tasks.priority_medium',
+                                                'Medium',
+                                            )}
+                                        </p>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setTaskForm((prev) => ({
+                                                ...prev,
+                                                priority: 'high',
+                                            }))
+                                        }
+                                        className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-md ${
+                                            taskForm.priority === 'high'
+                                                ? 'border-red-500 bg-red-500/5 shadow-md'
+                                                : 'border-border hover:border-red-500/30 hover:bg-muted/50'
+                                        }`}
+                                    >
+                                        <div
+                                            className={`size-3 rounded-full bg-red-500 transition-transform duration-200 ${
+                                                taskForm.priority === 'high'
+                                                    ? 'scale-125'
+                                                    : ''
+                                            }`}
+                                        />
+                                        <p
+                                            className={`font-medium ${
+                                                taskForm.priority === 'high'
+                                                    ? 'text-red-600 dark:text-red-400'
+                                                    : 'text-foreground'
+                                            }`}
+                                        >
+                                            {t('tasks.priority_high', 'High')}
+                                        </p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Due Date */}
+                            <div
+                                className="animate-in space-y-3 duration-500 fill-mode-both fade-in slide-in-from-right-4"
+                                style={{ animationDelay: '500ms' }}
+                            >
+                                <Label className="text-base">
+                                    {t('tasks.due_date', 'Due date')}
+                                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                        {t(
+                                            'tasks.due_date_optional',
+                                            '(optional)',
+                                        )}
+                                    </span>
+                                </Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={`h-12 w-full justify-start text-left text-base font-normal transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/10 ${
+                                                !taskForm.due_date &&
+                                                'text-muted-foreground'
+                                            }`}
+                                        >
+                                            <Calendar className="mr-3 size-5" />
+                                            {taskForm.due_date
+                                                ? (() => {
+                                                      const [year, month, day] =
+                                                          taskForm.due_date
+                                                              .split('-')
+                                                              .map(Number);
+                                                      const date = new Date(
+                                                          year,
+                                                          month - 1,
+                                                          day,
+                                                      );
+                                                      return date.toLocaleDateString(
+                                                          'en-US',
+                                                          {
+                                                              weekday: 'long',
+                                                              year: 'numeric',
+                                                              month: 'long',
+                                                              day: 'numeric',
+                                                          },
+                                                      );
+                                                  })()
+                                                : t(
+                                                      'tasks.select_date',
+                                                      'Select date',
+                                                  )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="w-auto p-0"
+                                        align="start"
+                                    >
+                                        <CalendarPicker
+                                            mode="single"
+                                            selected={
+                                                taskForm.due_date
+                                                    ? (() => {
+                                                          const [
+                                                              year,
+                                                              month,
+                                                              day,
+                                                          ] = taskForm.due_date
+                                                              .split('-')
+                                                              .map(Number);
+                                                          return new Date(
+                                                              year,
+                                                              month - 1,
+                                                              day,
+                                                          );
+                                                      })()
+                                                    : undefined
+                                            }
+                                            onSelect={(date) =>
+                                                setTaskForm((prev) => ({
+                                                    ...prev,
+                                                    due_date: date
+                                                        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                                                        : '',
+                                                }))
+                                            }
+                                            className="rounded-md border shadow-sm"
+                                            captionLayout="dropdown"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            {/* Actions */}
+                            <div
+                                className="flex animate-in gap-4 pt-6 duration-500 fill-mode-both fade-in slide-in-from-bottom-4"
+                                style={{ animationDelay: '600ms' }}
+                            >
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-md"
+                                    onClick={() => setIsEditTaskOpen(false)}
+                                >
+                                    {t('tasks.cancel', 'Cancel')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="lg"
+                                    className="flex-1 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25"
+                                    disabled={!taskForm.title || !editingTaskId}
+                                    onClick={() => {
+                                        if (!editingTaskId) return;
+
+                                        const formData = { ...taskForm };
+                                        setIsEditTaskOpen(false);
+                                        setEditingTaskId(null);
+                                        setTaskForm({
+                                            title: '',
+                                            description: '',
+                                            priority: 'medium',
+                                            status: 'pending',
+                                            task_list_id:
+                                                mockTaskLists[0]?.id || 1,
+                                            due_date: '',
+                                        });
+
+                                        router.put(
+                                            updateTask.url({
+                                                project: project.id,
+                                                taskList: formData.task_list_id,
+                                                task: editingTaskId,
+                                            }),
+                                            {
+                                                title: formData.title,
+                                                description:
+                                                    formData.description ||
+                                                    null,
+                                                priority: formData.priority,
+                                                status: formData.status,
+                                                due_date:
+                                                    formData.due_date || null,
+                                            },
+                                            {
+                                                preserveScroll: true,
+                                                onSuccess: () => {
+                                                    router.reload();
+                                                },
+                                            },
+                                        );
+                                    }}
+                                >
+                                    {t('tasks.update_btn', 'Update task')}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* Delete Task Alert Dialog */}
+            <AlertDialog
+                open={deleteTaskId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTaskId(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {t('tasks.delete_confirm_title', 'Delete task?')}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t(
+                                'tasks.delete_confirm_desc',
+                                'This action cannot be undone. This will permanently delete this task.',
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            onClick={() => setDeleteTaskId(null)}
+                        >
+                            {t('tasks.cancel', 'Cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                            onClick={() => {
+                                if (!deleteTaskId) return;
+
+                                const taskToDelete = orderedTaskLists
+                                    .flatMap((l) => l.tasks)
+                                    .find((t) => t.id === deleteTaskId);
+
+                                if (!taskToDelete) return;
+
+                                router.delete(
+                                    updateTask.url({
+                                        project: project.id,
+                                        taskList: taskToDelete.task_list_id,
+                                        task: deleteTaskId,
+                                    }),
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setDeleteTaskId(null);
+                                        },
+                                    },
+                                );
+                            }}
+                        >
+                            {t('tasks.delete_btn', 'Delete')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             {/* Create Column Sheet */}
             <Sheet
                 open={isCreateColumnOpen}
@@ -2490,11 +3386,17 @@ export default function ProjectShow({ project }: Props) {
                     <div className="mx-auto max-w-lg py-6">
                         <SheetHeader className="text-left">
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
-                                {t('task_lists.create_title', 'Create new column')}
+                                {t(
+                                    'task_lists.create_title',
+                                    'Create new column',
+                                )}
                             </SheetTitle>
-                            <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                {t('task_lists.create_desc', 'Add a new column to your Kanban board.')}
-                            </p>
+                            <SheetDescription className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                {t(
+                                    'task_lists.create_desc',
+                                    'Add a new column to your Kanban board.',
+                                )}
+                            </SheetDescription>
                         </SheetHeader>
 
                         <form className="mt-10 space-y-8">
@@ -2518,7 +3420,10 @@ export default function ProjectShow({ project }: Props) {
                                             name: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('task_lists.name_placeholder', 'e.g., To Do, In Progress, Done')}
+                                    placeholder={t(
+                                        'task_lists.name_placeholder',
+                                        'e.g., To Do, In Progress, Done',
+                                    )}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2534,7 +3439,10 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {t('task_lists.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('task_lists.description_optional', '(optional)')}
+                                        {t(
+                                            'task_lists.description_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2546,7 +3454,10 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('task_lists.description_placeholder', 'Describe what tasks belong in this column')}
+                                    placeholder={t(
+                                        'task_lists.description_placeholder',
+                                        'Describe what tasks belong in this column',
+                                    )}
                                     className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2704,7 +3615,10 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {isCreatingColumn
                                         ? t('common.loading', 'Creating...')
-                                        : t('task_lists.create_btn', 'Create column')}
+                                        : t(
+                                              'task_lists.create_btn',
+                                              'Create column',
+                                          )}
                                 </Button>
                             </div>
                         </form>
@@ -2736,9 +3650,12 @@ export default function ProjectShow({ project }: Props) {
                             <SheetTitle className="animate-in text-2xl duration-500 fade-in slide-in-from-right-4">
                                 {t('task_lists.edit_title', 'Edit column')}
                             </SheetTitle>
-                            <p className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
-                                {t('task_lists.edit_desc', 'Update column details.')}
-                            </p>
+                            <SheetDescription className="animate-in text-muted-foreground delay-75 duration-500 fade-in slide-in-from-right-4">
+                                {t(
+                                    'task_lists.edit_desc',
+                                    'Update column details.',
+                                )}
+                            </SheetDescription>
                         </SheetHeader>
 
                         <form className="mt-10 space-y-8">
@@ -2762,7 +3679,10 @@ export default function ProjectShow({ project }: Props) {
                                             name: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('task_lists.name_placeholder', 'e.g., To Do, In Progress, Done')}
+                                    placeholder={t(
+                                        'task_lists.name_placeholder',
+                                        'e.g., To Do, In Progress, Done',
+                                    )}
                                     className="h-12 text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2778,7 +3698,10 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {t('task_lists.description', 'Description')}
                                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {t('task_lists.description_optional', '(optional)')}
+                                        {t(
+                                            'task_lists.description_optional',
+                                            '(optional)',
+                                        )}
                                     </span>
                                 </Label>
                                 <Textarea
@@ -2790,7 +3713,10 @@ export default function ProjectShow({ project }: Props) {
                                             description: e.target.value,
                                         }))
                                     }
-                                    placeholder={t('task_lists.description_placeholder', 'Describe what tasks belong in this column')}
+                                    placeholder={t(
+                                        'task_lists.description_placeholder',
+                                        'Describe what tasks belong in this column',
+                                    )}
                                     className="min-h-[100px] resize-none text-base transition-shadow duration-200 focus:shadow-lg focus:shadow-primary/10"
                                 />
                             </div>
@@ -2955,7 +3881,10 @@ export default function ProjectShow({ project }: Props) {
                                 >
                                     {isCreatingColumn
                                         ? t('common.saving', 'Saving...')
-                                        : t('common.save_changes', 'Save changes')}
+                                        : t(
+                                              'common.save_changes',
+                                              'Save changes',
+                                          )}
                                 </Button>
                             </div>
                         </form>
@@ -2972,15 +3901,22 @@ export default function ProjectShow({ project }: Props) {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('task_lists.delete_title', 'Delete column?')}</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {t('task_lists.delete_title', 'Delete column?')}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            {t('task_lists.delete_desc', 'This will permanently delete this column and all tasks within it. This action cannot be undone.')}
+                            {t(
+                                'task_lists.delete_desc',
+                                'This will permanently delete this column and all tasks within it. This action cannot be undone.',
+                            )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.cancel', 'Cancel')}</AlertDialogCancel>
+                        <AlertDialogCancel>
+                            {t('common.cancel', 'Cancel')}
+                        </AlertDialogCancel>
                         <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-red-600 text-white hover:bg-red-700"
                             onClick={() => {
                                 if (!deleteColumnId) return;
 
@@ -3040,7 +3976,10 @@ export default function ProjectShow({ project }: Props) {
                                 color: '#a855f7',
                             },
                             {
-                                label: t('tasks.status_in_progress', 'In Progress'),
+                                label: t(
+                                    'tasks.status_in_progress',
+                                    'In Progress',
+                                ),
                                 count: inProgressTasks,
                                 color: '#3b82f6',
                             },
@@ -3084,7 +4023,10 @@ export default function ProjectShow({ project }: Props) {
                                             {totalTasks}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            {t('tasks.total_tasks', 'total tasks')}
+                                            {t(
+                                                'tasks.total_tasks',
+                                                'total tasks',
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -3116,22 +4058,34 @@ export default function ProjectShow({ project }: Props) {
                                 <div className="grid grid-cols-4 gap-6">
                                     {[
                                         {
-                                            label: t('tasks.status_pending', 'Pending'),
+                                            label: t(
+                                                'tasks.status_pending',
+                                                'Pending',
+                                            ),
                                             count: pendingTasks,
                                             color: '#a855f7',
                                         },
                                         {
-                                            label: t('tasks.status_in_progress', 'In Progress'),
+                                            label: t(
+                                                'tasks.status_in_progress',
+                                                'In Progress',
+                                            ),
                                             count: inProgressTasks,
                                             color: '#3b82f6',
                                         },
                                         {
-                                            label: t('tasks.status_completed', 'Completed'),
+                                            label: t(
+                                                'tasks.status_completed',
+                                                'Completed',
+                                            ),
                                             count: completedTasks,
                                             color: '#22c55e',
                                         },
                                         {
-                                            label: t('tasks.status_cancelled', 'Cancelled'),
+                                            label: t(
+                                                'tasks.status_cancelled',
+                                                'Cancelled',
+                                            ),
                                             count: cancelledTasks,
                                             color: '#ef4444',
                                         },

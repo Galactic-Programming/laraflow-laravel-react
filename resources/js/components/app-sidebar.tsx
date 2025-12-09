@@ -14,7 +14,13 @@ import { useTranslations } from '@/hooks/use-translations';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, FolderKanban, LayoutGrid } from 'lucide-react';
+import {
+    BookOpen,
+    CheckSquare,
+    Folder,
+    FolderKanban,
+    LayoutGrid,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
@@ -30,6 +36,11 @@ export function AppSidebar() {
             title: t('nav.projects', 'Projects'),
             href: '/projects',
             icon: FolderKanban,
+        },
+        {
+            title: t('nav.tasks', 'Tasks'),
+            href: '/tasks',
+            icon: CheckSquare,
         },
     ];
 
