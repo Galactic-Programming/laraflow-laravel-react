@@ -414,4 +414,25 @@ return [
         'show_hide_columns' => 'Show/hide columns',
         'back_to_projects' => 'Back to projects',
     ],
+
+    // Activity Feed
+    'activity' => [
+        'title' => 'Activity Log',
+        'empty' => 'No activities found',
+        'show_mentioned_only' => 'Show mentioned only',
+        'filter' => 'Filter',
+        'status_to' => 'status to',
+        'assigned_to' => 'to',
+        'types' => [
+            'status_change' => 'changed status',
+            'comment' => 'commented on',
+            'mention' => 'mentioned you in',
+            'tag_added' => 'added tags',
+            'file_added' => 'added file',
+            'assignment' => 'assigned',
+            'created' => 'created',
+            'updated' => 'updated',
+            'deleted' => 'deleted',
+        ],
+    ],
 ];

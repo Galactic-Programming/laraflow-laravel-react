@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TaskList extends Model
 {
     /** @use HasFactory<\Database\Factories\TaskListFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    /**
+     * Get the project ID for activity logging.
+     */
+    protected function getActivityProjectId(): ?int
+    {
+        return $this->project_id;
+    }
 
     protected $fillable = [
         'project_id',

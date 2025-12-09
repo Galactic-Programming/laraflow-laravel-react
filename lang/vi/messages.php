@@ -414,4 +414,25 @@ return [
         'show_hide_columns' => 'Ẩn/hiện cột',
         'back_to_projects' => 'Quay lại dự án',
     ],
+
+    // Activity Feed
+    'activity' => [
+        'title' => 'Nhật ký hoạt động',
+        'empty' => 'Chưa có hoạt động nào',
+        'show_mentioned_only' => 'Chỉ hiện được nhắc đến',
+        'filter' => 'Lọc',
+        'status_to' => 'trạng thái thành',
+        'assigned_to' => 'cho',
+        'types' => [
+            'status_change' => 'đã thay đổi trạng thái',
+            'comment' => 'đã bình luận',
+            'mention' => 'đã nhắc đến bạn trong',
+            'tag_added' => 'đã thêm nhãn',
+            'file_added' => 'đã thêm tệp',
+            'assignment' => 'đã giao việc',
+            'created' => 'đã tạo',
+            'updated' => 'đã cập nhật',
+            'deleted' => 'đã xóa',
+        ],
+    ],
 ];
