@@ -7,11 +7,23 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePage } from '@inertiajs/react';
 
 export function UserNav() {
+    const { auth } = usePage<{
+        auth: { user: { name: string; email: string; avatar?: string } };
+    }>().props;
+    const user = auth?.user;
+
+    const initials =
+        user?.name
+            ?.split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase() || 'U';
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -20,8 +32,8 @@ export function UserNav() {
                     className="relative h-8 w-8 rounded-full"
                 >
                     <Avatar className="h-9 w-9">
-                        <AvatarImage src="/avatars/03.png" alt="@shadcn" />
-                        <AvatarFallback>SC</AvatarFallback>
+                        <AvatarImage src={user?.avatar} alt={user?.name} />
+                        <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
@@ -29,34 +41,20 @@ export function UserNav() {
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                         <p className="text-sm leading-none font-medium">
-                            shadcn
+                            {user?.name || 'User'}
                         </p>
                         <p className="text-xs leading-none text-muted-foreground">
-                            m@example.com
+                            {user?.email || 'user@example.com'}
                         </p>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
-                        Profile
-                        <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        Billing
-                        <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        Settings
-                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>New Team</DropdownMenuItem>
+                    <DropdownMenuItem>Profile</DropdownMenuItem>
+                    <DropdownMenuItem>Settings</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                    Log out
-                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-                </DropdownMenuItem>
+                <DropdownMenuItem>Log out</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     );

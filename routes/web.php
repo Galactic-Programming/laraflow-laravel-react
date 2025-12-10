@@ -61,6 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('projects/{project}/task-lists/{taskList}/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::put('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('projects/{project}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroyFromIndex'])->name('tasks.destroy.simple');
+    Route::put('tasks/{task}', [TaskController::class, 'updateFromIndex'])->name('tasks.update.simple');
+    Route::post('tasks/{task}/labels/toggle', [TaskController::class, 'toggleLabel'])->name('tasks.labels.toggle');
 
     // Activity Log routes
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');

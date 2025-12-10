@@ -1,161 +1,147 @@
 import { ColumnDef } from '@tanstack/react-table';
-import {
-    ArrowDown,
-    ArrowUp,
-    Circle,
-    CircleCheck,
-    CircleDot,
-    CircleX,
-} from 'lucide-react';
 
-import { LabelList } from '@/components/labels';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Task, TASK_PRIORITIES, TASK_STATUSES } from '@/types/task';
 
+import { priorities, statuses } from '../data/data.js';
+import { Task } from '../data/schema';
 import { DataTableColumnHeader } from './data-table-column-header';
-import { TaskDataTableRowActions } from './data-table-row-actions';
+import { DataTableRowActions } from './data-table-row-actions';
 
-const statusIcons = {
-    pending: CircleDot,
-    in_progress: Circle,
-    completed: CircleCheck,
-    cancelled: CircleX,
-};
-
-const priorityIcons = {
-    low: ArrowDown,
-    medium: Circle,
-    high: ArrowUp,
-};
-
-export function getTaskColumns(): ColumnDef<Task>[] {
-    return [
-        {
-            id: 'select',
-            header: () => <Checkbox className="translate-y-[2px]" />,
-            cell: () => <Checkbox className="translate-y-[2px]" />,
-            enableSorting: false,
-            enableHiding: false,
-        },
-        {
-            accessorKey: 'id',
-            header: () => <div className="w-[80px] font-medium">Task</div>,
-            cell: ({ row }) => {
-                const taskCode = `TASK-${row.getValue('id')}`;
-                return (
-                    <div className="flex justify-start">
-                        <div className="w-[80px] font-mono text-sm font-semibold text-muted-foreground">
-                            {taskCode}
-                        </div>
-                    </div>
-                );
-            },
-            enableSorting: false,
-            enableHiding: false,
-            size: 80,
-        },
-        {
-            id: 'title',
-            accessorKey: 'title',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Title" />
-            ),
-            cell: ({ row, table }) => {
-                // Get fresh data from table state instead of row.original
-                const rowData = table.options.data[row.index] as Task;
-                const labels = rowData?.labels || [];
-                return (
-                    <div className="flex max-w-[600px] min-w-[300px] items-start gap-2">
-                        {labels.length > 0 && (
-                            <div className="flex shrink-0 items-center gap-1">
-                                <LabelList labels={labels} maxVisible={3} />
-                            </div>
-                        )}
-                        <div className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate font-medium">
-                                {row.getValue('title')}
-                            </span>
-                            {rowData?.description && (
-                                <p className="truncate text-xs text-muted-foreground">
-                                    {rowData.description}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                );
-            },
-            enableHiding: true,
-            enableSorting: true,
-            size: 500,
-        },
-        {
-            accessorKey: 'status',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Status" />
-            ),
-            cell: ({ row }) => {
-                const status = row.getValue(
-                    'status',
-                ) as keyof typeof TASK_STATUSES;
-                const StatusIcon = statusIcons[status];
-                const statusConfig = TASK_STATUSES[status];
-
-                if (!statusConfig) {
-                    return null;
+export const columns: ColumnDef<Task>[] = [
+    {
+        id: 'select',
+        header: ({ table }) => (
+            <Checkbox
+                checked={
+                    table.getIsAllPageRowsSelected() ||
+                    (table.getIsSomePageRowsSelected() && 'indeterminate')
                 }
-
-                return (
-                    <div className="flex w-[120px] items-center gap-2">
-                        <StatusIcon className="size-4 text-muted-foreground" />
-                        <span className="text-sm">{statusConfig.label}</span>
-                    </div>
-                );
-            },
-            filterFn: (row, id, value) => {
-                return value.includes(row.getValue(id));
-            },
-            enableHiding: true,
-            size: 120,
-        },
-        {
-            accessorKey: 'priority',
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Priority" />
-            ),
-            cell: ({ row }) => {
-                const priority = row.getValue(
-                    'priority',
-                ) as keyof typeof TASK_PRIORITIES;
-                const PriorityIcon = priorityIcons[priority];
-                const priorityConfig = TASK_PRIORITIES[priority];
-
-                if (!priorityConfig) {
-                    return null;
+                onCheckedChange={(value) =>
+                    table.toggleAllPageRowsSelected(!!value)
                 }
+                aria-label="Select all"
+                className="translate-y-[2px]"
+            />
+        ),
+        cell: ({ row }) => (
+            <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                aria-label="Select row"
+                className="translate-y-[2px]"
+            />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+    },
+    {
+        accessorKey: 'id',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Task" />
+        ),
+        cell: ({ row }) => (
+            <div className="w-[80px]">
+                TASK-{String(row.getValue('id')).padStart(2, '0')}
+            </div>
+        ),
+        enableHiding: false,
+         enableSorting: false
+        ,
+    },
+    {
+        accessorKey: 'title',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Title" />
+        ),
+       
+        cell: ({ row }) => {
+            // Get first label from labels array if exists
+            const taskLabels = row.original.labels || [];
+            const firstLabel = taskLabels.length > 0 ? taskLabels[0] : null;
 
-                return (
-                    <div className="flex w-[100px] items-center gap-2">
-                        <PriorityIcon className="size-4 text-muted-foreground" />
-                        <span className="text-sm">{priorityConfig.label}</span>
-                    </div>
-                );
-            },
-            filterFn: (row, id, value) => {
-                return value.includes(row.getValue(id));
-            },
-            enableHiding: true,
-            size: 100,
-        },
-        {
-            id: 'actions',
-            header: () => <div className="w-[50px]"></div>,
-            cell: ({ row, table }) => (
-                <div className="flex justify-end">
-                    <TaskDataTableRowActions row={row} table={table} />
+            return (
+                <div className="flex gap-2">
+                    {firstLabel && (
+                        <Badge
+                            variant="outline"
+                            style={{
+                                borderColor: firstLabel.color,
+                                color: firstLabel.color,
+                            }}
+                        >
+                            {firstLabel.name}
+                        </Badge>
+                    )}
+                    <span className="max-w-[500px] truncate font-medium">
+                        {row.getValue('title')}
+                    </span>
                 </div>
-            ),
-            size: 50,
-            enableHiding: false,
+            );
         },
-    ];
-}
+    },
+    {
+        accessorKey: 'status',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Status" />
+        ),
+        cell: ({ row }) => {
+            const status = statuses.find(
+                (status) => status.value === row.getValue('status'),
+            );
+
+            if (!status) {
+                return null;
+            }
+
+            return (
+                <div className="flex w-[100px] items-center gap-2">
+                    {status.icon && (
+                        <status.icon className="size-4 text-muted-foreground" />
+                    )}
+                    <span>{status.label}</span>
+                </div>
+            );
+        },
+        filterFn: (row, id, value) => {
+            return value.includes(row.getValue(id));
+        },
+    },
+    {
+        accessorKey: 'priority',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Priority" />
+        ),
+        cell: ({ row }) => {
+            const priority = priorities.find(
+                (priority) => priority.value === row.getValue('priority'),
+            );
+
+            if (!priority) {
+                return null;
+            }
+
+            return (
+                <div className="flex items-center gap-2">
+                    {priority.icon && (
+                        <priority.icon className="size-4 text-muted-foreground" />
+                    )}
+                    <span>{priority.label}</span>
+                </div>
+            );
+        },
+        filterFn: (row, id, value) => {
+            return value.includes(row.getValue(id));
+        },
+    },
+    {
+        id: 'actions',
+        cell: ({ row }) => (
+            <div className="text-right">
+                <DataTableRowActions row={row} />
+            </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+    },
+];

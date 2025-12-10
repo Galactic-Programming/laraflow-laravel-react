@@ -1,18 +1,12 @@
-'use client';
-
 import {
     ColumnDef,
-    ColumnFiltersState,
-    SortingState,
-    VisibilityState,
     flexRender,
     getCoreRowModel,
-    getFacetedRowModel,
-    getFacetedUniqueValues,
-    getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    SortingState,
     useReactTable,
+    VisibilityState,
 } from '@tanstack/react-table';
 import * as React from 'react';
 
@@ -25,26 +19,96 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-import { Task } from '@/types/task';
 import { DataTablePagination } from './data-table-pagination';
+import { DataTableToolbar } from './data-table-toolbar';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
-    updateTaskData?: (taskId: number, newLabels: Task['labels']) => void;
+    filters?: {
+        search?: string;
+        status?: string | string[];
+        priority?: string | string[];
+        per_page?: number;
+        sort?: string;
+        order?: string;
+    };
+    onFilterChange?: (filters: Record<string, any>) => void;
+    pagination?: {
+        pageIndex: number;
+        pageSize: number;
+        pageCount: number;
+        total: number;
+    };
+    onRowClick?: (row: TData) => void;
 }
 
-export function TaskDataTable<TData, TValue>({
+export function DataTable<TData, TValue>({
     columns,
     data,
-    updateTaskData,
+    filters,
+    onFilterChange,
+    pagination: serverPagination,
+    onRowClick,
 }: DataTableProps<TData, TValue>) {
     const [rowSelection, setRowSelection] = React.useState({});
     const [columnVisibility, setColumnVisibility] =
-        React.useState<VisibilityState>({});
-    const [columnFilters, setColumnFilters] =
-        React.useState<ColumnFiltersState>([]);
+        React.useState<VisibilityState>(() => {
+            // Load from localStorage
+            const saved = localStorage.getItem('taskTableColumnVisibility');
+            return saved ? JSON.parse(saved) : {};
+        });
     const [sorting, setSorting] = React.useState<SortingState>([]);
+
+    // Save to localStorage when columnVisibility changes
+    React.useEffect(() => {
+        localStorage.setItem(
+            'taskTableColumnVisibility',
+            JSON.stringify(columnVisibility),
+        );
+    }, [columnVisibility]);
+
+    // Sync columnVisibility state when it changes
+    const handleColumnVisibilityChange = React.useCallback((updater: any) => {
+        setColumnVisibility((old) => {
+            const newState =
+                typeof updater === 'function' ? updater(old) : updater;
+            return newState;
+        });
+    }, []);
+
+    // Track previous sorting to detect changes
+    const prevSortingRef = React.useRef<SortingState>([]);
+
+    // Handle server-side sorting
+    React.useEffect(() => {
+        if (!serverPagination || !onFilterChange) return;
+
+        const prevSorting = prevSortingRef.current;
+        const sortingChanged =
+            JSON.stringify(prevSorting) !== JSON.stringify(sorting);
+
+        if (sortingChanged) {
+            prevSortingRef.current = sorting;
+
+            if (sorting.length > 0) {
+                const sortField = sorting[0].id;
+                const sortOrder = sorting[0].desc ? 'desc' : 'asc';
+                onFilterChange({
+                    sort: sortField,
+                    order: sortOrder,
+                    page: 1, // Reset to page 1 when sorting changes
+                });
+            } else {
+                // Clear sorting
+                onFilterChange({
+                    sort: undefined,
+                    order: undefined,
+                    page: 1,
+                });
+            }
+        }
+    }, [sorting, serverPagination, onFilterChange]);
 
     const table = useReactTable({
         data,
@@ -53,31 +117,41 @@ export function TaskDataTable<TData, TValue>({
             sorting,
             columnVisibility,
             rowSelection,
-            columnFilters,
+            pagination: serverPagination
+                ? {
+                      pageIndex: serverPagination.pageIndex,
+                      pageSize: serverPagination.pageSize,
+                  }
+                : {
+                      pageIndex: 0,
+                      pageSize: 25,
+                  },
         },
+        pageCount:
+            serverPagination?.pageCount ?? Math.ceil((data?.length || 0) / 25),
+        manualPagination: !!serverPagination,
+        manualSorting: !!serverPagination,
+        enableSortingRemoval: true, // Enable clicking 3rd time to remove sort
         enableRowSelection: true,
         onRowSelectionChange: setRowSelection,
         onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        onColumnVisibilityChange: setColumnVisibility,
+        onColumnVisibilityChange: handleColumnVisibilityChange,
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFacetedRowModel: getFacetedRowModel(),
-        getFacetedUniqueValues: getFacetedUniqueValues(),
-        meta: {
-            updateData: (taskId: number, newLabels: Task['labels']) => {
-                if (updateTaskData) {
-                    updateTaskData(taskId, newLabels);
-                }
-            },
-        },
+        getPaginationRowModel: serverPagination
+            ? undefined
+            : getPaginationRowModel(),
+        getSortedRowModel: serverPagination ? undefined : getSortedRowModel(),
     });
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-md border">
+        <div className="flex flex-col gap-4">
+            <DataTableToolbar
+                table={table}
+                filters={filters}
+                onFilterChange={onFilterChange}
+                onSortingReset={() => setSorting([])}
+            />
+            <div className="overflow-hidden rounded-md border">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -109,6 +183,18 @@ export function TaskDataTable<TData, TValue>({
                                     data-state={
                                         row.getIsSelected() && 'selected'
                                     }
+                                    className="cursor-pointer"
+                                    onClick={(e) => {
+                                        // Don't trigger row click if clicking on actions button or checkbox
+                                        const target = e.target as HTMLElement;
+                                        if (
+                                            target.closest('button') ||
+                                            target.closest('[role="checkbox"]')
+                                        ) {
+                                            return;
+                                        }
+                                        onRowClick?.(row.original);
+                                    }}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
@@ -133,7 +219,11 @@ export function TaskDataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <DataTablePagination table={table} />
+            <DataTablePagination
+                table={table}
+                onFilterChange={onFilterChange}
+                serverPagination={serverPagination}
+            />
         </div>
     );
 }

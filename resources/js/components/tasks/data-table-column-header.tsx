@@ -22,7 +22,7 @@ export function DataTableColumnHeader<TData, TValue>({
     title,
     className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
-    if (!column.getCanSort()) {
+    if (!column.getCanSort() || column.columnDef.enableSorting === false) {
         return <div className={cn(className)}>{title}</div>;
     }
 
@@ -37,11 +37,11 @@ export function DataTableColumnHeader<TData, TValue>({
                     >
                         <span>{title}</span>
                         {column.getIsSorted() === 'desc' ? (
-                            <ArrowDown className="size-4" />
+                            <ArrowDown />
                         ) : column.getIsSorted() === 'asc' ? (
-                            <ArrowUp className="size-4" />
+                            <ArrowUp />
                         ) : (
-                            <ChevronsUpDown className="size-4" />
+                            <ChevronsUpDown />
                         )}
                     </Button>
                 </DropdownMenuTrigger>
@@ -49,20 +49,26 @@ export function DataTableColumnHeader<TData, TValue>({
                     <DropdownMenuItem
                         onClick={() => column.toggleSorting(false)}
                     >
-                        <ArrowUp className="mr-2 size-4" />
+                        <ArrowUp />
                         Asc
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => column.toggleSorting(true)}
                     >
-                        <ArrowDown className="mr-2 size-4" />
+                        <ArrowDown />
                         Desc
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                        onClick={() => column.toggleVisibility(false)}
+                        onClick={() => {
+                            column.toggleVisibility(false);
+                            // Reload page after a short delay to sync with localStorage
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 100);
+                        }}
                     >
-                        <EyeOff className="mr-2 size-4" />
+                        <EyeOff />
                         Hide
                     </DropdownMenuItem>
                 </DropdownMenuContent>

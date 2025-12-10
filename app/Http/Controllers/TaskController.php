@@ -15,29 +15,72 @@ class TaskController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Task::with(['assignee', 'creator', 'taskList.project', 'labels'])
-            ->orderBy('created_at', 'desc');
+        $query = Task::with(['assignee', 'creator', 'taskList.project', 'labels']);
 
-        // Search filter
+        // Sorting
+        $sortField = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc');
+
+        // Validate sort field to prevent SQL injection
+        $allowedSortFields = ['id', 'title', 'status', 'priority', 'due_date', 'created_at', 'updated_at'];
+        if (! in_array($sortField, $allowedSortFields)) {
+            $sortField = 'created_at';
+        }
+
+        // Validate sort order
+        $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? $sortOrder : 'desc';
+
+        // Custom sorting for status and priority
+        if ($sortField === 'status') {
+            $statusOrder = $sortOrder === 'asc'
+                ? "FIELD(status, 'pending', 'in_progress', 'completed', 'cancelled')"
+                : "FIELD(status, 'cancelled', 'completed', 'in_progress', 'pending')";
+            $query->orderByRaw($statusOrder);
+        } elseif ($sortField === 'priority') {
+            $priorityOrder = $sortOrder === 'asc'
+                ? "FIELD(priority, 'high', 'medium', 'low')"
+                : "FIELD(priority, 'low', 'medium', 'high')";
+            $query->orderByRaw($priorityOrder);
+        } else {
+            $query->orderBy($sortField, $sortOrder);
+        }
+
+        // Search filter - exact match for task code or starts with for title
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                // Exact match for task code (e.g., TASK-01)
+                $q->where('id', $search)
+                    // Or starts with for title
+                    ->orWhere('title', 'like', "{$search}%");
             });
         }
 
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Status filter - only apply if not empty
+        if ($request->filled('status') && $request->status !== '' && $request->status !== []) {
+            $statuses = is_array($request->status)
+                ? array_filter($request->status) // Remove empty values
+                : [$request->status];
+
+            if (! empty($statuses)) {
+                $query->whereIn('status', $statuses);
+            }
         }
 
-        // Priority filter
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
+        // Priority filter - only apply if not empty
+        if ($request->filled('priority') && $request->priority !== '' && $request->priority !== []) {
+            $priorities = is_array($request->priority)
+                ? array_filter($request->priority) // Remove empty values
+                : [$request->priority];
+
+            if (! empty($priorities)) {
+                $query->whereIn('priority', $priorities);
+            }
         }
 
-        $tasks = $query->paginate(50);
+        // Pagination with per_page support
+        $perPage = $request->input('per_page', 10);
+        $tasks = $query->paginate($perPage);
 
         // Map labels to include enum value
         $tasks->getCollection()->transform(function ($task) {
@@ -62,6 +105,9 @@ class TaskController extends Controller
                 'search' => $request->search,
                 'status' => $request->status,
                 'priority' => $request->priority,
+                'per_page' => $perPage,
+                'sort' => $sortField,
+                'order' => $sortOrder,
             ],
         ]);
     }
@@ -195,5 +241,104 @@ class TaskController extends Controller
             ->decrement('position');
 
         return redirect()->back();
+    }
+
+    /**
+     * Set label for task (only one label allowed)
+     */
+    public function toggleLabel(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'label_id' => 'required|exists:labels,id',
+        ]);
+
+        $labelId = $validated['label_id'];
+
+        // Check if this label is already the only one attached
+        $currentLabels = $task->labels()->pluck('label_id')->toArray();
+
+        if (count($currentLabels) === 1 && $currentLabels[0] == $labelId) {
+            // If clicking the same label, remove it (unselect)
+            $task->labels()->detach($labelId);
+
+            // Log activity with label metadata
+            $label = \App\Models\Label::find($labelId);
+            $task->logActivity('updated', "removed label '{$label->name->value}'", [
+                'tags' => [
+                    [
+                        'name' => $label->name->value,
+                        'color' => $label->color,
+                        'removed' => true,
+                    ],
+                ],
+            ]);
+        } else {
+            // Get old label if exists
+            $oldLabel = count($currentLabels) > 0
+                ? \App\Models\Label::find($currentLabels[0])
+                : null;
+
+            // Replace all labels with the new one (only one label allowed)
+            $task->labels()->sync([$labelId]);
+
+            // Log activity with label metadata
+            $newLabel = \App\Models\Label::find($labelId);
+            $tags = [];
+
+            if ($oldLabel) {
+                $tags[] = [
+                    'name' => $oldLabel->name->value,
+                    'color' => $oldLabel->color,
+                    'removed' => true,
+                ];
+                $tags[] = [
+                    'name' => $newLabel->name->value,
+                    'color' => $newLabel->color,
+                    'added' => true,
+                ];
+                $task->logActivity('updated', "changed label from '{$oldLabel->name->value}' to '{$newLabel->name->value}'", [
+                    'tags' => $tags,
+                ]);
+            } else {
+                $tags[] = [
+                    'name' => $newLabel->name->value,
+                    'color' => $newLabel->color,
+                    'added' => true,
+                ];
+                $task->logActivity('updated', "added label '{$newLabel->name->value}'", [
+                    'tags' => $tags,
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Label updated successfully');
+    }
+
+    /**
+     * Delete task from tasks index page (simpler route)
+     */
+    public function destroyFromIndex(Task $task)
+    {
+        $task->delete();
+
+        return redirect()->back()->with('success', 'Task deleted successfully');
+    }
+
+    /**
+     * Update task from tasks index page (simpler route without project/taskList context)
+     */
+    public function updateFromIndex(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|in:low,medium,high',
+            'status' => 'required|in:pending,in_progress,completed,cancelled',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $task->update($validated);
+
+        return redirect()->back()->with('success', 'Task updated successfully');
     }
 }
