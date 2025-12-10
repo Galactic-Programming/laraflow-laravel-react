@@ -17,105 +17,127 @@ import {
 
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
+    onFilterChange?: (filters: Record<string, any>) => void;
+    serverPagination?: {
+        pageIndex: number;
+        pageSize: number;
+        pageCount: number;
+        total: number;
+    };
 }
 
 export function DataTablePagination<TData>({
     table,
+    onFilterChange,
+    serverPagination,
 }: DataTablePaginationProps<TData>) {
+    const handlePageChange = (newPageIndex: number) => {
+        if (serverPagination && onFilterChange) {
+            // Server-side pagination (Laravel uses 1-based page numbers)
+            onFilterChange({
+                page: newPageIndex + 1,
+            });
+        } else {
+            // Client-side pagination fallback
+            table.setPageIndex(newPageIndex);
+        }
+    };
+
+    const handlePageSizeChange = (newPageSize: string) => {
+        const size = Number(newPageSize);
+        if (serverPagination && onFilterChange) {
+            // Server-side pagination - reset to page 1 when changing page size
+            onFilterChange({
+                per_page: size,
+                page: 1,
+            });
+        } else {
+            // Client-side pagination fallback
+            table.setPageSize(size);
+        }
+    };
+
+    const currentPage = serverPagination
+        ? serverPagination.pageIndex
+        : (table.getState().pagination?.pageIndex ?? 0);
+    const pageCount = serverPagination
+        ? serverPagination.pageCount
+        : table.getPageCount();
+    const total = serverPagination
+        ? serverPagination.total
+        : table.getFilteredRowModel().rows.length;
+    const pageSize = serverPagination
+        ? serverPagination.pageSize
+        : (table.getState().pagination?.pageSize ?? 10);
+
     return (
-        <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-medium">
-                    {table.getFilteredSelectedRowModel().rows.length}
-                </span>
-                <span>of</span>
-                <span className="font-medium">
-                    {table.getFilteredRowModel().rows.length}
-                </span>
-                <span>row(s) selected</span>
+        <div className="flex items-center justify-between px-2">
+            <div className="flex-1 text-sm text-muted-foreground">
+                {table.getFilteredSelectedRowModel().rows.length} of {total}{' '}
+                row(s) selected.
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 lg:gap-8">
                 <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium whitespace-nowrap">
-                        Rows per page
-                    </p>
+                    <p className="text-sm font-medium">Rows per page</p>
                     <Select
-                        value={`${table.getState().pagination.pageSize}`}
-                        onValueChange={(value) => {
-                            table.setPageSize(Number(value));
-                        }}
+                        value={`${pageSize}`}
+                        onValueChange={handlePageSizeChange}
                     >
                         <SelectTrigger className="h-8 w-[70px]">
-                            <SelectValue
-                                placeholder={
-                                    table.getState().pagination.pageSize
-                                }
-                            />
+                            <SelectValue>{pageSize}</SelectValue>
                         </SelectTrigger>
                         <SelectContent side="top">
-                            {[10, 20, 25, 30, 40, 50].map((pageSize) => (
-                                <SelectItem
-                                    key={pageSize}
-                                    value={`${pageSize}`}
-                                >
-                                    {pageSize}
+                            {[10, 15, 20, 25, 30, 50, 100].map((size) => (
+                                <SelectItem key={size} value={`${size}`}>
+                                    {size}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex min-w-[120px] items-center justify-center text-sm font-medium">
-                    <span>Page</span>
-                    <span className="mx-1 font-semibold">
-                        {table.getState().pagination.pageIndex + 1}
-                    </span>
-                    <span>of</span>
-                    <span className="ml-1 font-semibold">
-                        {table.getPageCount()}
-                    </span>
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                    Page {currentPage + 1} of {pageCount}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center space-x-2">
                     <Button
                         variant="outline"
                         size="icon"
                         className="hidden size-8 lg:flex"
-                        onClick={() => table.setPageIndex(0)}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => handlePageChange(0)}
+                        disabled={currentPage === 0}
                     >
                         <span className="sr-only">Go to first page</span>
-                        <ChevronsLeft className="size-4" />
+                        <ChevronsLeft />
                     </Button>
                     <Button
                         variant="outline"
                         size="icon"
                         className="size-8"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 0}
                     >
                         <span className="sr-only">Go to previous page</span>
-                        <ChevronLeft className="size-4" />
+                        <ChevronLeft />
                     </Button>
                     <Button
                         variant="outline"
                         size="icon"
                         className="size-8"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= pageCount - 1}
                     >
                         <span className="sr-only">Go to next page</span>
-                        <ChevronRight className="size-4" />
+                        <ChevronRight />
                     </Button>
                     <Button
                         variant="outline"
                         size="icon"
                         className="hidden size-8 lg:flex"
-                        onClick={() =>
-                            table.setPageIndex(table.getPageCount() - 1)
-                        }
-                        disabled={!table.getCanNextPage()}
+                        onClick={() => handlePageChange(pageCount - 1)}
+                        disabled={currentPage >= pageCount - 1}
                     >
                         <span className="sr-only">Go to last page</span>
-                        <ChevronsRight className="size-4" />
+                        <ChevronsRight />
                     </Button>
                 </div>
             </div>

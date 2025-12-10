@@ -29,15 +29,20 @@ interface DataTableFacetedFilterProps<TData, TValue> {
         value: string;
         icon?: React.ComponentType<{ className?: string }>;
     }[];
+    selectedValues?: Set<string>;
+    onFilterChange?: (values: string[]) => void;
 }
 
 export function DataTableFacetedFilter<TData, TValue>({
     column,
     title,
     options,
+    selectedValues: externalSelectedValues,
+    onFilterChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const facets = column?.getFacetedUniqueValues();
-    const selectedValues = new Set(column?.getFilterValue() as string[]);
+    const selectedValues =
+        externalSelectedValues ?? new Set(column?.getFilterValue() as string[]);
 
     return (
         <Popover>
@@ -47,7 +52,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     size="sm"
                     className="h-8 border-dashed"
                 >
-                    <PlusCircle className="mr-2 size-4" />
+                    <PlusCircle />
                     {title}
                     {selectedValues?.size > 0 && (
                         <>
@@ -103,22 +108,30 @@ export function DataTableFacetedFilter<TData, TValue>({
                                     <CommandItem
                                         key={option.value}
                                         onSelect={() => {
+                                            const newSelectedValues = new Set(
+                                                selectedValues,
+                                            );
                                             if (isSelected) {
-                                                selectedValues.delete(
+                                                newSelectedValues.delete(
                                                     option.value,
                                                 );
                                             } else {
-                                                selectedValues.add(
+                                                newSelectedValues.add(
                                                     option.value,
                                                 );
                                             }
                                             const filterValues =
-                                                Array.from(selectedValues);
-                                            column?.setFilterValue(
-                                                filterValues.length
-                                                    ? filterValues
-                                                    : undefined,
-                                            );
+                                                Array.from(newSelectedValues);
+
+                                            if (onFilterChange) {
+                                                onFilterChange(filterValues);
+                                            } else {
+                                                column?.setFilterValue(
+                                                    filterValues.length
+                                                        ? filterValues
+                                                        : undefined,
+                                                );
+                                            }
                                         }}
                                     >
                                         <div
@@ -132,11 +145,9 @@ export function DataTableFacetedFilter<TData, TValue>({
                                             <Check className="size-3.5 text-primary-foreground" />
                                         </div>
                                         {option.icon && (
-                                            <option.icon className="ml-2 size-4 text-muted-foreground" />
+                                            <option.icon className="size-4 text-muted-foreground" />
                                         )}
-                                        <span className="ml-2">
-                                            {option.label}
-                                        </span>
+                                        <span>{option.label}</span>
                                         {facets?.get(option.value) && (
                                             <span className="ml-auto flex size-4 items-center justify-center font-mono text-xs text-muted-foreground">
                                                 {facets.get(option.value)}
@@ -151,9 +162,15 @@ export function DataTableFacetedFilter<TData, TValue>({
                                 <CommandSeparator />
                                 <CommandGroup>
                                     <CommandItem
-                                        onSelect={() =>
-                                            column?.setFilterValue(undefined)
-                                        }
+                                        onSelect={() => {
+                                            if (onFilterChange) {
+                                                onFilterChange([]);
+                                            } else {
+                                                column?.setFilterValue(
+                                                    undefined,
+                                                );
+                                            }
+                                        }}
                                         className="justify-center text-center"
                                     >
                                         Clear filters

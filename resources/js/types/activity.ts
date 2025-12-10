@@ -39,8 +39,11 @@ export interface ActivityStatus {
  */
 export interface ActivityTag {
     id?: number;
-    text: string;
-    color: ActivityColor;
+    text?: string;
+    name?: string;
+    color: ActivityColor | string; // Support both predefined colors and hex colors
+    added?: boolean;
+    removed?: boolean;
 }
 
 /**

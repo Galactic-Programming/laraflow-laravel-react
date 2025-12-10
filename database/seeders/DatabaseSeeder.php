@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
             // Plans must be seeded first (required for subscriptions)
             PlanSeeder::class,
 
+            // Labels must be seeded before tasks (for task labels relationship)
+            LabelSeeder::class,
+
             // Projects and related data
             ProjectSeeder::class,
             TaskListSeeder::class,

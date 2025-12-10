@@ -45,20 +45,35 @@ export interface ActivityTagBadgeProps {
  * Badge component for displaying activity tags
  */
 export function ActivityTagBadge({ tag, className }: ActivityTagBadgeProps) {
-    const colors = ACTIVITY_COLORS[tag.color] ?? ACTIVITY_COLORS.default;
+    // Check if color is hex (starts with #) or predefined color name
+    const isHexColor = tag.color.startsWith('#');
+    const colors = isHexColor
+        ? null
+        : (ACTIVITY_COLORS[tag.color] ?? ACTIVITY_COLORS.default);
+    const displayText = tag.text || tag.name || 'Unknown';
 
     return (
-        <div className={cn('flex items-center gap-1', className)}>
+        <Badge
+            variant="secondary"
+            className={cn(
+                'gap-1.5 text-xs',
+                tag.removed
+                    ? 'bg-red-100 text-red-700 line-through dark:bg-red-900/30 dark:text-red-400'
+                    : tag.added
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-muted text-muted-foreground',
+                className,
+            )}
+        >
             <div
                 className={cn(
                     'h-1.5 w-1.5 rounded-full md:h-2 md:w-2',
-                    colors.dot,
+                    isHexColor ? '' : colors?.dot,
                 )}
+                style={isHexColor ? { backgroundColor: tag.color } : undefined}
             />
-            <span className="text-xs text-muted-foreground md:text-sm">
-                {tag.text}
-            </span>
-        </div>
+            {displayText}
+        </Badge>
     );
 }
 
