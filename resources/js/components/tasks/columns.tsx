@@ -2,6 +2,7 @@ import { ColumnDef } from '@tanstack/react-table';
 
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useTranslations } from '@/hooks/use-translations';
 
 import { priorities, statuses } from '../data/data.js';
 import { Task } from '../data/schema';
@@ -11,50 +12,67 @@ import { DataTableRowActions } from './data-table-row-actions';
 export const columns: ColumnDef<Task>[] = [
     {
         id: 'select',
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && 'indeterminate')
-                }
-                onCheckedChange={(value) =>
-                    table.toggleAllPageRowsSelected(!!value)
-                }
-                aria-label="Select all"
-                className="translate-y-[2px]"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-                className="translate-y-[2px]"
-            />
-        ),
+        header: ({ table }) => {
+            const { t } = useTranslations();
+            return (
+                <Checkbox
+                    checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && 'indeterminate')
+                    }
+                    onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(!!value)
+                    }
+                    aria-label={t('columns.select_all', 'Select all')}
+                    className="translate-y-[2px]"
+                />
+            );
+        },
+        cell: ({ row }) => {
+            const { t } = useTranslations();
+            return (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label={t('columns.select_row', 'Select row')}
+                    className="translate-y-[2px]"
+                />
+            );
+        },
         enableSorting: false,
         enableHiding: false,
     },
     {
         accessorKey: 'id',
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Task" />
-        ),
+        header: ({ column }) => {
+            const { t } = useTranslations();
+            return (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('columns.task', 'Task')}
+                />
+            );
+        },
         cell: ({ row }) => (
             <div className="w-[80px]">
                 TASK-{String(row.getValue('id')).padStart(2, '0')}
             </div>
         ),
         enableHiding: false,
-         enableSorting: false
-        ,
+        enableSorting: false,
     },
     {
         accessorKey: 'title',
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Title" />
-        ),
-       
+        header: ({ column }) => {
+            const { t } = useTranslations();
+            return (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('columns.title', 'Title')}
+                />
+            );
+        },
+
         cell: ({ row }) => {
             // Get first label from labels array if exists
             const taskLabels = row.original.labels || [];
@@ -82,9 +100,15 @@ export const columns: ColumnDef<Task>[] = [
     },
     {
         accessorKey: 'status',
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Status" />
-        ),
+        header: ({ column }) => {
+            const { t } = useTranslations();
+            return (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('columns.status', 'Status')}
+                />
+            );
+        },
         cell: ({ row }) => {
             const status = statuses.find(
                 (status) => status.value === row.getValue('status'),
@@ -109,9 +133,15 @@ export const columns: ColumnDef<Task>[] = [
     },
     {
         accessorKey: 'priority',
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Priority" />
-        ),
+        header: ({ column }) => {
+            const { t } = useTranslations();
+            return (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('columns.priority', 'Priority')}
+                />
+            );
+        },
         cell: ({ row }) => {
             const priority = priorities.find(
                 (priority) => priority.value === row.getValue('priority'),

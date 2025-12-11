@@ -1,9 +1,9 @@
 import { Table } from '@tanstack/react-table';
-import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from '@/hooks/use-translations';
 import { DataTableFacetedFilter } from './data-table-faceted-filter';
 import { DataTableViewOptions } from './data-table-view-options';
 
@@ -26,6 +26,7 @@ export function DataTableToolbar<TData>({
     onFilterChange,
     onSortingReset,
 }: DataTableToolbarProps<TData>) {
+    const { t } = useTranslations();
     const [search, setSearch] = useState(filters.search || '');
     const [selectedStatus, setSelectedStatus] = useState<string[]>(
         Array.isArray(filters.status)
@@ -123,19 +124,22 @@ export function DataTableToolbar<TData>({
         <div className="flex items-center justify-between">
             <div className="flex flex-1 items-center gap-2">
                 <Input
-                    placeholder="Filter tasks..."
+                    placeholder={t(
+                        'tasks.filter_placeholder',
+                        'Lọc công việc...',
+                    )}
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="h-8 w-[150px] lg:w-[250px]"
                 />
                 <DataTableFacetedFilter
-                    title="Status"
+                    title={t('columns.status', 'Trạng thái')}
                     options={statuses}
                     selectedValues={new Set(selectedStatus)}
                     onFilterChange={handleStatusChange}
                 />
                 <DataTableFacetedFilter
-                    title="Priority"
+                    title={t('columns.priority', 'Mức độ ưu tiên')}
                     options={priorities}
                     selectedValues={new Set(selectedPriority)}
                     onFilterChange={handlePriorityChange}

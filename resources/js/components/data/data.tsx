@@ -38,6 +38,8 @@ export interface PriorityOption {
     icon: LucideIcon;
 }
 
+// Note: Labels are now translated via useTranslations hook
+// in components that use them
 export const labels: LabelOption[] = [
     {
         value: 'bug',
@@ -101,6 +103,8 @@ export const labels: LabelOption[] = [
     },
 ];
 
+// Note: Status labels are now translated via useTranslations hook
+// Use t('tasks.status_pending'), t('tasks.status_in_progress'), etc.
 export const statuses: StatusOption[] = [
     {
         value: 'pending',
@@ -124,6 +128,8 @@ export const statuses: StatusOption[] = [
     },
 ];
 
+// Note: Priority labels are now translated via useTranslations hook
+// Use t('tasks.priority_low'), t('tasks.priority_medium'), t('tasks.priority_high')
 export const priorities: PriorityOption[] = [
     {
         value: 'low',
