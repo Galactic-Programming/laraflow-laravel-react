@@ -179,11 +179,13 @@ return [
         'save_changes' => 'Lưu thay đổi',
         'toggle_columns' => 'Ẩn/Hiện cột',
         'me' => 'Tôi',
+        'nevermind' => 'Thôi',
     ],
 
     // Table columns
     'columns' => [
         'task' => 'Công việc',
+        'title' => 'Tiêu đề',
         'status' => 'Trạng thái',
         'priority' => 'Độ ưu tiên',
         'due_date' => 'Ngày hoàn thành',
@@ -191,6 +193,8 @@ return [
         'created' => 'Ngày tạo',
         'completed' => 'Ngày hoàn thành',
         'created_by' => 'Tạo bởi',
+        'select_all' => 'Chọn tất cả',
+        'select_row' => 'Chọn dòng',
     ],
 
     // Condition (Terms & Privacy)
@@ -367,10 +371,17 @@ return [
     // Tasks
     'tasks' => [
         'title' => 'Công việc',
+        'subtitle' => 'Theo dõi và quản lý công việc hiệu quả',
+        'filter_placeholder' => 'Lọc công việc...',
         'create' => 'Tạo công việc',
         'create_task' => 'Tạo công việc',
         'edit' => 'Chỉnh sửa công việc',
+        'edit_title' => 'Chỉnh sửa công việc',
+        'edit_desc' => 'Cập nhật chi tiết công việc.',
         'delete' => 'Xóa công việc',
+        'delete_btn' => 'Xóa',
+        'delete_confirm_title' => 'Xóa công việc?',
+        'delete_confirm_desc' => 'Bạn chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác.',
         'add_task' => 'Thêm công việc',
         'create_title' => 'Tạo công việc mới',
         'create_desc' => 'Thêm công việc mới vào',
@@ -401,6 +412,7 @@ return [
         'created_by' => 'Người tạo',
         'cancel' => 'Hủy',
         'create_btn' => 'Tạo công việc',
+        'update_btn' => 'Cập nhật công việc',
         'save_btn' => 'Lưu thay đổi',
         'total_tasks' => 'tổng công việc',
     ],
@@ -417,12 +429,36 @@ return [
 
     // Activity Feed
     'activity' => [
-        'title' => 'Nhật ký hoạt động',
+        'title' => 'Hoạt động gần đây',
+        'subtitle' => 'Theo dõi các thay đổi và cập nhật mới nhất',
         'empty' => 'Chưa có hoạt động nào',
+        'empty_desc' => 'Các cập nhật và thay đổi sẽ hiện ở đây',
         'show_mentioned_only' => 'Chỉ hiện được nhắc đến',
+        'mentioned_only' => 'Chỉ hiện nhắc tên',
         'filter' => 'Lọc',
+        'filter_all' => 'Tất cả',
+        'filter_mentions' => 'Được nhắc đến',
+        'filter_updates' => 'Cập nhật',
+        'filter_comments' => 'Bình luận',
         'status_to' => 'trạng thái thành',
         'assigned_to' => 'cho',
+        'load_more' => 'Xem thêm',
+        'loading' => 'Đang tải...',
+        'refresh' => 'Làm mới',
+        'mark_all_read' => 'Đánh dấu đã đọc hết',
+        'page' => 'Trang',
+        'of' => 'trong',
+        'total' => 'hoạt động',
+        'filter' => [
+            'all' => 'Tất cả hoạt động',
+            'created' => 'Đã tạo',
+            'updated' => 'Đã cập nhật',
+            'deleted' => 'Đã xóa',
+            'status_change' => 'Thay đổi trạng thái',
+            'assignment' => 'Giao việc',
+            'comment' => 'Bình luận',
+            'mention' => 'Nhắc tên',
+        ],
         'types' => [
             'status_change' => 'đã thay đổi trạng thái',
             'comment' => 'đã bình luận',
@@ -433,6 +469,14 @@ return [
             'created' => 'đã tạo',
             'updated' => 'đã cập nhật',
             'deleted' => 'đã xóa',
+        ],
+        'time' => [
+            'just_now' => 'vừa xong',
+            'minutes_ago' => '{count} phút trước',
+            'hours_ago' => '{count} giờ trước',
+            'days_ago' => '{count} ngày trước',
+            'weeks_ago' => '{count} tuần trước',
+            'months_ago' => '{count} tháng trước',
         ],
     ],
 ];
